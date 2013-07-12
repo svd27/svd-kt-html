@@ -1,0 +1,28 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="Container:Web exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/Container_Web_exploded</output-path>
+    <root id="root">
+      <element id="javaee-facet-resources" facet="Container/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="Container" />
+          <element id="module-output" name="svd-kt-html" />
+          <element id="module-output" name="js-engine" />
+          <element id="module-output" name="symbolon" />
+        </element>
+        <element id="directory" name="lib">
+          <element id="library" level="project" name="KotlinJavaRuntime" />
+          <element id="library" level="project" name="KotlinJavaScript" />
+          <element id="library" level="project" name="com.fasterxml.jackson.core:jackson-annotations:2.2.2" />
+          <element id="library" level="project" name="com.fasterxml.jackson.core:jackson-core:2.2.2" />
+          <element id="library" level="project" name="com.fasterxml.jackson.core:jackson-databind:2.2.2" />
+        </element>
+      </element>
+      <element id="directory" name="resources">
+        <element id="directory" name="js">
+          <element id="module-output" name="js-engine" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>
