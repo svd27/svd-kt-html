@@ -25,7 +25,7 @@ import ch.passenger.kotlin.html.js.model.WordTableModel
 open public class Session {
     var base : String? = null
     val words = HashMap<Long,Word>()
-    var root : FlowContent = Div()
+    var root : FlowContent = Div("xxxyyyxxx")
     var rootSelector : String = "body"
     var initialised = false
     val actionHolder = ActionHolder()
@@ -35,7 +35,7 @@ open public class Session {
         nextId = nextId+1
         return "id${nextId}"
     }
-    fun init() {
+    fun session_init() {
         if(initialised) return
         val load = Div("loader")
         load.text("loading")
@@ -89,7 +89,7 @@ public object SESSION : Session()
 
 
 fun main(args: Array<String>) {
-    var session : Session = SESSION
+
     jq {
         /*
         jq("body").on("click", "a.action") {
@@ -101,8 +101,8 @@ fun main(args: Array<String>) {
         jq("div#uri").text(window.document.baseURI)
 
         var idx = window.document.baseURI.lastIndexOf("/")
-        session.base = window.document.baseURI.substring(0, idx)
-        session.init()
+        SESSION.base = window.document.baseURI.substring(0, idx)
+        SESSION.session_init()
         /*
         jq("div#base").text(Session.base!!)
 

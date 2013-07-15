@@ -149,7 +149,7 @@ class Link(val href : String) : FlowContent("a") {
     }
 }
 
-class Table(id : String? = null) : Tag("table", id) {
+class Table(title: String, id : String? = null) : Tag("table", id) {
     var caption : Caption? = null
     var body : TBody? = null
     var head : THead? = null
