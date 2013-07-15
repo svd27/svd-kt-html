@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact name="js-engine-out">
+    <output-path>$PROJECT_DIR$/out/artifacts/js_engine_out</output-path>
+    <root id="root">
+      <element id="module-output" name="js-engine" />
+    </root>
+  </artifact>
+</component>

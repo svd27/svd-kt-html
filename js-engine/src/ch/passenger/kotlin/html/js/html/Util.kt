@@ -75,9 +75,9 @@ public class ActionHolder {
     }
 
     fun trigger(e : DOMEvent) {
-        //val said = jq(e.target).data("action").toString()
-        //val aid = safeParseInt(said)
+        val said = jq(e.target).data("action").toString()
+        val aid = safeParseInt(said)
 
-        //actions.get(aid)?.callback(e)
+        actions.get(aid)?.callback(e)
     }
 }

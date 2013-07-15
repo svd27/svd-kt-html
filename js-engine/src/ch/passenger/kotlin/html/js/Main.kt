@@ -25,7 +25,7 @@ import ch.passenger.kotlin.html.js.model.WordTableModel
 open public class Session {
     var base : String? = null
     val words = HashMap<Long,Word>()
-    var root : FlowContent = Div("xxxyyyxxx")
+    var root : FlowContainer = Div("xxxyyyxxx")
     var rootSelector : String = "body"
     var initialised = false
     val actionHolder = ActionHolder()
@@ -54,8 +54,34 @@ open public class Session {
 
 
                 val tm = WordTableModel()
+                parsed.each { tm.content.add(it) }
                 val table = TableRenderer<Word>("table", tm, "table")
-                table.append(root)
+                table.renderers.put("id", object : CellRenderer<Word> {
+                    override fun render(t: Word, v: Any?, row: Int, col: String): FlowContainer {
+                        val s = Span()
+                        s.a("") {
+                            text("${v}")
+                            val cb = object : Callback {
+                                var w : Word = t
+                                override fun callback(event: DOMEvent) {
+                                    val s = Span()
+                                    s.text(w.name)
+                                    jq("div#detail").html(s.render())
+                                }
+                            }
+                            action(cb)
+                        }
+
+                        return s
+                    }
+                })
+                val div = Div("content")
+                root = div
+                val tdiv = Div("container-table")
+                div.appendFlow(tdiv)
+                val ddiv = Div("detail")
+                div.appendFlow(ddiv)
+                table.appendTo(tdiv, tm, table)
                 fullRender()
 
             }
@@ -91,11 +117,9 @@ public object SESSION : Session()
 fun main(args: Array<String>) {
 
     jq {
-        /*
         jq("body").on("click", "a.action") {
-            event -> session.actionHolder.trigger(event)
+            event -> SESSION.actionHolder.trigger(event)
         }
-        */
         val title = jq("html head title")
         title.text("Words")
         jq("div#uri").text(window.document.baseURI)
@@ -146,10 +170,10 @@ fun<T> Array<T>.each(it:(T)->Unit) {
 }
 
 fun mytable(json : Array<Definition>) :Unit {
-    val table : Table = Table()
+    val table : Table = Table("Table")
 
     table.caption {
-        text("Table")
+        text(table.title)
     }
 
     table.body {

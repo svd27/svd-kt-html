@@ -4,6 +4,7 @@ import ch.passenger.kotlin.html.js.model.Identifiable
 import java.util.ArrayList
 import java.util.HashSet
 import js.jquery.jq
+import java.util.HashMap
 
 /**
  * Created with IntelliJ IDEA.
@@ -66,6 +67,10 @@ abstract class TableModel<T: Identifiable>(): Observer<T>   {
 }
 
 class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel<T>, val ids: String): TableListener<T> {
+    var title : String = model.title
+    val renderers : MutableMap<String,CellRenderer<T>> = HashMap()
+    val defaultRenderer : CellRenderer<T> = object : CellRenderer<T> {}
+
     override fun rowAdded(row: Int, t: T) {
         throw UnsupportedOperationException()
     }
@@ -79,50 +84,79 @@ class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel
         throw UnsupportedOperationException()
     }
 
+    fun renderer(col:String) : CellRenderer<T> {
+        if(renderers.containsKey(col)) {
+            return renderers[col]!!
+        }
 
-    fun append(e: FlowContent) {        
-        e.table(ids) {
-            caption {
-                text(model.title)
+        return defaultRenderer
+    }
+
+
+    fun appendTo(e: FlowContainer, m : TableModel<T> = model, tablerenderer : TableRenderer<T> = this) {
+        val t : Table = Table(ids)
+        t.title = title
+        t.caption {
+            text(t.title)
+        }
+
+        t.head {
+            atts {
+                att("data-table-head", "true")
             }
-
-            head {
+            tr {
                 atts {
-                    att("data-table-head", "true")
+                    att("data-table-head-row", "1")
                 }
-                tr {
-                    atts {
-                        att("data-table-head-row", "1")
-                    }
-                    for(c in model.columns) {
-                        td {
-                            atts { att("data-table-head-row-column", "${c}") }
-                            text(c)
-                        }
+                for(c in m.columns) {
+                    td {
+                        atts { att("data-table-head-row-column", "${c}") }
+                        text(c)
                     }
                 }
-            }
-
-            body {
-                for(row in 0..model.content.size())
-                    tr {
-                        atts {
-                            att("data-table-row", "${row}")
-                        }
-                        for(c in model.columns)
-                            td {
-                                atts { att("data-table-cell", "r${row}c${c}") }
-                                val s = model.value(model.content[row], c)?.toString()
-                                if(s != null) text(s)
-                            }
-                    }
             }
         }
+
+        t.body {
+            for(row in 0..(m.content.size()-1))
+                tr {
+                    atts {
+                        att("data-table-row", "${row}")
+                    }
+                    for(c in m.columns)
+                        td {
+                            atts { att("data-table-cell", "r${row}c${c}") }
+                            val v = m.value(m.content[row], c)
+
+                            val cr = tablerenderer.renderer(c)
+                            appendFlow(cr.render(m.content[row], v, row, c))
+                        }
+                }
+        }
+        e.append(t)
     }
 
     fun renderCell(t: T, row: Int, col: String) {
 
 
+    }
+}
+
+trait CellRenderer<T> {
+    fun render(t : T, v : Any?, row : Int, col : String) : FlowContainer {
+        if(v==null) return Span()
+        var r : FlowContainer = Span()
+        /*
+        when(v) {
+            is Int -> r.text("${v}")
+            is Long -> r.text("${v}")
+            is String -> r.text(v)
+            else -> r.text("-")
+        }
+        */
+
+        r.text("${v}")
+        return r
     }
 }
 

@@ -36,7 +36,8 @@ abstract class HtmlElement() {
 
     fun writeChildren() : String {
         val sb  = StringBuilder()
-        children.each { sb.append(it.toString()) }
+        //TODO: null check not needed
+        children.each { if(it!=null) sb.append(it.render()) }
         return sb.toString()
     }
 
@@ -111,19 +112,21 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement() {
 
 }
 
-abstract class FlowContent(s :String, id : String? = null) : Tag(s, id) {
+
+
+abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
     fun text(s:String) {
         children.add(Text(s))
     }
 
     fun table(id : String, init: Table.() -> Unit) {
-        val table = Table(id)
+        val table = Table("", id)
         children.add(table)
         table.init()
     }
 
     fun table(init: Table.() -> Unit) {
-        val table = Table()
+        val table = Table("")
         children.add(table)
         table.init()
     }
@@ -134,12 +137,33 @@ abstract class FlowContent(s :String, id : String? = null) : Tag(s, id) {
         children.add(a)
     }
 
+    fun div(init: Div.() -> Unit) {
+        val d = Div()
+        children.add(d)
+        d.init()
+    }
+
+    fun div(init: Span.() -> Unit) {
+        val s = Span()
+        children.add(s)
+        s.init()
+    }
+
+
+    fun append(t : Table) {
+        children.add(t)
+    }
+
     override final fun writeContent(): String {
         return writeChildren()
     }
+
+    fun appendFlow(c : FlowContainer) {
+        children.add(c)
+    }
 }
 
-class Link(val href : String) : FlowContent("a") {
+class Link(val href : String) : FlowContainer("a") {
     fun action(cb : Callback) {
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
@@ -149,16 +173,16 @@ class Link(val href : String) : FlowContent("a") {
     }
 }
 
-class Table(title: String, id : String? = null) : Tag("table", id) {
+class Table(public var title: String, id : String? = null) : Tag("table", id) {
     var caption : Caption? = null
     var body : TBody? = null
     var head : THead? = null
 
     override fun writeContent(): String {
         val sb : StringBuilder = StringBuilder()
-        if(caption!=null) sb.append(caption.toString())
-        if(head!=null) sb.append(head.toString())
-        if(body!=null) sb.append(body.toString())
+        if(caption!=null) sb.append(caption?.render())
+        if(head!=null) sb.append(head?.render())
+        if(body!=null) sb.append(body?.render())
         return sb.toString()
     }
 
@@ -209,7 +233,7 @@ class THead(id : String? = null) : Tag("thead", id) {
 }
 
 
-class Caption : FlowContent("Caption") {
+class Caption : FlowContainer("Caption") {
 
 }
 
@@ -225,13 +249,10 @@ class TableRow(id : String? = null) : Tag("tr", id) {
     }
 }
 
-class Div(id : String? = null) : FlowContent("div", id) {
+class Div(id : String? = null) : FlowContainer("div", id) {
 }
 
-class Span(id : String? = null) : FlowContent("span", id) {
+class Span(id : String? = null) : FlowContainer("span", id) {
 }
 
-class TableCell(id : String? = null) : FlowContent("td", id) {
-
-
-}
+class TableCell(id : String? = null) : FlowContainer("td", id)
