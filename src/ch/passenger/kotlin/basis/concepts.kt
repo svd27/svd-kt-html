@@ -31,22 +31,25 @@ enum class EventTypes {
 }
 
 
-open public class Event<T : Identifiable>(public val source : T, public val kind : EventTypes)
+open public class ElementEvent<T : Identifiable>(public val source : T, public val kind : EventTypes)
 class UpdateEvent<T : Identifiable,P>(source : T, val p : jet.PropertyMetadata, val old : P, val new : P)
-: Event<T>(source, EventTypes.UPDATE)
+: ElementEvent<T>(source, EventTypes.UPDATE)
 
-class LoadEvent<T : Identifiable>(val elements : Iterable<T>) : Event<T>(elements.first(), EventTypes.LOAD)
+
+open class InterestEvent<T : Identifiable>(val source : Interest<T>, val elements : Iterable<T>, kind : EventTypes)
+class LoadEvent<T : Identifiable>(source : Interest<T>, elements : Iterable<T>) : InterestEvent<T>(source, elements, EventTypes.LOAD)
+class PageEvent<T : Identifiable>(source : Interest<T>, page : Iterable<T>, val paged : Paged<T>) : InterestEvent<T>(source, page, EventTypes.LOAD)
 
 trait Observer<T : Identifiable> {
     open fun accept(et : EventTypes) : Boolean {
         return true
     }
-    fun consume(e: Event<T>)
+    fun consume(e: ElementEvent<T>)
 }
 
 trait Observable<T : Identifiable> {
     public val observers : MutableSet<Observer<T>>
-    protected fun produce(event : Event<T>) {
+    protected fun produce(event : ElementEvent<T>) {
         for(o in observers) o.consume(event)
     }
 
@@ -77,12 +80,23 @@ class IdentityFilter<T> : Filter<T> {
     }
 }
 
-trait Interest<T : Identifiable> : Observable<T>, Observer<T>
-{
-    val producer : ElementProducer<T>
-    var filter : Filter<T>
+trait Paged<T : Identifiable> : Observable<T> {
+    private var rowsPerPage : Int
+    private var pages : Int
+    private var current : Int
+    private var page : Array<T>
 
     fun elements() : Iterable<T>
+
+    fun update() {
+
+    }
+}
+
+trait Interest<T : Identifiable> : Paged<T>, Observer<T>{
+    val producer : ElementProducer<T>
+    var filter : Filter<T>
+    val paged : Paged<T>
 
     fun addHook(e :T) : T?
 
@@ -100,7 +114,7 @@ trait Interest<T : Identifiable> : Observable<T>, Observer<T>
     }
 
 
-    override fun consume(e: Event<T>) {
+    override fun consume(e: ElementEvent<T>) {
         when(e.kind) {
             EventTypes.CREATE -> {
                 produce(e)
@@ -129,7 +143,7 @@ trait Interest<T : Identifiable> : Observable<T>, Observer<T>
             val ae = addHook(t)
             if(ae !=null) {
                 val theT : T = ae
-                produce(Event(theT, EventTypes.ADD))
+                produce(ElementEvent(theT, EventTypes.ADD))
             }
             else throw IllegalStateException()
         }
@@ -140,7 +154,7 @@ trait Interest<T : Identifiable> : Observable<T>, Observer<T>
             val re = removeHook(t)
             if(re !=null) {
                 val theT : T = re
-                produce(Event(theT, EventTypes.LOAD))
+                produce(ElementEvent(theT, EventTypes.LOAD))
             }
             else throw IllegalStateException()
         }

@@ -66,7 +66,7 @@ abstract class TableModel<T: Identifiable>(): Observer<T>   {
     abstract fun value(t: T, col: String, v: Any?)
 }
 
-class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel<T>, val ids: String): TableListener<T> {
+class TableRenderer<T: Identifiable>(val model: TableModel<T>, val ids: String): TableListener<T> {
     var title : String = model.title
     val renderers : MutableMap<String,CellRenderer<T>> = HashMap()
     val defaultRenderer : CellRenderer<T> = object : CellRenderer<T> {}

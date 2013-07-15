@@ -7,6 +7,7 @@ import js.dom.html.Event
 import js.jquery.jq
 import ch.passenger.kotlin.html.js.Session
 import ch.passenger.kotlin.html.js.SESSION
+import js.debug.console
 
 /**
  * Created with IntelliJ IDEA.
@@ -27,8 +28,9 @@ open class Attribute(val name:String, val value:String) {
     }
 }
 
-abstract class HtmlElement() {
-    val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
+abstract class HtmlElement(aid : String?) {
+    private val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
+    public val tid : String = forceId(aid)
 
     open fun render(): String {
         return writeChildren()
@@ -41,10 +43,13 @@ abstract class HtmlElement() {
         return sb.toString()
     }
 
-
+    fun addChild(e : HtmlElement) {
+        console.log("adding: ", e.render())
+        children.add(e)
+    }
 }
 
-class Text(val content : String) : HtmlElement() {
+class Text(val content : String) : HtmlElement(null) {
     override fun render(): String {
         return content
     }
@@ -74,10 +79,8 @@ fun forceId(aid : String?) : String {
     else return aid
 }
 
-abstract class Tag(val name : String, val aid : String?) : HtmlElement() {
+abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
     val attributes : AttributeList = AttributeList(HashMap())
-    public var tid : String = forceId(aid)
-
 
     abstract fun writeContent() : String
 
@@ -108,50 +111,48 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement() {
             attributes.att("class", c)
         }
     }
-
-
 }
 
 
 
 abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
     fun text(s:String) {
-        children.add(Text(s))
+        addChild(Text(s))
     }
 
-    fun table(id : String, init: Table.() -> Unit) {
+    fun table(id : String? = null, init: Table.() -> Unit) {
         val table = Table("", id)
-        children.add(table)
+        addChild(table)
         table.init()
     }
 
-    fun table(init: Table.() -> Unit) {
-        val table = Table("")
-        children.add(table)
-        table.init()
-    }
-
-    fun a(href : String, init : Link.() -> Unit) {
+    fun a(href : String, id:String?=null, init : Link.() -> Unit) {
         val a = Link(href)
         a.init()
-        children.add(a)
+        addChild(a)
     }
 
-    fun div(init: Div.() -> Unit) {
+    fun div(id:String?=null, init: Div.() -> Unit) {
         val d = Div()
-        children.add(d)
         d.init()
+        addChild(d)
     }
 
-    fun div(init: Span.() -> Unit) {
+    fun span(init: Span.() -> Unit) {
         val s = Span()
-        children.add(s)
+        addChild(s)
         s.init()
+    }
+    
+    fun select(id:String?=null, init: Select.() -> Unit) {
+        val s = Select()
+        s.init()
+        addChild(s)
     }
 
 
     fun append(t : Table) {
-        children.add(t)
+        addChild(t)
     }
 
     override final fun writeContent(): String {
@@ -159,11 +160,14 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
     }
 
     fun appendFlow(c : FlowContainer) {
-        children.add(c)
+        addChild(c)
     }
 }
 
 class Link(val href : String) : FlowContainer("a") {
+    {
+        atts { att("href", href) }
+    }
     fun action(cb : Callback) {
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
@@ -190,18 +194,21 @@ class Table(public var title: String, id : String? = null) : Tag("table", id) {
         var c = Caption()
         c.init()
         caption = c
+        addChild(c)
     }
 
     fun body(init : TBody.() -> Unit): Unit {
         val b = TBody()
         b.init()
         body = b
+        addChild(b)
     }
 
     fun head(init : THead.() -> Unit): Unit {
         val h = THead()
         h.init()
         head = h
+        addChild(h)
     }
 
 }
@@ -215,7 +222,7 @@ class TBody(id : String? = null) : Tag("tbody", id) {
     fun tr(init : TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
-        children.add(row)
+        addChild(row)
     }
 }
 
@@ -228,7 +235,7 @@ class THead(id : String? = null) : Tag("thead", id) {
     fun tr(init : TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
-        children.add(row)
+        addChild(row)
     }
 }
 
@@ -241,13 +248,14 @@ class TableRow(id : String? = null) : Tag("tr", id) {
     fun td(init : TableCell.() -> Unit) {
         val c = TableCell()
         c.init()
-        children.add(c)
+        addChild(c)
     }
 
     override fun writeContent(): String {
         return writeChildren()
     }
 }
+
 
 class Div(id : String? = null) : FlowContainer("div", id) {
 }
@@ -256,3 +264,49 @@ class Span(id : String? = null) : FlowContainer("span", id) {
 }
 
 class TableCell(id : String? = null) : FlowContainer("td", id)
+
+class Select(id : String? = null) : Tag("select", id) {
+    override fun writeContent(): String {
+        return writeChildren()
+    }
+    
+    fun<T> option(t:T, id:String, init : Option<T>.() -> Unit) {
+        val o = Option(t, id)
+        o.init()
+        addChild(o)
+    }
+
+    fun change(cb : Callback) {
+        val aid = SESSION.actionHolder.add(cb)
+        addClass("action")
+        atts {
+            att("data-action", "${aid}")
+        }
+    }
+}
+
+class Option<T>(t:T, id : String? = null) : Tag("option", id) {
+    var text : Text? = null
+    fun disabled(fl : Boolean) {
+        attributes.att("disabled", "${fl}")
+    }
+    fun selected(fl : Boolean) {
+        attributes.att("selected", "${fl}")
+    }
+
+    fun label(l : String) {
+        attributes.att("label", l)
+    }
+    fun value(l : String) {
+        attributes.att("value", l)
+    }
+    
+    fun text(s : String) {
+        text = Text(s)
+    }
+    
+    override fun writeContent(): String {
+        if(text!=null) return text?.render()!!
+        return ""
+    }
+}

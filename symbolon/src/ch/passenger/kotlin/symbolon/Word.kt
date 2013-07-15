@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import ch.passenger.kotlin.basis.Identifiable
 import ch.passenger.kotlin.basis.Named
 import kotlin.properties.Delegates
-import ch.passenger.kotlin.basis.Event
+import ch.passenger.kotlin.basis.ElementEvent
 import ch.passenger.kotlin.basis.Observable
 import ch.passenger.kotlin.basis.Observer
 import java.util.HashSet
@@ -94,13 +94,13 @@ public object Universe : Observable<Word>, ElementProducer<Word> {
 
     fun add(w : Word) {
         dictionary[w.id] = w
-        produce(Event(w, EventTypes.CREATE))
+        produce(ElementEvent(w, EventTypes.CREATE))
     }
 
     fun remove(w : Word) : Word? {
         val res = dictionary.remove(w.id)
         if(res==null) return null
-        produce(Event(w, EventTypes.DELETE))
+        produce(ElementEvent(w, EventTypes.DELETE))
         return res
     }
 
@@ -151,7 +151,7 @@ class WordInterest(override val producer : ElementProducer<Word>) : Interest<Wor
 }
 
 class TestObserver : Observer<Word> {
-    override fun consume(e: Event<Word>) {
+    override fun consume(e: ElementEvent<Word>) {
         println("${e.kind}: ${e.source.id} ${e.source.name}")
         if(e is UpdateEvent<*,*>)
             println("update: ${e.old} -> ${e.new}")

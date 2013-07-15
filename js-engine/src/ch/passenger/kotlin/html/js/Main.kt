@@ -55,7 +55,7 @@ open public class Session {
 
                 val tm = WordTableModel()
                 parsed.each { tm.content.add(it) }
-                val table = TableRenderer<Word>("table", tm, "table")
+                val table = TableRenderer<Word>(tm, "table")
                 table.renderers.put("id", object : CellRenderer<Word> {
                     override fun render(t: Word, v: Any?, row: Int, col: String): FlowContainer {
                         val s = Span()
@@ -77,6 +77,29 @@ open public class Session {
                 })
                 val div = Div("content")
                 root = div
+                val top = Div("top")
+                top.select("interests") {
+                    option("","-1") {
+                        label("NONE")
+                        text("NONE")
+                    }
+                    option("NEW","new") {
+                        label("NEW")
+                        text("NEW")
+                    }
+                    val cb = object : Callback {
+                        override fun callback(event: DOMEvent) {
+                            val s = Span()
+                            val sel = jq("#${event.target.id} option:selected")
+                            s.text(sel.html())
+                            jq("div#detail").html(s.render())
+                        }
+                    }
+                    change(cb)
+                }
+
+                div.appendFlow(top)
+
                 val tdiv = Div("container-table")
                 div.appendFlow(tdiv)
                 val ddiv = Div("detail")
@@ -120,6 +143,9 @@ fun main(args: Array<String>) {
         jq("body").on("click", "a.action") {
             event -> SESSION.actionHolder.trigger(event)
         }
+        jq("body").on("change", "select.action") {
+            event -> SESSION.actionHolder.trigger(event)
+        }
         val title = jq("html head title")
         title.text("Words")
         jq("div#uri").text(window.document.baseURI)
@@ -127,27 +153,7 @@ fun main(args: Array<String>) {
         var idx = window.document.baseURI.lastIndexOf("/")
         SESSION.base = window.document.baseURI.substring(0, idx)
         SESSION.session_init()
-        /*
-        jq("div#base").text(Session.base!!)
-
-
-        sendAjax(Session.base!! + "/symbolon/words", "GET") {
-            req ->
-            var t = req.responseText
-            var ready = req.readyState
-            if(ready == 4 as Short) {
-                jq("input#out").`val`(t)
-                val parsed = JSON.parse<Array<Word>>(t)
-
-                jq("div#json").text(t)
-
-                wordTable("div#table", parsed)
-            }
-        }
-        */
     }
-
-
 }
 
 
