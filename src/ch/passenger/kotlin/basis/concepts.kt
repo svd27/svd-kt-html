@@ -27,29 +27,35 @@ trait Interesting<T : Identifiable> {
 
 
 enum class EventTypes {
-    CREATE ADD LOAD UPDATE REMOVE DELETE OTHER
+    CREATE ADD LOAD UPDATE REMOVE DELETE OTHER PAGE
 }
 
+abstract class Event<T>
 
-open public class ElementEvent<T : Identifiable>(public val source : T, public val kind : EventTypes)
+open public class ElementEvent<T : Identifiable>(public val source : T, public val kind : EventTypes) : Event<T>()
 class UpdateEvent<T : Identifiable,P>(source : T, val p : jet.PropertyMetadata, val old : P, val new : P)
 : ElementEvent<T>(source, EventTypes.UPDATE)
 
 
-open class InterestEvent<T : Identifiable>(val source : Interest<T>, val elements : Iterable<T>, kind : EventTypes)
+open class InterestEvent<T : Identifiable>(val source : Interest<T>, val elements : Iterable<T>, kind : EventTypes) : Event<T>()
 class LoadEvent<T : Identifiable>(source : Interest<T>, elements : Iterable<T>) : InterestEvent<T>(source, elements, EventTypes.LOAD)
-class PageEvent<T : Identifiable>(source : Interest<T>, page : Iterable<T>, val paged : Paged<T>) : InterestEvent<T>(source, page, EventTypes.LOAD)
+class PageEvent<T : Identifiable>(source : Interest<T>, page : Iterable<T>, val paged : Paged<T>) : InterestEvent<T>(source, page, EventTypes.PAGE)
 
 trait Observer<T : Identifiable> {
     open fun accept(et : EventTypes) : Boolean {
         return true
     }
     fun consume(e: ElementEvent<T>)
+    fun consume(e: InterestEvent<T>)
 }
 
 trait Observable<T : Identifiable> {
     public val observers : MutableSet<Observer<T>>
     protected fun produce(event : ElementEvent<T>) {
+        for(o in observers) o.consume(event)
+    }
+
+    protected fun produce(event : InterestEvent<T>) {
         for(o in observers) o.consume(event)
     }
 
@@ -80,7 +86,9 @@ class IdentityFilter<T> : Filter<T> {
     }
 }
 
-trait Paged<T : Identifiable> : Observable<T> {
+val evts = array(EventTypes.ADD, EventTypes.CREATE, EventTypes.DELETE, EventTypes.REMOVE, EventTypes.UPDATE)
+
+trait Paged<T : Identifiable> : Observable<T>, Observer<T> {
     private var rowsPerPage : Int
     private var pages : Int
     private var current : Int
@@ -88,12 +96,16 @@ trait Paged<T : Identifiable> : Observable<T> {
 
     fun elements() : Iterable<T>
 
-    fun update() {
+    override fun accept(et: EventTypes): Boolean {
+        return evts.any { et.equals(it) }
+    }
+
+    private fun update() {
 
     }
 }
 
-trait Interest<T : Identifiable> : Paged<T>, Observer<T>{
+trait Interest<T : Identifiable> : Paged<T>, Observer<T>, Identifiable {
     val producer : ElementProducer<T>
     var filter : Filter<T>
     val paged : Paged<T>
@@ -108,7 +120,7 @@ trait Interest<T : Identifiable> : Paged<T>, Observer<T>{
             addHook(it)
         }
         if(elements().count()>0) {
-            produce(LoadEvent(elements()))
+            produce(LoadEvent(this, elements()))
         }
         producer.addObserver(this)
     }
