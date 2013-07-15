@@ -68,12 +68,20 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
     }
 }
 
-abstract class Tag(val name : String) : HtmlElement() {
+fun forceId(aid : String?) : String {
+    if(aid==null) return SESSION.genId()
+    else return aid
+}
+
+abstract class Tag(val name : String, val aid : String?) : HtmlElement() {
     val attributes : AttributeList = AttributeList(HashMap())
+    public var tid : String = forceId(aid)
+
 
     abstract fun writeContent() : String
 
     override fun render(): String {
+        attributes.att("id", tid)
         return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
     }
 
@@ -103,9 +111,15 @@ abstract class Tag(val name : String) : HtmlElement() {
 
 }
 
-abstract class FlowContent(s :String) : Tag(s) {
+abstract class FlowContent(s :String, id : String? = null) : Tag(s, id) {
     fun text(s:String) {
         children.add(Text(s))
+    }
+
+    fun table(id : String, init: Table.() -> Unit) {
+        val table = Table(id)
+        children.add(table)
+        table.init()
     }
 
     fun table(init: Table.() -> Unit) {
@@ -135,7 +149,7 @@ class Link(val href : String) : FlowContent("a") {
     }
 }
 
-class Table : Tag("table") {
+class Table(id : String? = null) : Tag("table", id) {
     var caption : Caption? = null
     var body : TBody? = null
     var head : THead? = null
@@ -168,7 +182,7 @@ class Table : Tag("table") {
 
 }
 
-class TBody : Tag("tbody") {
+class TBody(id : String? = null) : Tag("tbody", id) {
 
     override fun writeContent(): String {
         return writeChildren()
@@ -181,7 +195,7 @@ class TBody : Tag("tbody") {
     }
 }
 
-class THead : Tag("thead") {
+class THead(id : String? = null) : Tag("thead", id) {
 
     override fun writeContent(): String {
         return writeChildren()
@@ -199,7 +213,7 @@ class Caption : FlowContent("Caption") {
 
 }
 
-class TableRow : Tag("tr") {
+class TableRow(id : String? = null) : Tag("tr", id) {
     fun td(init : TableCell.() -> Unit) {
         val c = TableCell()
         c.init()
@@ -211,13 +225,13 @@ class TableRow : Tag("tr") {
     }
 }
 
-class Div : FlowContent("div") {
+class Div(id : String? = null) : FlowContent("div", id) {
 }
 
-class Span : FlowContent("span") {
+class Span(id : String? = null) : FlowContent("span", id) {
 }
 
-class TableCell : FlowContent("td") {
+class TableCell(id : String? = null) : FlowContent("td", id) {
 
 
 }

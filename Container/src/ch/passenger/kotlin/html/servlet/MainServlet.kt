@@ -33,8 +33,12 @@ class MainServlet : HttpServlet() {
     }
 
     protected override fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
-        super<HttpServlet>.service(req, resp)
-        println("received: ${req}")
+        val tok = StringTokenizer(req?.getPathInfo(), "/")
+        val path : MutableList<String> = ArrayList(10)
+        for(pe in tok) {
+            path.add(pe.toString())
+        }
+        RootHandler.handle(req, resp, path)
     }
 
     private fun handle(req: HttpServletRequest?, resp: HttpServletResponse?) {
@@ -48,14 +52,6 @@ class MainServlet : HttpServlet() {
 
     }
 
-    protected override fun doGet(req: HttpServletRequest?, resp: HttpServletResponse?) {
-        val tok = StringTokenizer(req?.getPathInfo(), "/")
-        val path : MutableList<String> = ArrayList(10)
-        for(pe in tok) {
-            path.add(pe.toString())
-        }
-        RootHandler.handle(req, resp, path)
-    }
 
     protected fun test( req: HttpServletRequest?, resp: HttpServletResponse?){
         println("PI: " + req?.getPathInfo())
@@ -103,8 +99,9 @@ object RootHandler : ContentHandler("/") {
 
 
             override fun service(req: HttpServletRequest?, resp: HttpServletResponse?, path: List<String>) {
+                //resp?.setContentLength(-1)
                 resp?.setContentType("application/json")
-                resp?.setContentLength(-1)
+
 
                 val pw = resp?.getWriter()
 

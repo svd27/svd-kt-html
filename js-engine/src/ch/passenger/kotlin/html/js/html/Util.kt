@@ -12,7 +12,6 @@ import js.jquery.jq
  * Time: 13:42
  * To change this template use File | Settings | File Templates.
  */
-/*
 public native fun JQuery.`val`(v: String?): JQuery = js.noImpl
 public native fun JQuery.on(types : String, selector : String, cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
 public native fun JQuery.data(name: String,value : Any?): Unit = js.noImpl
@@ -20,7 +19,6 @@ public native fun JQuery.data(name: String): Any? = js.noImpl
 public native fun JQuery.removeData(name: String): Unit = js.noImpl
 public native fun JQuery.replaceWith(html: String?): JQuery = js.noImpl
 public native fun JQuery.has(selector: String?): JQuery = js.noImpl
-*/
 
 public native trait DOMEvent {
     public var target : HTMLElement

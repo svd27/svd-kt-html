@@ -109,7 +109,7 @@ public object Universe : Observable<Word>, ElementProducer<Word> {
         val r = TreeSet<Word>()
 
         dictionary.values().forEach {
-            if(p.matcher(it.name).matches())
+            if(p?.matcher(it.name)?.matches())
                 r.add(it)
         }
 

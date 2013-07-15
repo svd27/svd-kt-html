@@ -22,19 +22,11 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library" scope="PROVIDED">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../../../../../tools/jetty-distribution-8.1.10.v20130312/lib/servlet-api-3.0.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
     <orderEntry type="module" module-name="js-engine" />
     <orderEntry type="module" module-name="svd-kt-html" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="symbolon" />
+    <orderEntry type="library" scope="PROVIDED" name="Jetty 9.0.4.v20130625" level="application_server_libraries" />
   </component>
 </module>
 

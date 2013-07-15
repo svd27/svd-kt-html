@@ -75,32 +75,28 @@ class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel
     override fun rowUpdated(row: Int, t: T) {
         throw UnsupportedOperationException()
     }
-    override fun cellUpdated(row: Int, cell: Int, t: T, property: String, old: Any?, nv: Any?) {
+    override fun cellUpdated(row: Int, cell: Int, t: T, property: String, ov: Any?, nv: Any?) {
         throw UnsupportedOperationException()
     }
 
-    fun hid() :String {
-        return ids
-    }
 
-    fun append(e: FlowContent) {
-        e.table {
-            atts {
-                att("id", hid())
-            }
-
+    fun append(e: FlowContent) {        
+        e.table(ids) {
             caption {
                 text(model.title)
             }
 
             head {
+                atts {
+                    att("data-table-head", "true")
+                }
                 tr {
                     atts {
-                        att("id", "${hid()}h")
+                        att("data-table-head-row", "1")
                     }
                     for(c in model.columns) {
                         td {
-                            atts { att("id", "${hid()}h${c}") }
+                            atts { att("data-table-head-row-column", "${c}") }
                             text(c)
                         }
                     }
@@ -111,11 +107,11 @@ class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel
                 for(row in 0..model.content.size())
                     tr {
                         atts {
-                            att("id", "${hid()}r${row}")
+                            att("data-table-row", "${row}")
                         }
                         for(c in model.columns)
                             td {
-                                atts { att("id", "${hid()}r${row}c${c}") }
+                                atts { att("data-table-cell", "r${row}c${c}") }
                                 val s = model.value(model.content[row], c)?.toString()
                                 if(s != null) text(s)
                             }
@@ -125,17 +121,8 @@ class TableRenderer<T: Identifiable>(val selector: String, val model: TableModel
     }
 
     fun renderCell(t: T, row: Int, col: String) {
-        val td = TableCell()
-        val s = model.value(model.content[row], col)?.toString()
 
-        td.atts{
-            att("id", "${hid()}r${row}c${col}")
-        }
 
-        if(s != null) td.text(s)
-
-        val has = jq("table#${hid()}").has("td#${hid()}r${row}c${col}")
-        jq("table#${hid()} td#${hid()}r${row}c${col}").replaceWith(td.toString())
     }
 }
 

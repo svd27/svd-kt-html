@@ -22,6 +22,70 @@ import ch.passenger.kotlin.html.js.model.WordTableModel
 
 //public native fun JQuery.getJSON(url: String, data: Any?, success : (data: Any, status : String) -> Unit ) : Unit = js.noImpl
 
+open public class Session {
+    var base : String? = null
+    val words = HashMap<Long,Word>()
+    var root : FlowContent = Div()
+    var rootSelector : String = "body"
+    var initialised = false
+    val actionHolder = ActionHolder()
+    var nextId = 0
+
+    fun genId() :String {
+        nextId = nextId+1
+        return "id${nextId}"
+    }
+    fun init() {
+        if(initialised) return
+        val load = Div("loader")
+        load.text("loading")
+        jq("body").append(load.render())
+        initWords()
+        initialised = true
+    }
+
+    fun initWords() {
+        sendAjax(base!! + "/symbolon/words", "GET") {
+            req ->
+            var t = req.responseText
+            var ready = req.readyState
+            if(ready == 4 as Short) {
+                val parsed = JSON.parse<Array<Word>>(t)
+
+
+                val tm = WordTableModel()
+                val table = TableRenderer<Word>("table", tm, "table")
+                table.append(root)
+                fullRender()
+
+            }
+
+        }
+    }
+
+    fun fetchWord(id : Long) {
+        if(!words.containsKey(id))
+            sendAjax(base + "/symbolon/words/word?id=${id}", "GET") {
+                req ->
+                var t = req.responseText
+                var ready = req.readyState
+                if(ready == 4 as Short) {
+                    //jq("input#out").`val`(t)
+                    //val parsed = JSON.parse<Word>(t)
+
+                }
+            }
+    }
+
+
+
+    fun fullRender() {
+        jq(rootSelector).html(root.render())
+    }
+}
+
+
+public object SESSION : Session()
 
 
 fun main(args: Array<String>) {
@@ -62,63 +126,8 @@ fun main(args: Array<String>) {
 
 }
 
-public object SESSION : Session()
-
-open public class Session {
-    var base : String? = null
-    val words = HashMap<Long,Word>()
-    var root : FlowContent = Div()
-    var rootSelector : String = "body"
-    var initialised = false
-    val actionHolder = ActionHolder()
-
-    fun init() {
-        if(initialised) return
-        root = Div()
-        root.text("Loading...")
-        initWords()
-        initialised = true
-    }
-
-    fun initWords() {
-        sendAjax(base!! + "/symbolon/words", "GET") {
-            req ->
-            var t = req.responseText
-            var ready = req.readyState
-            if(ready == 4 as Short) {
-                val parsed = JSON.parse<Array<Word>>(t)
 
 
-                val tm = WordTableModel()
-                val table = TableRenderer<Word>("table", tm, "table")
-                table.append(root)
-                fullRender()
-
-            }
-
-        }
-    }
-
-    fun fetchWord(id : Long) {
-        if(!words.containsKey(id))
-        sendAjax(base + "/symbolon/words/word?id=${id}", "GET") {
-            req ->
-            var t = req.responseText
-            var ready = req.readyState
-            if(ready == 4 as Short) {
-                //jq("input#out").`val`(t)
-                //val parsed = JSON.parse<Word>(t)
-
-            }
-        }
-    }
-
-
-
-    fun fullRender() {
-        jq(rootSelector).html(root.render())
-    }
-}
 
 
 
@@ -131,69 +140,6 @@ fun sendAjax(url : String, method : String , cb: (req : XMLHttpRequest) -> Unit)
     req.send()
 }
 
-fun wordTable(sel : String, wl: Array<Word>) {
-    val dict : MutableMap<Long,Word> = HashMap()
-
-    for(w in wl) dict.put(w.id, w)
-
-    val table : Table = Table()
-
-    table.caption {
-        text("Table")
-    }
-
-    table.body {
-        for(w in wl) {
-            tr {
-                if(w.kind==null) {
-                    atts {
-                        att("class", "typeWord")
-                    }
-                }
-
-                td {
-                    a("") {
-                        class CB : Callback {
-                            override fun callback(event : DOMEvent) {
-                                jq("div#details").text(w.name)
-                            }
-                        }
-                        val cb = CB()
-                        action(cb)
-                        text(w.name)
-                    }
-                }
-                td {
-                    text(w.id.toString())
-                }
-                td {
-                    if(w.kind!=null && dict[w.kind]!=null) text(dict[w.kind]!!.name)
-                }
-            }
-        }
-    }
-
-    table.head {
-        tr {
-            td {
-                text("Name")
-            }
-
-            td {
-                text("ID")
-            }
-
-            td {
-                text("Kind")
-            }
-        }
-    }
-
-
-    val html = table.toString()
-
-    jq(sel).append(html)
-}
 
 fun<T> Array<T>.each(it:(T)->Unit) {
     for(e in this)  it(e)
