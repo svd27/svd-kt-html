@@ -23,6 +23,11 @@ import java.net.URL
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.JsonNode
+import ch.passenger.kotlin.basis.Event
+import ch.passenger.kotlin.basis.Page
+import ch.passenger.kotlin.basis.Paged
+import ch.passenger.kotlin.basis.PageEvent
+import ch.passenger.kotlin.basis.InterestEvent
 
 /**
  * Created with IntelliJ IDEA.
@@ -124,6 +129,17 @@ public object Universe : Observable<Word>, ElementProducer<Word> {
     override fun produce(f: Filter<Word>): Iterator<Word> {
         return iterate().filter { f.accept(it) }
     }
+
+
+    override fun retrieve(vararg id: Long): Iterable<Word> {
+        val l : MutableList<Word> = ArrayList(id.size)
+
+        id.forEach {
+            if(dictionary.containsKey(id)) l.add(dictionary[it]!!)
+        }
+
+        return l
+    }
 }
 
 open class HRefWord(name : String, id : Long, val href : String, var mime : String) : Word(name, id)
@@ -131,15 +147,17 @@ class WikiWord(name : String, id : Long, href : String, val pageId : Long) : HRe
 
 
 
-class WordInterest(override val producer : ElementProducer<Word>) : Interest<Word> {
+class WordInterest(override val id: Long, override val name : String, override val producer : ElementProducer<Word>) :
+Interest<Word>
+ {
     private val words : MutableMap<Long,Word> = HashMap()
     public override val observers: MutableSet<Observer<Word>> = HashSet()
     override var filter: Filter<Word> = IdentityFilter()
-    override fun elements(): Iterable<Word> {
-        return words.values()
-    }
+    override var page : Page<Word> = Page<Word>(ArrayList(), 0, 0, 0, 0, 0)
+    public override val elements: MutableList<Word> public get() = ArrayList(words.values())
+    public override var rowsPerPage: Int = 10
 
-    override fun addHook(e: Word): Word? {
+     override fun addHook(e: Word): Word? {
         if(words[e.id]!=null) return words[e.id]
         words[e.id] = e
         return e
@@ -148,25 +166,54 @@ class WordInterest(override val producer : ElementProducer<Word>) : Interest<Wor
     override fun removeHook(e: Word): Word? {
         return words.remove(e.id)
     }
-}
+
+
+     private var _current = 0
+     public override var current: Int
+     public get() = _current
+     public set(v) = _current = v
+ }
 
 class TestObserver : Observer<Word> {
-    override fun consume(e: ElementEvent<Word>) {
-        println("${e.kind}: ${e.source.id} ${e.source.name}")
-        if(e is UpdateEvent<*,*>)
-            println("update: ${e.old} -> ${e.new}")
-        if(e.source is WikiWord) {
-            val w = e.source as WikiWord
-            println("Wiki: ${w.name} url = ${w.href}")
+    var fire : Boolean = false
+    override fun consume(e: Event<Word>) {
+        when(e) {
+            is ElementEvent<Word> -> {
+                if (fire) {
+                    println("${e.kind}: ${e.source.id} ${e.source.name}")
+                    val ee = e as ElementEvent<Word>
+                    if(ee is UpdateEvent<Word,*>)  {
+                        val ue = e as UpdateEvent<Word,*>
+                        println("${ue.old} -> ${ue.new}")
+                    }
+                    if(ee.source is WikiWord) {
+                        val w = e.source as WikiWord
+                        println("Wiki: ${w.name} url = ${w.href}")
+                    }
+                }
+            }
+            is PageEvent<Word> -> {
+                if (fire) {
+                    println("${e.kind}: rpp: ${e.paged.rowsPerPage} current: ${e.paged.current} total: ${e.page.totalPages} rows: ${e.page.totalRows}")
+                    val page = e.page
+                    for(w in page.elements) {
+                        println("${w.name}")
+                    }
+                }
+            }
+            is InterestEvent<Word> -> {if(e.kind==EventTypes.LOAD) {
+                println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                fire = true}
+            }
+            else -> ""
         }
-
     }
 }
 
 
 fun main(args: Array<String>): Unit {
     Populator.populate()
-    val interest = WordInterest(Universe)
+    val interest = WordInterest(1, "all", Universe)
 
     interest.addObserver(TestObserver())
     interest.init()
@@ -175,6 +222,8 @@ fun main(args: Array<String>): Unit {
     set.forEach {
         it.description = it.name
     }
+
+    interest.config(15)
 
     val query = "http://it.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=calvino&format=json&gsrprop=snippet&prop=info&inprop=url"
     val url :URL  = URL(query)
@@ -190,6 +239,10 @@ fun main(args: Array<String>): Unit {
         val pid = p?.get("pageid")?.asLong()
         val w = WikiWord(p?.get("title")?.textValue()!!, Universe.id(), p?.get("fullurl")?.textValue()!!, pid!!)
         Universe.add(w)
+    }
+
+    for(i in 0..interest.page.totalPages) {
+        interest.next()
     }
 }
 
