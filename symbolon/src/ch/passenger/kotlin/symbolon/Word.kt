@@ -28,6 +28,11 @@ import ch.passenger.kotlin.basis.Page
 import ch.passenger.kotlin.basis.Paged
 import ch.passenger.kotlin.basis.PageEvent
 import ch.passenger.kotlin.basis.InterestEvent
+import ch.passenger.kotlin.basis.Workable
+import ch.passenger.kotlin.basis.Committable
+import ch.passenger.kotlin.basis.ObservedProperty
+import ch.passenger.kotlin.basis.PropertyObserver
+import ch.passenger.kotlin.basis.VersionedProperty
 
 /**
  * Created with IntelliJ IDEA.
@@ -39,26 +44,33 @@ import ch.passenger.kotlin.basis.InterestEvent
 
 object NothingTypeWord : TypeWord("NONE", -1.toLong())
 
-public open class Word(override val name : String, override val id : Long) : Comparable<Word>, Identifiable, Named, Observable<Word> {
+public open class Word(override val name : String, override val id : Long) : Comparable<Word>, Identifiable, Named, Observable<Word>,Committable {
     public override val observers: MutableSet<Observer<Word>> = HashSet()
-    public var kind : TypeWord by Delegates.observable(NothingTypeWord, propertyHandler())
-    public var description : String by Delegates.observable("", propertyHandler())
-    val qualities : MutableSet<Word> by Delegates.observable(HashSet<Word>(), propertyHandler())
+    public var kind : TypeWord by ObservedProperty<TypeWord>(VersionedProperty(NothingTypeWord),PO())
+    public var description : String by ObservedProperty<String>(VersionedProperty(""), PO())
+    val qualities : MutableSet<Word> by ObservedProperty<MutableSet<Word>>(VersionedProperty(HashSet()), PO())
 
 
     public override fun compareTo(other: Word): Int {
         return name.compareTo(other.name)
     }
 
-    fun<T> propertyHandler() : (PropertyMetadata, T, T) -> Unit {
-        return {
-            desc, old, new ->
-            println("${desc.name}: ${old} -> ${new}")
+    protected inner class PO<P> : PropertyObserver<P> {
+        override fun before(ov: P, nv: P, desc: PropertyMetadata): Boolean {
+            return true
+        }
+        override fun after(ov: P, nv: P, desc: PropertyMetadata) {
+            println("${desc.name}: ${ov} -> ${nv}")
 
-            produce(UpdateEvent(this, desc, old, new))
+            produce(UpdateEvent(this@Word, desc, ov, nv))
         }
     }
 
+
+
+    override fun commit() {
+
+    }
 }
 
 
@@ -153,7 +165,7 @@ Interest<Word>
     private val words : MutableMap<Long,Word> = HashMap()
     public override val observers: MutableSet<Observer<Word>> = HashSet()
     override var filter: Filter<Word> = IdentityFilter()
-    override var page : Page<Word> = Page<Word>(ArrayList(), 0, 0, 0, 0, 0)
+    override var page : Page<Word> = Page<Word>(ArrayList(), 0, 0, 0, 0, 0, 0)
     public override val elements: MutableList<Word> public get() = ArrayList(words.values())
     public override var rowsPerPage: Int = 10
 

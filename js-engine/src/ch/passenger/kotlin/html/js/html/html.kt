@@ -6,8 +6,8 @@ import java.util.HashMap
 import js.dom.html.Event
 import js.jquery.jq
 import ch.passenger.kotlin.html.js.Session
-import ch.passenger.kotlin.html.js.SESSION
 import js.debug.console
+import js.dom.html.window
 
 /**
  * Created with IntelliJ IDEA.
@@ -75,8 +75,10 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
 }
 
 fun forceId(aid : String?) : String {
-    if(aid==null) return SESSION.genId()
-    else return aid
+    if(aid==null) {
+        val SESSION = (window as MyWindow)!!.bosork!!
+        return SESSION.genId()
+    } else return aid
 }
 
 abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
@@ -169,6 +171,7 @@ class Link(val href : String) : FlowContainer("a") {
         atts { att("href", href) }
     }
     fun action(cb : Callback) {
+        val SESSION = (window as MyWindow)!!.bosork!!
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
         atts {
@@ -277,6 +280,7 @@ class Select(id : String? = null) : Tag("select", id) {
     }
 
     fun change(cb : Callback) {
+        val SESSION = (window as MyWindow)!!.bosork!!
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
         atts {

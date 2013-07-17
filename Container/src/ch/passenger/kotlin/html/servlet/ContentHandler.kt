@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 public abstract class ContentHandler(val element : String) {
     val handlers : MutableSet<ContentHandler> = HashSet()
 
-    fun handle(req: HttpServletRequest?, resp: HttpServletResponse?, path : List<String>) : Unit {
+    fun handle(req: HttpServletRequest, resp: HttpServletResponse, path : List<String>) : Unit {
         if(iWant(path)) {
             service(req, resp, path)
             return
@@ -31,12 +31,12 @@ public abstract class ContentHandler(val element : String) {
             }
         }
         val om = ObjectMapper()
-        val error = om.createObjectNode()
-        error?.put("error", "no handler found for path: ${path}")
-        resp?.setContentType("application/json")
-        resp?.setContentLength(-1)
-        resp?.setStatus(501)
-        val pw = resp?.getWriter()
+        val error = om.createObjectNode()!!
+        error.put("error", "no handler found for path: ${path}")
+        resp.setContentType("application/json")
+        resp.setContentLength(-1)
+        resp.setStatus(501)
+        val pw = resp.getWriter()
         om.writeValue(pw, error)
         pw?.flush()
         pw?.close()
@@ -47,7 +47,7 @@ public abstract class ContentHandler(val element : String) {
         return false
     }
 
-    open fun service(req: HttpServletRequest?, resp: HttpServletResponse?, path : List<String>) {
+    open fun service(req: HttpServletRequest, resp: HttpServletResponse, path : List<String>) {
         throw UnsupportedOperationException()
     }
     fun add(ch:ContentHandler) {

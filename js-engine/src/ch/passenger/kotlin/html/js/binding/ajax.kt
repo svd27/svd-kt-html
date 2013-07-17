@@ -14,4 +14,6 @@ native public public class XMLHttpRequest() {
     public native var responseText : String = js.noImpl
     public native var readyState : Short = js.noImpl
     public native fun send() : Unit = js.noImpl
+    public native fun send(msg : String) : Unit = js.noImpl
+    public native fun setRequestHeader(name : String, value : String) :Unit = js.noImpl
 }

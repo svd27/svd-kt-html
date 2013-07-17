@@ -4,6 +4,7 @@ import js.dom.html.HTMLElement
 import js.jquery.JQuery
 import java.util.HashMap
 import js.jquery.jq
+import ch.passenger.kotlin.html.js.Session
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,6 +27,8 @@ public native trait DOMEvent {
     fun targetId() {
         target.id
     }
+
+    fun preventDefault() = js.noImpl
 }
 
 public trait Callback {
@@ -80,4 +83,8 @@ public class ActionHolder {
 
         actions.get(aid)?.callback(e)
     }
+}
+
+public native trait MyWindow {
+    public native var bosork : Session?
 }

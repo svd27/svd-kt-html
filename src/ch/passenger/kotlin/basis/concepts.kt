@@ -23,6 +23,33 @@ trait Named {
     val name : String
 }
 
+trait Committable {
+    fun commit() : Unit
+}
+
+class CommitException(msg : String?, cause : Throwable?, enableSuppression:Boolean=false, writableStackTrace:Boolean=true) : Exception(msg, cause, enableSuppression, writableStackTrace)
+
+trait Workable  {
+    fun onSuccess() {}
+    fun onFailure(e: Exception) {}
+}
+
+fun<T : Committable, W : Workable> T.work(c:T, w : W, f: T.() -> Unit) {
+    var failed = false
+    try {
+        c.f()
+    } catch (e:Exception) {
+        w.onFailure(e)
+    } finally {
+        c.commit()
+    }
+    w.onSuccess()
+}
+
+trait Versioned : Committable {
+    var version : Long
+}
+
 
 enum class EventTypes {
     CREATE ADD LOAD UPDATE REMOVE DELETE OTHER PAGE
@@ -92,7 +119,7 @@ trait Container<T : Identifiable> {
     public val elements : MutableList<T>
 }
 
-class Page<T : Identifiable>(val elements : List<T>, public val totalPages : Int, val rowsPerPage : Int, val totalRows : Int, val first : Int, val last : Int)
+class Page<T : Identifiable>(val elements : List<T>, public val current : Int, public val totalPages : Int, val rowsPerPage : Int, val totalRows : Int, val first : Int, val last : Int)
 
 trait Paged<T : Identifiable> : Observable<T>, Container<T>, Identifiable, Named {
     public var rowsPerPage : Int
@@ -101,14 +128,17 @@ trait Paged<T : Identifiable> : Observable<T>, Container<T>, Identifiable, Named
 
     protected fun pageInit() {
         if(rowsPerPage < 0 || elements.size() < rowsPerPage) {
-            page = Page(elements, 1, rowsPerPage, elements.size, 0, elements.size - 1)
+            page = Page(elements, 1, 1, rowsPerPage, elements.size, 0, elements.size - 1)
             produce(PageEvent(this, page))
         } else {
-            val total = if(rowsPerPage == 0) 0 else (elements.size / rowsPerPage)
+            val res = calcCurrentAndTotal()
+            val total = res.first
+            //val total = if(rowsPerPage == 0) 0 else ((elements.size / rowsPerPage)+(if(elements.size() % rowsPerPage >0) 1 else 0))
+            println("rows: ${elements.size()} rpp: ${rowsPerPage} total: ${total}")
             if(current >= total) current = Math.max(0, total - 1)
             val start = current * rowsPerPage
             val end = Math.min(elements.size - 1, start + rowsPerPage)
-            page = Page(elements.subList(start, end), current, rowsPerPage, elements.size, start, end)
+            page = Page(elements.subList(start, end), current, total, rowsPerPage, elements.size, start, end)
             produce(PageEvent(this, page))
         }
     }
@@ -122,9 +152,9 @@ trait Paged<T : Identifiable> : Observable<T>, Container<T>, Identifiable, Named
 
 
     private fun calcCurrentAndTotal() : Pair<Int,Int> {
-        val total = if(rowsPerPage == 0) 0 else (elements.size / rowsPerPage)
+        val total = if(rowsPerPage == 0) 0 else (elements.size / rowsPerPage + (if(elements.size() % rowsPerPage >0) 1 else 0))
         var c : Int = 0
-        if(current >= total) c = Math.max(0, total - 1)
+        if(current >= total) c = Math.max(0, total - 1) else c = current
         return Pair(total, c)
     }
 
@@ -133,12 +163,10 @@ trait Paged<T : Identifiable> : Observable<T>, Container<T>, Identifiable, Named
             pageInit()
         else {
             val res = calcCurrentAndTotal()
-            if(res.second!=current) {
-                pageInit()
-            }
+            current = res.second
             val start = current * rowsPerPage
             val end = Math.min(elements.size - 1, start + rowsPerPage)
-            val np = Page(elements.subList(start, end), current, rowsPerPage, elements.size, start, end)
+            val np = Page(elements.subList(start, end), current, res.first, rowsPerPage, elements.size, start, end)
             if(np.elements.size()!=page.elements.size()) {
                 pageInit()
                 return

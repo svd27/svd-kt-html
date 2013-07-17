@@ -38,7 +38,7 @@ class MainServlet : HttpServlet() {
         for(pe in tok) {
             path.add(pe.toString())
         }
-        RootHandler.handle(req, resp, path)
+        RootHandler.handle(req!!, resp!!, path)
     }
 
     private fun handle(req: HttpServletRequest?, resp: HttpServletResponse?) {
@@ -98,12 +98,12 @@ object RootHandler : ContentHandler("/") {
             }
 
 
-            override fun service(req: HttpServletRequest?, resp: HttpServletResponse?, path: List<String>) {
+            override fun service(req: HttpServletRequest, resp: HttpServletResponse, path: List<String>) {
                 //resp?.setContentLength(-1)
-                resp?.setContentType("application/json")
+                resp.setContentType("application/json")
 
 
-                val pw = resp?.getWriter()
+                val pw = resp.getWriter()
 
                 val om : ObjectMapper = ObjectMapper()
                 val sw : StringWriter = StringWriter(1024)
@@ -122,6 +122,7 @@ object RootHandler : ContentHandler("/") {
             }
         }
         add(ch)
+        add(LoginHandler())
 
     }
 }
