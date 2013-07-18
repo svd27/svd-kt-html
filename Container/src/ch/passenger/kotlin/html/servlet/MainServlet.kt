@@ -131,18 +131,18 @@ fun serWord(w : Word) : JsonNode {
     val om : ObjectMapper = ObjectMapper()
     val nw = om.createObjectNode()
     if(nw==null) throw IllegalStateException()
-    nw.put("id", w.id)
+    nw.put("id", w.id.urn)
     nw.put("name", w.name)
     nw.put("clazz", w.javaClass.getName())
     nw.put("loadState", "GOOD")
     if(!(w is TypeWord))
-        nw.put("kind", w.kind.id)
+        nw.put("kind", w.kind.id.urn)
 
     if(w.qualities.size()>0) {
         val arrayNode = om.createArrayNode()
         if(arrayNode==null) throw IllegalStateException()
         for( qw in w.qualities) {
-            arrayNode.add(qw.id)
+            arrayNode.add(qw.id.urn)
         }
     }
 

@@ -33,6 +33,8 @@ import ch.passenger.kotlin.basis.Committable
 import ch.passenger.kotlin.basis.ObservedProperty
 import ch.passenger.kotlin.basis.PropertyObserver
 import ch.passenger.kotlin.basis.VersionedProperty
+import java.net.URI
+import ch.passenger.kotlin.basis.URN
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,9 +44,9 @@ import ch.passenger.kotlin.basis.VersionedProperty
  * To change this template use File | Settings | File Templates.
  */
 
-object NothingTypeWord : TypeWord("NONE", -1.toLong())
+object NothingTypeWord : TypeWord("NONE", URN(URN.word()))
 
-public open class Word(override val name : String, override val id : Long) : Comparable<Word>, Identifiable, Named, Observable<Word>,Committable {
+public open class Word(override val name : String, override val id : URN) : Comparable<Word>, Identifiable, Named, Observable<Word>,Committable {
     public override val observers: MutableSet<Observer<Word>> = HashSet()
     public var kind : TypeWord by ObservedProperty<TypeWord>(VersionedProperty(NothingTypeWord),PO())
     public var description : String by ObservedProperty<String>(VersionedProperty(""), PO())
@@ -84,7 +86,7 @@ fun wlist2name(wl : List<Constituent>) : String {
     return sb.toString()
 }
 
-public open class TypeWord(name :String, id : Long) : Word(name, id)
+public open class TypeWord(name :String, id : URN) : Word(name, id)
 
 class Constituent(val w : Word, val role : Word) {
     fun toString() : String {
@@ -92,13 +94,13 @@ class Constituent(val w : Word, val role : Word) {
     }
 }
 
-public class Sentence(val words: List<Constituent>, id: Long) : Word(wlist2name(words), id) {
+public class Sentence(val words: List<Constituent>, id: URN) : Word(wlist2name(words), id) {
 
 }
 
 public object Universe : Observable<Word>, ElementProducer<Word> {
     public override val observers: MutableSet<Observer<Word>> = HashSet()
-    val dictionary : MutableMap<Long,Word> = HashMap()
+    val dictionary : MutableMap<URN,Word> = HashMap()
     var nextId : Long = 1.toLong()
 
 
@@ -154,15 +156,15 @@ public object Universe : Observable<Word>, ElementProducer<Word> {
     }
 }
 
-open class HRefWord(name : String, id : Long, val href : String, var mime : String) : Word(name, id)
-class WikiWord(name : String, id : Long, href : String, val pageId : Long) : HRefWord(name, id, href, "text/html")
+open class HRefWord(name : String, id : URN, val href : String, var mime : String) : Word(name, id)
+class WikiWord(name : String, id : URN, href : String, val pageId : Long) : HRefWord(name, id, href, "text/html")
 
 
 
-class WordInterest(override val id: Long, override val name : String, override val producer : ElementProducer<Word>) :
+class WordInterest(override val id: URN, override val name : String, override val producer : ElementProducer<Word>) :
 Interest<Word>
  {
-    private val words : MutableMap<Long,Word> = HashMap()
+    private val words : MutableMap<URN,Word> = HashMap()
     public override val observers: MutableSet<Observer<Word>> = HashSet()
     override var filter: Filter<Word> = IdentityFilter()
     override var page : Page<Word> = Page<Word>(ArrayList(), 0, 0, 0, 0, 0, 0)
@@ -225,7 +227,7 @@ class TestObserver : Observer<Word> {
 
 fun main(args: Array<String>): Unit {
     Populator.populate()
-    val interest = WordInterest(1, "all", Universe)
+    val interest = WordInterest(URN(URN.interest("1")), "all", Universe)
 
     interest.addObserver(TestObserver())
     interest.init()
@@ -249,7 +251,7 @@ fun main(args: Array<String>): Unit {
     for(f in pages?.fieldNames()) {
         val p = pages?.get(f)
         val pid = p?.get("pageid")?.asLong()
-        val w = WikiWord(p?.get("title")?.textValue()!!, Universe.id(), p?.get("fullurl")?.textValue()!!, pid!!)
+        val w = WikiWord(p?.get("title")?.textValue()!!, URN(URN.word()), p?.get("fullurl")?.textValue()!!, pid!!)
         Universe.add(w)
     }
 

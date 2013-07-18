@@ -1,5 +1,7 @@
 package ch.passenger.kotlin.symbolon
 
+import ch.passenger.kotlin.basis.URN
+
 /**
  * Created with IntelliJ IDEA.
  * User: sdju
@@ -8,19 +10,19 @@ package ch.passenger.kotlin.symbolon
  * To change this template use File | Settings | File Templates.
  */
 
-object LetterType : TypeWord("Letter", Universe.id())
-object LanguageType : TypeWord("Language", Universe.id())
-object ColorType : TypeWord("Color", Universe.id())
+object LetterType : TypeWord("Letter", URN(URN.word()))
+object LanguageType : TypeWord("Language", URN(URN.word()))
+object ColorType : TypeWord("Color", URN(URN.word()))
 
 object Populator {
     fun populate() {
         Universe.add(LetterType)
         Universe.add(LanguageType)
         Universe.add(ColorType)
-        val latin = Word("Latin", Universe.id())
+        val latin = Word("Latin", URN(URN.word()))
         Universe.add(latin)
         for(l in 'a'..'z') {
-            val w = Word("" + l, Universe.id())
+            val w = Word("" + l, URN(URN.word()))
             w.kind = LetterType
             w.qualities.add(latin)
             Universe.add(w)

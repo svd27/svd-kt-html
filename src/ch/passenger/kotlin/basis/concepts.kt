@@ -6,6 +6,9 @@ import java.util.Queue
 import java.util.HashSet
 import java.util.concurrent.BlockingQueue
 import java.util.ArrayList
+import java.net.URI
+import java.util.regex.Pattern
+import java.util.regex.Matcher
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,8 +18,66 @@ import java.util.ArrayList
  * To change this template use File | Settings | File Templates.
  */
 
+public class URN(val urn:String) :Comparable<URN> {
+    private val pSchema = "symblicon|bosork"
+    private val pDomConstituent = "[a-z][a-z0=9]*"
+    private val pDomain = "$pDomConstituent\\.$pDomConstituent(\\.$pDomConstituent)+"
+    private val pEntity = "(word)|(token)|(interest)";
+
+    public val scheme : String
+    public val thing : String
+    public val domain : String
+    public val specifier : String
+
+
+    val pattern = Pattern.compile(
+            //"urn:($pSchema):($pEntity):($pDomain):.*",
+            "^urn:($pSchema):($pEntity):($pDomain):([a-z0-9()+,\\-\\.:=@;\$_!*']|%[0-9a-f]{2})+$",
+            Pattern.CASE_INSENSITIVE);
+    {
+        val m = pattern.matcher(urn)
+        if(!m.matches())
+            throw IllegalStateException("bad urn $urn")
+        scheme = m.group(1)!!
+        thing = m.group(2)!!
+        domain = m.group(6)!!
+        specifier = m.group(8)!!
+    }
+
+    public fun matcher() : Matcher {
+        return pattern.matcher(urn)
+    }
+
+    public override fun compareTo(other: URN): Int {
+        return urn.compareToIgnoreCase(other.urn)
+    }
+
+
+    class object {
+        private var baseId : Long = 0
+        fun word() : String {
+            baseId = baseId+1
+            return "urn:symblicon:word:root.symblicon.org:${baseId}"
+        }
+
+        private var baseToken : Long = 0
+        fun token() : String {
+            baseToken = baseToken+1
+            return "urn:bosork:token:root.symblicon.org:${baseToken}"
+        }
+
+        private var baseInterest : Long = 0
+        fun interest(token : String) : String {
+            baseInterest = baseInterest+1
+            return "urn:bosork:interest:root.symblicon.org:$token:${baseInterest}"
+        }
+    }
+}
+
+
+
 trait Identifiable {
-    val id : Long
+    val id : URN
 }
 
 trait Named {
@@ -309,4 +370,16 @@ trait StaticInterest<T : Identifiable> : Interest<T> {
 
 public abstract class EventQueue<T:Identifiable, E: Event<T>>(val q : BlockingQueue<E>) : BlockingQueue<E> by q
 
+fun main(args : Array<String>) {
+    val surn1 = URN.word()
 
+    val urn1 = URN(surn1)
+
+    println(urn1.urn)
+
+    val matcher : Matcher = urn1.matcher()
+    val b = matcher.matches()
+    for(i in 0..matcher.groupCount())
+        println("$i: ${matcher.group(i)}")
+
+}
