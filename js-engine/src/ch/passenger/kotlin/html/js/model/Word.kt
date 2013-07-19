@@ -10,7 +10,7 @@ import ch.passenger.kotlin.html.js.html.TableModel
  * To change this template use File | Settings | File Templates.
  */
 trait Identifiable {
-    val id : Long
+    val id : String
 }
 
 trait Stated {
@@ -19,9 +19,9 @@ trait Stated {
 
 native class Word : Identifiable,Stated {
     var name : String = js.noImpl
-    override val id : Long = js.noImpl
+    override val id : String = js.noImpl
     var qualities : Array<Long> = js.noImpl
-    var kind : Long = js.noImpl
+    var kind : String = js.noImpl
     var clazz : String = js.noImpl
     override var loadState: String = js.noImpl
     var qualityLabel = ""
@@ -57,7 +57,7 @@ class WordTableModel : TableModel<Word>() {
                     t.name = v as String
                 else throw IllegalStateException()
             }
-            "kind" -> t.kind = v as Long
+            "kind" -> t.kind = v as String
             "description" -> t.description = v?.toString()!!
             "loadState" -> throw IllegalStateException()
             else -> ""

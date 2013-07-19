@@ -22,7 +22,8 @@ public native fun JQuery.replaceWith(html: String?): JQuery = js.noImpl
 public native fun JQuery.has(selector: String?): JQuery = js.noImpl
 
 public native trait DOMEvent {
-    public var target : HTMLElement
+    public val target : HTMLElement
+    public val data : Any?
 
     fun targetId() {
         target.id
@@ -30,6 +31,8 @@ public native trait DOMEvent {
 
     fun preventDefault() = js.noImpl
 }
+
+
 
 public trait Callback {
     fun callback(event : DOMEvent)

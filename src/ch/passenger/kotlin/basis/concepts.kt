@@ -52,6 +52,10 @@ public class URN(val urn:String) :Comparable<URN> {
         return urn.compareToIgnoreCase(other.urn)
     }
 
+    public fun equals(o: Any?) :Boolean {
+        if(o is URN) return compareTo(o) == 0
+        return false
+    }
 
     class object {
         private var baseId : Long = 0
@@ -71,6 +75,7 @@ public class URN(val urn:String) :Comparable<URN> {
             baseInterest = baseInterest+1
             return "urn:bosork:interest:root.symblicon.org:$token:${baseInterest}"
         }
+
     }
 }
 

@@ -35,6 +35,8 @@ import ch.passenger.kotlin.basis.PropertyObserver
 import ch.passenger.kotlin.basis.VersionedProperty
 import java.net.URI
 import ch.passenger.kotlin.basis.URN
+import ch.passenger.kotlin.basis.InterestFactory
+import ch.passenger.kotlin.basis.IntererstConfig
 
 /**
  * Created with IntelliJ IDEA.
@@ -187,6 +189,17 @@ Interest<Word>
      public get() = _current
      public set(v) = _current = v
  }
+
+class WordInterestFactory : InterestFactory {
+    private val myUrn : URN = URN("urn:symblicon:word:intererst")
+
+    override fun accept(urn: URN): Boolean {
+        return urn.equals(myUrn)
+    }
+    override fun create(name: String, config: IntererstConfig) : WordInterest {
+        return WordInterest(URN(URN.interest(config.token)), name, Universe)
+    }
+}
 
 class TestObserver : Observer<Word> {
     var fire : Boolean = false

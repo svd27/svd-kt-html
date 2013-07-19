@@ -13,6 +13,7 @@ import js.dom.html.Event
 import ch.passenger.kotlin.html.js.html.*
 import ch.passenger.kotlin.html.js.model.WordTableModel
 import js.dom.html.document
+import ch.passenger.kotlin.html.js.binding.WebSocket
 
 /**
  * Created with IntelliJ IDEA.
@@ -42,6 +43,8 @@ open public class Session {
         val load = Div("loader")
         load.text("loading")
         jq("body").append(load.render())
+        jq("body").append(Div("container").render())
+        jq("body").append(Div("messages").render())
         login()
         initialised = true
     }
@@ -54,9 +57,30 @@ open public class Session {
                 token = JSON.parse<Token>(req.responseText)
                 val wc = Div("welcome")
                 wc.text("TOKEN: ${token?.token}")
-                jq("body").append(wc.render())
+                jq("div#container").append(wc.render())
                 initWords()
             }
+        }
+
+        val ws = WebSocket("wss:"+base!!.substring(4))
+        jq("div#messages").append("ws created")
+        ws.onopen = {
+            e ->
+            jq("div#messages").append("ws open")
+            ws.send("hihihi")
+        }
+        ws.onclose = {
+            e ->
+            jq("div#messages").append("ws closed")
+        }
+        ws.onerror = {
+            e ->
+            jq("div#messages").append("ws error " + e?.data)
+        }
+
+        ws.onmessage = {
+            e ->
+            jq("div#messages").append("ws msg " + e?.data)
         }
     }
 
