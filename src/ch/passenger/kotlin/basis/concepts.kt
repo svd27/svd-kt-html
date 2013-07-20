@@ -65,9 +65,9 @@ public class URN(val urn:String) :Comparable<URN> {
         }
 
         private var baseToken : Long = 0
-        fun token() : String {
+        fun token(id:String) : URN {
             baseToken = baseToken+1
-            return "urn:bosork:token:root.symblicon.org:${baseToken}"
+            return URN("urn:bosork:token:root.symblicon.org:${id}")
         }
 
         private var baseInterest : Long = 0

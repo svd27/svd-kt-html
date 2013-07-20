@@ -14,8 +14,18 @@
         <load-on-startup>0</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>Events</servlet-name>
+        <servlet-class>ch.passenger.kotlin.html.servlet.BosorkWebSocketServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>Events</servlet-name>
+        <url-pattern>/events</url-pattern>
+    </servlet-mapping>
+
     <servlet-mapping>
         <servlet-name>Main</servlet-name>
-        <url-pattern>/symbolon/*</url-pattern>
+        <url-pattern>/symblicon/*</url-pattern>
     </servlet-mapping>
 </web-app>

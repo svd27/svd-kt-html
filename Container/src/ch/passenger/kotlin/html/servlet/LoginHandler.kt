@@ -4,6 +4,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import javax.servlet.ServletException
+import ch.passenger.kotlin.basis.URN
 
 /**
  * Created by sdju on 16.07.13.
@@ -28,7 +29,8 @@ class LoginHandler: ContentHandler("login") {
         }
 
         val res = om.createObjectNode()!!
-        res.put("token", session.getAttribute("BOSORK-TOKEN")!! as String)
+        val token = session.getAttribute("BOSORK-TOKEN")!! as URN
+        res.put("token", token.urn)
 
         resp.setContentType("application/json")
         val printWriter = resp.getWriter()!!
@@ -38,7 +40,11 @@ class LoginHandler: ContentHandler("login") {
         printWriter.close()
     }
 
-    private fun token(): String {
-        return "BOSORK:${System.nanoTime()}"
+    private fun token(): URN {
+        return URN.token("${System.nanoTime()}")
+    }
+
+    public class object {
+         val TOKEN_KEY = "BOSORK-TOKEN"
     }
 }

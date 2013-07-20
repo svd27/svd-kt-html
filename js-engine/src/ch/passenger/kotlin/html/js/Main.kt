@@ -28,7 +28,7 @@ open public class Session {
     var base: String? = null
     val words = HashMap<Long, Word>()
     var root: FlowContainer = Div("xxxyyyxxx")
-    var rootSelector: String = "body"
+    var rootSelector: String = "div#container"
     var initialised = false
     val actionHolder = ActionHolder()
     var nextId = 0
@@ -51,23 +51,30 @@ open public class Session {
 
     fun login() {
 
-        sendAjax(base!! + "/symbolon/login", "POST", "{\"user\":\"svd\",\"pwd\":\"sdfsdfsdfsdf\"}") {
+        sendAjax(base!! + "/symblicon/login", "POST", "{\"user\":\"svd\",\"pwd\":\"sdfsdfsdfsdf\"}") {
             req ->
             if(req.readyState == 4 as Short) {
                 token = JSON.parse<Token>(req.responseText)
                 val wc = Div("welcome")
                 wc.text("TOKEN: ${token?.token}")
                 jq("div#container").append(wc.render())
-                initWords()
+                initWs()
+
             }
         }
 
-        val ws = WebSocket("wss:"+base!!.substring(4))
+
+    }
+
+    fun initWs() {
+        val ws = WebSocket("ws:"+base!!.substring(4)+"/events")
         jq("div#messages").append("ws created")
         ws.onopen = {
             e ->
-            jq("div#messages").append("ws open")
+            val twss = e.target as WebSocket
+            jq("div#messages").append("ws open ${twss.readyState}")
             ws.send("hihihi")
+            initWords()
         }
         ws.onclose = {
             e ->
@@ -85,7 +92,7 @@ open public class Session {
     }
 
     fun initWords() {
-        sendAjax(base!! + "/symbolon/words", "GET", "") {
+        sendAjax(base!! + "/symblicon/words", "GET", "") {
             req ->
             var t = req.responseText
             var ready = req.readyState
@@ -155,7 +162,7 @@ open public class Session {
 
     fun fetchWord(id: Long) {
         if(!words.containsKey(id))
-            sendAjax(base + "/symbolon/words/word?id=${id}", "GET", "") {
+            sendAjax(base + "/symblicon/words/word?id=${id}", "GET", "") {
                 req ->
                 var t = req.responseText
                 var ready = req.readyState
