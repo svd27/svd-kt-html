@@ -170,7 +170,7 @@ Interest<Word>
     public override val observers: MutableSet<Observer<Word>> = HashSet()
     override var filter: Filter<Word> = IdentityFilter()
     override var page : Page<Word> = Page<Word>(ArrayList(), 0, 0, 0, 0, 0, 0)
-    public override val elements: MutableList<Word> public get() = ArrayList(words.values())
+    public override val elements: MutableList<Word> get() = ArrayList(words.values())
     public override var rowsPerPage: Int = 10
 
      override fun addHook(e: Word): Word? {
@@ -196,7 +196,7 @@ class WordInterestFactory : InterestFactory {
     override fun accept(urn: URN): Boolean {
         return urn.equals(myUrn)
     }
-    override fun create(name: String, config: IntererstConfig) : WordInterest {
+    override fun create(name: String, config: IntererstConfig) : Interest<*> {
         return WordInterest(URN(URN.interest(config.token)), name, Universe)
     }
 }
