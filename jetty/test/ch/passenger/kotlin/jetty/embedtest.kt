@@ -31,6 +31,7 @@ import org.eclipse.jetty.server.Server
 import ch.passenger.kotlin.jetty.jetty
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.ServiceLoader
 
 /**
  * Created by sdju on 25.07.13.
@@ -111,6 +112,88 @@ class EmbedderTest {
                             }
                             + SM()
 
+                        }
+                    }
+                    public override fun contextDestroyed(p0: ServletContextEvent?) {
+                        println("${p0?.getSource()} destroyed")
+                    }
+                })
+
+                //val dispatches = EnumSet.allOf(javaClass<DispatcherType>())
+                val dispatches = EnumSet.of(DispatcherType.ASYNC, DispatcherType.ERROR, DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST)
+                println(dispatches)
+                val filterHolder = ctx.addFilter(javaClass<com.google.inject.servlet.GuiceFilter>(), "/*", dispatches)
+                println(filterHolder)
+                ctx.addServlet(javaClass<DefaultServlet>(), "/")
+
+                ctx
+            }
+
+        }
+
+        try {
+            server.start()
+            val client = DefaultHttpClient()
+            val get = HttpGet("http://localhost:2709")
+            val response = client.execute(get)
+            println(response?.getEntity())
+            val ins = response!!.getEntity()!!.getContent()
+            val r = BufferedReader(InputStreamReader(ins!!))
+
+
+            val sb = StringBuilder()
+            r.forEachLine {
+                sb.append(it)
+            }
+            /*
+            var c  :Int = 0
+            while(c>=0) {
+                c = ins!!.read()
+                if(c>=0) sb.append(c)
+            }
+            */
+
+            println(sb.toString())
+            assertEquals(TestServlet.textResp, sb.toString())
+
+        } finally {
+            server.stop()
+        }
+
+    }
+
+    test fun guiceWA() {
+        val server = jetty() {
+
+            connectors {
+                val c0  = ServerConnector(this)
+
+                c0.configure {
+                    setPort(2709)
+                }
+
+                array(c0)
+            }
+
+            handlers {
+                val ctx = ServletContextHandler(ServletContextHandler.SESSIONS)
+                ctx.setContextPath("/")
+
+
+
+
+                //http://www.javaintegrations.com/2012/08/using-embedded-jetty-with-guice-servlet.html
+                ctx.addEventListener(object : ServletContextListener {
+                    public override fun contextInitialized(p0: ServletContextEvent?) {
+                        injector {
+                            val sl = ServiceLoader.load(javaClass<WebAppModule>(), p0?.getServletContext()?.getClassLoader())
+                            sl.forEach {
+                                it.modules.forEach {
+                                    println("add $it")
+                                    + it
+                                }
+                            }
+                            null
                         }
                     }
                     public override fun contextDestroyed(p0: ServletContextEvent?) {
