@@ -8,6 +8,7 @@ import java.util.ArrayList
 import com.google.inject.Module
 import com.google.inject.Guice
 import com.google.inject.binder.LinkedBindingBuilder
+import com.google.inject.servlet.ServletModule
 
 /**
  * Created by sdju on 24.07.13.
