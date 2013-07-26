@@ -3,6 +3,12 @@ package ch.passenger.kotlin.basis
 import java.util.HashSet
 import java.util.ArrayList
 import java.util.HashMap
+import com.google.inject.name.Named as named
+import com.google.inject.Inject as inject
+import org.junit.Test as test
+import ch.passenger.kotlin.guice.*
+import com.google.inject.Guice
+
 
 /**
  * Created by sdju on 24.07.13.
@@ -12,7 +18,17 @@ class A(private val ai : Int) : Identifiable {
     override val id: URN = URN.gen("bosork", "thing", "test.bosork.org", "$ai")
 }
 
-class AProducer : ElementProducer<A> {
+named("test-aproducer")
+trait AProducer : ElementProducer<A> {
+
+    override fun produce(f: Filter<A>): Iterator<A>
+    override fun retrieve(vararg id: Long): Iterable<A>
+
+}
+
+class TestAProducer() : AProducer {
+    protected override val observers: MutableSet<Observer<A>> = HashSet()
+
 
     override fun produce(f: Filter<A>): Iterator<A> {
         throw UnsupportedOperationException()
@@ -20,10 +36,11 @@ class AProducer : ElementProducer<A> {
     override fun retrieve(vararg id: Long): Iterable<A> {
         throw UnsupportedOperationException()
     }
-    protected override val observers: MutableSet<Observer<A>> = HashSet()
 }
 
-class AInterest(override val id:URN, override val producer : AProducer, override val name: String ) : Interest<A> {
+
+
+class AInterest [inject] (override val id:URN, override val producer : AProducer, override val name: String ) : Interest<A> {
     public override var rowsPerPage: Int = 10
     public override var current: Int = 0
     public override var page: Page<A> = Page<A>(ArrayList(), 0, 0, 0, 0, 0, 0)
@@ -44,3 +61,20 @@ class AInterest(override val id:URN, override val producer : AProducer, override
     protected override val observers: MutableSet<Observer<A>> = HashSet()
 
 }
+
+class InterestTests() {
+    test
+    fun testModule() {
+        println(javaClass<ElementProducer<A>>())
+        val gin = injector {
+            +module {
+                bind<ElementProducer<A>>().to<AProducer>()
+                bind<AProducer>().to<TestAProducer>()
+            }
+        }
+
+        val ep = gin.getInstance<ElementProducer<A>>()
+        assert(ep is AProducer)
+    }
+}
+
