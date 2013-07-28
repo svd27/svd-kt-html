@@ -5,7 +5,6 @@ import java.util.HashMap
 import java.util.TreeSet
 import java.util.regex.Pattern
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import ch.passenger.kotlin.basis.Identifiable
 import ch.passenger.kotlin.basis.Named
 import kotlin.properties.Delegates
@@ -20,9 +19,6 @@ import ch.passenger.kotlin.basis.Interest
 import ch.passenger.kotlin.basis.UpdateEvent
 import ch.passenger.kotlin.basis.IdentityFilter
 import java.net.URL
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ArrayNode
-import com.fasterxml.jackson.databind.JsonNode
 import ch.passenger.kotlin.basis.Event
 import ch.passenger.kotlin.basis.Page
 import ch.passenger.kotlin.basis.Paged
@@ -239,6 +235,7 @@ class TestObserver : Observer<Word> {
 
 
 fun main(args: Array<String>): Unit {
+    /*
     Populator.populate()
     val interest = WordInterest(URN(URN.interest("1")), "all", Universe)
 
@@ -271,6 +268,7 @@ fun main(args: Array<String>): Unit {
     for(i in 0..interest.page.totalPages) {
         interest.next()
     }
+    */
 }
 
 

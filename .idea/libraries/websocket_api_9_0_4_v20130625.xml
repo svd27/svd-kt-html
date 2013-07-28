@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="websocket-api-9.0.4.v20130625">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../kdeps/lib/websocket-api-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../kdeps/lib/websocket-client-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../kdeps/lib/websocket-common-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../kdeps/lib/websocket-server-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/../../kdeps/lib/websocket-servlet-9.0.4.v20130625.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

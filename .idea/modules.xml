@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Container/Container.iml" filepath="$PROJECT_DIR$/Container/Container.iml" />
       <module fileurl="file://$PROJECT_DIR$/guice/guice.iml" filepath="$PROJECT_DIR$/guice/guice.iml" />
+      <module fileurl="file://$PROJECT_DIR$/guice/guice.iml" filepath="$PROJECT_DIR$/guice/guice.iml" />
       <module fileurl="file://$PROJECT_DIR$/jetty/jetty.iml" filepath="$PROJECT_DIR$/jetty/jetty.iml" />
       <module fileurl="file://$PROJECT_DIR$/js-engine/js-engine.iml" filepath="$PROJECT_DIR$/js-engine/js-engine.iml" />
       <module fileurl="file://$PROJECT_DIR$/svd-kt-html.iml" filepath="$PROJECT_DIR$/svd-kt-html.iml" />

@@ -29,9 +29,13 @@ import javax.servlet.ServletContextListener
 import javax.servlet.ServletContextEvent
 import org.eclipse.jetty.server.Server
 import ch.passenger.kotlin.jetty.jetty
+import ch.passenger.kotlin.jetty.socket
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.ServiceLoader
+import javax.servlet.http.HttpSession
+import org.eclipse.jetty.websocket.api.Session
+import org.eclipse.jetty.websocket.client.WebSocketClient
 
 /**
  * Created by sdju on 25.07.13.
@@ -79,10 +83,20 @@ class EmbedderTest {
             u.openConnection()
             val s = u.readText("utf-8")
             val expect = "<h1>$greet</h1>"
-            assertEquals(expect.toUpperCase(),s.toUpperCase())
+            assertEquals(expect.trim(), s.trim())
         } finally {
             server.stop()
         }
+    }
+
+    fun chrCmp(s1 : String, s2: String) :Boolean {
+        if(s1.length() != s2.length()) return false
+        for(i in 0..s1.length()) {
+            if(s1[i]!=s2[i]) {
+                println("$i: ${s1[i]} != ${s2[i]}")
+            }
+        }
+        return true
     }
 
 
@@ -186,13 +200,20 @@ class EmbedderTest {
                 ctx.addEventListener(object : ServletContextListener {
                     public override fun contextInitialized(p0: ServletContextEvent?) {
                         injector {
-                            val sl = ServiceLoader.load(javaClass<WebAppModule>(), p0?.getServletContext()?.getClassLoader())
+                            /*
+                            val scx = p0?.getServletContext()!!
+                            val classLoader = scx.getClassLoader()
+                            val wam : WebAppModule = WA1()
+                            println("cl: $classLoader")
+                            val sl = ServiceLoader.load(javaClass<WebAppModule>(), Thread.currentThread().getContextClassLoader())
                             sl.forEach {
                                 it.modules.forEach {
                                     println("add $it")
                                     + it
                                 }
                             }
+                            */
+                            +SM()
                             null
                         }
                     }
