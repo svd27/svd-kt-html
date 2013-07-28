@@ -11,6 +11,10 @@
       <root url="jar://$PROJECT_DIR$/../../kdeps/lib/jetty-xml-9.0.4.v20130625.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-24/filestore/org.eclipse.jetty/jetty-servlet/9.0.4.v20130625/source/600a31ec730b0f54f7f474473a46b01869db3669/jetty-servlet-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-24/filestore/org.eclipse.jetty/jetty-server/9.0.4.v20130625/source/2c67e20c58925047f5e25eaf0d9fab92f7c5da16/jetty-server-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$USER_HOME$/.gradle/caches/artifacts-24/filestore/org.eclipse.jetty/jetty-http/9.0.4.v20130625/source/c72513d7d93e570649a06c095a23ce00670e9ab5/jetty-http-9.0.4.v20130625-sources.jar!/" />
+    </SOURCES>
   </library>
 </component>

@@ -10,6 +10,8 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory
 import javax.servlet.http.HttpSession
+import org.eclipse.jetty.servlet.ServletHolder
+import org.eclipse.jetty.servlet.Holder
 
 /**
  * Created by sdju on 25.07.13.
@@ -44,8 +46,9 @@ fun ServletContextHandler.socket(cfg : ServletContextHandler.() -> Pair<String,C
         ctor.newInstance(req?.getSession())
     }
     class WSSServlet() : BosorkWebsocketServlet(wsc)
-    addServlet(javaClass<WSSServlet>() as Class<Servlet>, pair.first)
-
+    val sh = ServletHolder(object : BosorkWebsocketServlet(wsc){})
+    //addServlet(javaClass<WSSServlet>(), pair.first)
+    addServlet(sh, pair.first)
 }
 
 

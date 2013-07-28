@@ -42,7 +42,7 @@ class SocketTest {
             handlers {
                 val h = object : ServletContextHandler() {}
                 h.socket {
-                    class Adaptor(s : HttpSession?) : BosorkWebsocketAdapter(s) {
+                    class Adaptor(s : HttpSession) : BosorkWebsocketAdapter(s) {
 
                         public override fun onWebSocketConnect(sess: Session?) {
                             connected = true
@@ -106,4 +106,32 @@ class SocketTest {
         }
     }
 
+}
+
+open class IntHolder(val i:Int)
+
+class VerifyError {
+    test fun instance() {
+        public class X public () : IntHolder(5)
+
+        try {
+            val jc = javaClass<X>()
+            val x = jc.newInstance()
+            println(x.i)
+        } catch(e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    test fun ctor() {
+        public class X public () : IntHolder(5)
+
+        try {
+            val jc = javaClass<X>()
+            val x = jc.getConstructor()
+            println(x.newInstance()?.i)
+        } catch(e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }
