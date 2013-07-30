@@ -28,6 +28,9 @@ import java.util.ArrayList
 import org.dom4j.Element
 import java.util.regex.Pattern
 import javax.swing.JComponent
+import java.io.File
+import java.io.FileOutputStream
+import org.dom4j.DocumentFactory
 
 /**
  * Created by sdju on 29.07.13.
@@ -60,7 +63,7 @@ fun searchNexus(group: String = "", artifact: String = "", version: String = "AL
         }
 
     }
-    template.append("&wt=json")
+    template.append("&wt=json").append("&rows=100")
     val ex = "https://oss.sonatype.org/service/local/lucene/search?_dc=1375253977278&g=com.google.inject&a=guice&collapseresults=true"
 
     val prefix = "http://search.maven.org/solrsearch/select?q="
@@ -131,6 +134,20 @@ fun artifact(it: ObjectNode): Artifact {
     return ri
 }
 
+public fun pack(artifacts:List<Artifact>, libname:String, projectDir:String, libDir:String) {
+    var idlibs = File(projectDir+"/.idea/libraries")
+    if(!idlibs.exists()) {
+        throw IllegalStateException()
+    }
+    val doc = DocumentFactory.getInstance()?.createDocument("component")!!
+    val root = doc.getRootElement()!!
+    root.addAttribute("name", "libraryTable")
+    root.addElement("properties").addAttribute("maven-id")
+    artifacts.forEach {
+
+    }
+}
+
 class Artifact(val id: String, val group: String, val artifact: String, val version: String, val packaging: String, val ts: Long): Comparable<Artifact> {
     var docs: String? = null
     var sources: String? = null
@@ -146,10 +163,54 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         return sb.toString()
     }
 
+    fun file(ext:String) :String {
+        val sb = StringBuilder("remotecontent?filepath=")
+        group.split('.').forEach { sb.append(it).append('/') }
+        sb.append(artifact).append('/')
+        sb.append(version).append('/')
+        sb.append(artifact).append('-').append(version).append(ext)
+        return sb.toString()
+    }
+
     public fun equals(o: Any?): Boolean {
         return when(o) {
             o is Artifact -> id.equals((o as Artifact).id)
             else -> false
+        }
+    }
+
+    public fun download(dest : String) : String {
+        val root = File(dest)
+        val gf = File(root, group)
+        val vf = File(gf, version)
+        val dest = File(vf, artifact)
+
+        dest.mkdirs()
+        val jn = file(".jar")
+        save(dest, "$artifact.jar", ".jar")
+        if(sources!=null)
+            save(dest, "$artifact$sources.jar", "$sources")
+        if(docs!=null)
+            save(dest, "$artifact$docs.jar", "$docs")
+
+        return "$group/$version"
+    }
+
+    public fun save(dir:File, fn:String, ext:String) {
+        if(File(dir, fn).exists()) {
+            return
+        }
+        println(file(ext))
+        val io = getFile(file(ext))
+        val fout = FileOutputStream(File(dir, fn))
+        val buffer = ByteArray(1024)
+        var len = io?.read(buffer)
+        while (len != -1) {
+            fout.write(buffer, 0, len);
+            len = io?.read(buffer);
+            if (Thread.interrupted()) {
+                throw InterruptedException();
+            }
         }
     }
 
@@ -165,7 +226,6 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         println(dom.asXML())
         val res = ArrayList<Artifact>()
 
-        val xp = dom.selectNodes("//project/dependencies/dependency")
         val root = dom.getRootElement()
         val deps = root?.element("dependencies")
         val dep = deps?.elements("dependency")

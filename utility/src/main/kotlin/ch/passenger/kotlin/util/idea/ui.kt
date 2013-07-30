@@ -13,6 +13,11 @@ import javax.swing.event.ListSelectionEvent
  * To change this template use File | Settings | File Templates.
  */
 class DepsUI() {
+    var tfIdea : JTextField? = null
+    var tfLibs : JTextField? = null
+    var tfName : JTextField? = null
+    var tbl = JTable()
+
     fun show() {
         val tfSearch = textfield {
             setText("")
@@ -75,64 +80,121 @@ class DepsUI() {
 
         val af = frame("search") {
             north {
-                val p: JPanel = panel {
-                    setLayout(FlowLayout())
-                    add(label("Query (g:a:v)"))
-                    add(tfSearch)
-                    add(JButton(object : AbstractAction("search") {
-                        public override fun actionPerformed(e: ActionEvent) {
-                            val toks = tfSearch.getText()?.split(':')!!
-                            if(toks.size == 0) return
+                vbox {
+                    this + panel {
+                        setLayout(FlowLayout())
+                        add(label("Query (g:a:v)"))
+                        add(tfSearch)
+                        add(JButton(object : AbstractAction("search") {
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val toks = tfSearch.getText()?.split(':')!!
+                                if(toks.size == 0) return
 
-                            val q = Array<String>(3) {
-                                i ->
-                                if(i < toks.size) toks[i] else ""
+                                val q = Array<String>(3) {
+                                    i ->
+                                    if(i < toks.size) toks[i] else ""
+                                }
+
+
+                                searchNexus(q[0], q[1], q[2], tm)
+                            }
+                        }))
+                        this
+                    }
+                    this + hbox {
+                        this + hbox {
+                            this +label("IDEA library Folder:")
+                            this +textfield {
+                                tfIdea = this
+                                setColumns(50)
+                                setText(System.getProperty("user.dir"))
+                            }
+                            this + JButton(object : AbstractAction("...") {
+                                val jfc = JFileChooser(System.getProperty("user.dir"))
+                                public override fun actionPerformed(e: ActionEvent) {
+                                    jfc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY)
+                                    val ok = jfc.showOpenDialog(tfIdea)
+                                    if(ok == JFileChooser.APPROVE_OPTION)
+                                        tfIdea?.setText(jfc.getSelectedFile()?.getAbsolutePath())
+                                }
+                            })
+                        }
+                        this + hbox {
+                            this +label("artifact folder")
+                            this +textfield {
+                                tfLibs = this
+                                setColumns(50)
+                                setText(System.getProperty("lib"))
                             }
 
-
-                            searchNexus(q[0], q[1], q[2], tm)
                         }
-                    }))
-                    this
+                        this + hbox {
+                            this + label("libname")
+                            this+textfield {
+                                tfName = this
+                                setColumns(20)
+                                setText("choose.a.name")
+                            }
+                        }
+                        hglue()
+                    }
                 }
-                p
             }
             center {
-                scrollpane() {
-                    val tbl = JTable(tm)
+                vbox {
+                    this + scrollpane() {
+                        tbl = JTable(tm)
+                        val condition = JComponent.WHEN_IN_FOCUSED_WINDOW
+                        val inputMap = tbl.getInputMap(condition)
+                        val actionMap = tbl.getActionMap()
 
 
-                    val condition = JComponent.WHEN_IN_FOCUSED_WINDOW
-                    val inputMap = tbl.getInputMap(condition)
-                    val actionMap = tbl.getActionMap()
+                        inputMap?.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "DEL");
+                        actionMap?.put("DEL", object : AbstractAction() {
+                            override public fun actionPerformed(e: ActionEvent) {
+                                val sel  = tbl.getSelectedRows()
+                                val ai = Array<Int>(sel.size) {sel[it]}
 
+                                tm.remove(ai)
+                            }
+                        })
 
-                    inputMap?.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "DEL");
-                    actionMap?.put("DEL", object : AbstractAction() {
-                        override public fun actionPerformed(e: ActionEvent) {
-                            val sel  = tbl.getSelectedRows()
-                            val ai = Array<Int>(sel.size) {sel[it]}
+                        tbl.getSelectionModel()?.addListSelectionListener {
+                            (e: ListSelectionEvent) ->
+                            if(!e.getValueIsAdjusting()) {
+                                val idx = tbl.getSelectedRow()
+                                val artifact = tm.value(idx)
+                                if(artifact != null) {
+                                    println(artifact.id)
+                                    dtm.clear()
+                                    currentDep.setText(artifact.id)
+                                    artifact.dependencies().forEach { dtm.add(it) }
+                                }
 
-                            tm.remove(ai)
-                        }
-                    })
-
-                    tbl.getSelectionModel()?.addListSelectionListener {
-                        (e: ListSelectionEvent) ->
-                        if(!e.getValueIsAdjusting()) {
-                            val idx = tbl.getSelectedRow()
-                            val artifact = tm.value(idx)
-                            if(artifact != null) {
-                                println(artifact.id)
-                                dtm.clear()
-                                currentDep.setText(artifact.id)
-                                artifact.dependencies().forEach { dtm.add(it) }
                             }
 
                         }
-
+                        tbl
                     }
-                    tbl
+                    this + hbox {
+                        this + JButton(object : AbstractAction("Download JAR"){
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val sel = tbl.getSelectedRows()
+                                sel.forEach {
+                                    tm.value(it)?.download(tfIdea?.getText()+"/"+tfLibs?.getText()!!)
+                                }
+                            }
+                        })
+
+                        this + JButton(object : AbstractAction("Package"){
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val sel = tbl.getSelectedRows()
+                                sel.forEach {
+                                    tm.value(it)?.download(tfIdea.getText()+"/"+tfLibs?.getText()!!)
+                                }
+                            }
+                        })
+                    }
                 }
             }
             south() {
