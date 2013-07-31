@@ -33,6 +33,7 @@ import java.io.FileOutputStream
 import org.dom4j.DocumentFactory
 import org.dom4j.io.XMLWriter
 import java.io.FileWriter
+import org.dom4j.Document
 
 /**
  * Created by sdju on 29.07.13.
@@ -43,7 +44,7 @@ fun main(args: Array<String>) {
     DepsUI().show()
 }
 
-fun searchNexus(group: String = "", artifact: String = "", version: String = "ALL", tm: SimpleTableModel<Artifact>) {
+fun searchNexus(group: String = "", artifact: String = "", version: String = "ALL"): List<Artifact> {
     assert(group.length() + artifact.length() > 0)
 
     val template = StringBuilder()
@@ -83,11 +84,12 @@ fun searchNexus(group: String = "", artifact: String = "", version: String = "AL
     val om = ObjectMapper()
     val node = om.readTree(sr)
     val nresp = node?.path("response")?.path("docs")
+    val res = ArrayList<Artifact>()
     if(!(nresp is MissingNode) && (nresp is ArrayNode))
         nresp.forEach {
             val a = artifact(it as ObjectNode)
             println(a.id)
-            tm.add(a)
+            res.add(a)
             //val pomin = getFile(a.pom())
 
 
@@ -95,7 +97,7 @@ fun searchNexus(group: String = "", artifact: String = "", version: String = "AL
             //sax.read(pomin)
 
         }
-
+    return res
 }
 
 
@@ -177,18 +179,21 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     artifacts.forEach {
         it.download(libDir)
        //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
-        ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.jarName()}!}")
+        val jardir = "${it.group}/${it.version}/${it.artifact}"
+        ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.jarName()}!/")
         if(it.docs!=null) {
-            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.artifact}-${it.version}${it.docs}!}")
+            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.artifact}-${it.version}${it.docs}!/")
         }
         if(it.sources!=null) {
-            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.artifact}-${it.version}${it.sources}!}")
+            esrc.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.artifact}-${it.version}${it.sources}!/")
         }
     }
     val w = XMLWriter()
     try {
         val fn = leader.id.replace('.', '_').replace(':', '_')
-        val fw = FileWriter(File(idlibs, fn +".xml"))
+        val dest = File(idlibs, fn + ".xml")
+        println("Writing to...${dest}")
+        val fw = FileWriter(dest)
         w.setWriter(fw)
         w.write(doc)
         w.flush()
@@ -198,6 +203,7 @@ public fun pack(cfg:LibCfg, projectDir:String) {
 
 }
 
+
 class Artifact(val id: String, val group: String, val artifact: String, val version: String, val packaging: String, val ts: Long): Comparable<Artifact> {
     var docs: String? = null
     var sources: String? = null
@@ -205,10 +211,10 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
     var deps : List<Artifact>? = null
 
     fun jarName() : String {
-        return "$group-$version-$artifact.jar"
+        return "$artifact-$version.jar"
     }
 
-    fun pom(): String {
+    fun pomFile(): String {
         val sb = StringBuilder("remotecontent?filepath=")
         group.split('.').forEach { sb.append(it).append('/') }
         sb.append(artifact).append('/')
@@ -241,7 +247,7 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
 
         dest.mkdirs()
         val jn = file(".jar")
-        save(dest, "$artifact.jar", ".jar")
+        save(dest, "$artifact-$version.jar", ".jar")
         if(sources!=null)
             save(dest, "$artifact$sources", "$sources")
         if(docs!=null)
@@ -278,37 +284,141 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         return id.compareToIgnoreCase(other.id)
     }
 
+    private val NOTLOADED : Element = DocumentFactory.getInstance()?.createElement("!!!xxx!!!")!!
+    var dm : Element? = NOTLOADED
+    val POMNOTLOADED = DocumentFactory.getInstance()!!.createDocument()!!
+    var pom : Document = POMNOTLOADED
+    var PNOTLOADED = true
+    var parent : Artifact? = null
+
+    fun getPOMDoc() : Document {
+        if(pom.identityEquals(POMNOTLOADED)) {
+            pom = SAXReader().read(getFile(pomFile()))!!
+        }
+        return pom
+    }
+
+    fun getParentArtifact() :Artifact? {
+        if(!PNOTLOADED) return parent
+        PNOTLOADED=true
+        parent = null
+        val idparent = parentId(getPOMDoc())
+        if(idparent !=null) {
+            var canSearch :Boolean = true
+            idparent.forEach { if(it==null) canSearch = false }
+            if (canSearch) {
+                val l = searchNexus(idparent[0]!!, idparent[2]!!, idparent[1]!!)
+                if(l.size()>0) {
+                    parent = l.first()
+                }
+            }
+        }
+        return parent
+    }
+
+    fun getDepManagment() : Element? {
+        if(dm == NOTLOADED) {
+            val root = getPOMDoc().getRootElement()
+            if(root?.element("dependencyManagement") != null) {
+                dm = root?.element("dependencyManagement")!!
+            } else {
+                dm = getParentArtifact()?.getDepManagment()
+            }
+        }
+
+        return dm
+    }
+
+    public fun parentName() :String{
+        val pid = parentId(getPOMDoc())
+        if(pid!=null && pid.size==3) {
+            return "${pid[0]}.${pid[1]}.${pid[2]}"
+        }
+
+        return "<root>"
+    }
+
+    private fun parentId(doc: Document) :Array<String?>? {
+        val pe = doc.getRootElement()?.element("parent")
+        if(pe==null) return null
+        val g = pe?.elementText("groupId")
+        val v = pe?.elementText("version")
+        val a = pe?.elementText("artifactId")
+        return array(g, v, a)
+    }
+
+
+    private fun resolveVersion(g:String, a:String) : String {
+        var v = "unknown"
+        println("looking for v of $g.$a in $id")
+        //9.0.4.v20130625
+
+        val dm = getDepManagment()
+
+        if(dm!=null) {
+            dm.element("dependencies")?.elements("dependency")?.forEach {
+                val e = it as Element
+                val dg = e.elementText("groupId")
+                val da = e.elementText("artifactId")
+                println("comparing a: '$a' == '$da'")
+                println("comparing g: '$g' == '$dg'")
+                if(v=="unknown" && g== dg && a== da) {
+                    println("matched ${e.elementText("version")}")
+                    v = e.elementText("version")!!
+                }
+            }
+        }
+        if(v=="unknown") v = getParentArtifact()?.resolveVersion(g, a)?:"unknown"
+
+        return v
+    }
+
     public fun dependencies(): List<Artifact> {
         if(deps!=null) return deps!!
         val sax = SAXReader()
-        val dom = sax.read(getFile(pom()))!!
+        val dom = sax.read(getFile(pomFile()))!!
         println(dom.asXML())
         val res = ArrayList<Artifact>()
 
         val root = dom.getRootElement()
         val deps = root?.element("dependencies")
         val dep = deps?.elements("dependency")
+
         dep?.forEach {
             val n = it as Element
             println(it.asXML())
             val  g = n.elementText("groupId")!!
             val a = n.elementText("artifactId")!!
-            var v = n.elementText("version")!!
-            if(v.startsWith("\${")) {
-                val pp = Pattern.compile("\\$\\{(.*)\\}")
-                val m = pp.matcher(v)
-                if(m.matches()) {
-                    var pv = root?.element("properties")?.elementText(m.group(1))
-                    if(pv != null) v = pv!!
-                }
+            var v = n.elementText("version")
+            if(v==null) {
+                v = resolveVersion(g, a)
+            }
+
+            if(v!!.startsWith("\${")) {
+                v = resolveProperty(v!!)
             }
             val s = n.elementText("scope")
-            val el = Artifact("$g:$a:$v", g, a, v, "", 0)
+            val el = Artifact("$g:$a:$v", g, a, v!!, "", 0)
             if(s != null) el.scope = s
             res.add(el)
         }
 
         this.deps = res
+        return res
+    }
+
+    fun resolveProperty(v:String) : String {
+        print("looking for property: $v in $id")
+        val pp = Pattern.compile("\\$\\{(.*)\\}")
+        val m = pp.matcher(v)
+        var res :String = v
+        if(m.matches()) {
+            var pv = getPOMDoc().getRootElement()?.element("properties")?.elementText(m.group(1))
+            if(pv != null) res = pv!!
+            else {
+                res = getParentArtifact()?.resolveProperty(v)?:v
+            }
+        }
         return res
     }
 }

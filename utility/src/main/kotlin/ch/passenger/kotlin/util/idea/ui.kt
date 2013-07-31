@@ -17,6 +17,7 @@ class DepsUI() {
     var tfIdea : JTextField? = null
     var tfLibs : JTextField? = null
     var tfName : JTextField? = null
+    var tfParent : JTextField? = null
     var tbl = JTable()
 
     fun show() {
@@ -97,7 +98,9 @@ class DepsUI() {
                                 }
 
 
-                                searchNexus(q[0], q[1], q[2], tm)
+                                searchNexus(q[0], q[1], q[2]).forEach {
+                                    tm.add(it)
+                                }
                             }
                         }))
                         this
@@ -130,12 +133,17 @@ class DepsUI() {
 
                         }
                         this + hbox {
-                            this + label("libname")
+                            this+label("Parent")
                             this+textfield {
-                                tfName = this
+                                tfParent = this
                                 setColumns(20)
-                                setText("choose.a.name")
                             }
+                            this+JButton(object:AbstractAction("Clear") {
+
+                                public override fun actionPerformed(e: ActionEvent) {
+                                    tm.clear()
+                                }
+                            })
                         }
                         hglue()
                     }
@@ -167,6 +175,7 @@ class DepsUI() {
                                 val artifact = tm.value(idx)
                                 if(artifact != null) {
                                     println(artifact.id)
+                                    tfParent?.setText(artifact.parentName())
                                     dtm.clear()
                                     currentDep.setText(artifact.id)
                                     artifact.dependencies().forEach { dtm.add(it) }
@@ -215,7 +224,10 @@ class DepsUI() {
                             public override fun actionPerformed(e: ActionEvent) {
                                 dtbl.getSelectedRows().forEach {
                                     val a = dtm.value(it)!!
-                                    searchNexus(a.group, a.artifact, a.version, tm)
+                                    val l = searchNexus(a.group, a.artifact, a.version)
+                                    l.forEach {
+                                        tm.add(it)
+                                    }
                                 }
                             }
                         }))

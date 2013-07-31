@@ -98,14 +98,14 @@ fun scrollpane(init:JScrollPane.()-> JComponent) :JScrollPane {
     return sp
 }
 
-fun<T> tablemodel(init:SimpleTableModel<T>.()->Unit) : SimpleTableModel<T> {
+fun<T:Comparable<T>> tablemodel(init:SimpleTableModel<T>.()->Unit) : SimpleTableModel<T> {
     val tm = SimpleTableModel<T>()
     tm.init()
     return tm
 }
 
 
-trait RowProvider<T> {
+trait RowProvider<T:Comparable<T>> {
     fun get(row:Int) : T? = null
     fun add(t:T) : Int = -1
     fun count() : Int = 0
@@ -114,9 +114,14 @@ trait RowProvider<T> {
     fun remove(r:Int) : Int {
         return remove(get(r))
     }
+    fun indexOf(t:T) : Int = -1
 }
 
-public class DefaultRowsProvider<T> : RowProvider<T> {
+fun<T> List<T>.eachIdx(cb:(Int,T)->Unit) : Unit {
+    for(it in withIndices()) cb(it.first, it.second)
+}
+
+public class DefaultRowsProvider<T:Comparable<T>> : RowProvider<T> {
     private val rows : MutableList<T> = ArrayList<T>()
 
 
@@ -132,12 +137,23 @@ public class DefaultRowsProvider<T> : RowProvider<T> {
     }
 
 
+    override fun indexOf(t: T): Int {
+        var idx = -1
+        rows.eachIdx {
+            (i,ot) -> if(idx<0&&t.compareTo(ot)==0) idx = i
+        }
+
+        return idx
+    }
     override fun clear() {
         rows.clear()
     }
 
+
+
     override fun remove(t:T?) :Int {
-        val idx = rows.indexOf(t)
+        if(t==null) return -1
+        val idx = indexOf(t)
         rows.remove(idx)
         return idx
     }
@@ -155,7 +171,7 @@ trait ValProvider<T> {
     fun value(t:T, row:Int, col:Int) : Any? = null
 }
 
-class SimpleTableModel<T>() : AbstractTableModel() {
+class SimpleTableModel<T:Comparable<T>>() : AbstractTableModel() {
     var rows : RowProvider<T> = DefaultRowsProvider()
     var cols : ColProvider<T> = object : ColProvider<T>{}
     var vals : ValProvider<T> = object : ValProvider<T>{}
