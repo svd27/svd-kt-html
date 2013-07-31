@@ -29,8 +29,13 @@ import javax.servlet.ServletContextListener
 import javax.servlet.ServletContextEvent
 import org.eclipse.jetty.server.Server
 import ch.passenger.kotlin.jetty.jetty
+import ch.passenger.kotlin.jetty.socket
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.ServiceLoader
+import javax.servlet.http.HttpSession
+import org.eclipse.jetty.websocket.api.Session
+import org.eclipse.jetty.websocket.client.WebSocketClient
 
 /**
  * Created by sdju on 25.07.13.
@@ -78,10 +83,20 @@ class EmbedderTest {
             u.openConnection()
             val s = u.readText("utf-8")
             val expect = "<h1>$greet</h1>"
-            assertEquals(expect.toUpperCase(),s.toUpperCase())
+            assertEquals(expect.trim(), s.trim())
         } finally {
             server.stop()
         }
+    }
+
+    fun chrCmp(s1 : String, s2: String) :Boolean {
+        if(s1.length() != s2.length()) return false
+        for(i in 0..s1.length()) {
+            if(s1[i]!=s2[i]) {
+                println("$i: ${s1[i]} != ${s2[i]}")
+            }
+        }
+        return true
     }
 
 
@@ -111,6 +126,95 @@ class EmbedderTest {
                             }
                             + SM()
 
+                        }
+                    }
+                    public override fun contextDestroyed(p0: ServletContextEvent?) {
+                        println("${p0?.getSource()} destroyed")
+                    }
+                })
+
+                //val dispatches = EnumSet.allOf(javaClass<DispatcherType>())
+                val dispatches = EnumSet.of(DispatcherType.ASYNC, DispatcherType.ERROR, DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST)
+                println(dispatches)
+                val filterHolder = ctx.addFilter(javaClass<com.google.inject.servlet.GuiceFilter>(), "/*", dispatches)
+                println(filterHolder)
+                ctx.addServlet(javaClass<DefaultServlet>(), "/")
+
+                ctx
+            }
+
+        }
+
+        try {
+            server.start()
+            val client = DefaultHttpClient()
+            val get = HttpGet("http://localhost:2709")
+            val response = client.execute(get)
+            println(response?.getEntity())
+            val ins = response!!.getEntity()!!.getContent()
+            val r = BufferedReader(InputStreamReader(ins!!))
+
+
+            val sb = StringBuilder()
+            r.forEachLine {
+                sb.append(it)
+            }
+            /*
+            var c  :Int = 0
+            while(c>=0) {
+                c = ins!!.read()
+                if(c>=0) sb.append(c)
+            }
+            */
+
+            println(sb.toString())
+            assertEquals(TestServlet.textResp, sb.toString())
+
+        } finally {
+            server.stop()
+        }
+
+    }
+
+    test fun guiceWA() {
+        val server = jetty() {
+
+            connectors {
+                val c0  = ServerConnector(this)
+
+                c0.configure {
+                    setPort(2709)
+                }
+
+                array(c0)
+            }
+
+            handlers {
+                val ctx = ServletContextHandler(ServletContextHandler.SESSIONS)
+                ctx.setContextPath("/")
+
+
+
+
+                //http://www.javaintegrations.com/2012/08/using-embedded-jetty-with-guice-servlet.html
+                ctx.addEventListener(object : ServletContextListener {
+                    public override fun contextInitialized(p0: ServletContextEvent?) {
+                        injector {
+                            /*
+                            val scx = p0?.getServletContext()!!
+                            val classLoader = scx.getClassLoader()
+                            val wam : WebAppModule = WA1()
+                            println("cl: $classLoader")
+                            val sl = ServiceLoader.load(javaClass<WebAppModule>(), Thread.currentThread().getContextClassLoader())
+                            sl.forEach {
+                                it.modules.forEach {
+                                    println("add $it")
+                                    + it
+                                }
+                            }
+                            */
+                            +SM()
+                            null
                         }
                     }
                     public override fun contextDestroyed(p0: ServletContextEvent?) {
