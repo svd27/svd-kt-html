@@ -31,6 +31,8 @@ import javax.swing.JComponent
 import java.io.File
 import java.io.FileOutputStream
 import org.dom4j.DocumentFactory
+import org.dom4j.io.XMLWriter
+import java.io.FileWriter
 
 /**
  * Created by sdju on 29.07.13.
@@ -134,18 +136,66 @@ fun artifact(it: ObjectNode): Artifact {
     return ri
 }
 
-public fun pack(artifacts:List<Artifact>, libname:String, projectDir:String, libDir:String) {
+class LibCfg(val leader:Artifact, val artifacts:List<Artifact>, val libDir:String) {
+    public fun asJson() : ObjectNode {
+        val om = ObjectMapper()
+        val root = om.createObjectNode()!!
+        root.put("name", leader.id)
+        root.put("libdir", libDir)
+        val an = om.createArrayNode()!!
+        root.put("artifacts", an)
+        artifacts.forEach {
+            val node = om.createObjectNode()!!
+            an.add(node)
+            node.put("id", it.id)
+            node.put("group", it.group)
+            node.put("version", it.version)
+            node.put("artifact", it.artifact)
+            node.put("packaging", it.packaging)
+        }
+        return root
+    }
+}
+
+public fun pack(cfg:LibCfg, projectDir:String) {
+    val leader = cfg.leader
+    val artifacts = cfg.artifacts
+    val libDir = cfg.libDir
     var idlibs = File(projectDir+"/.idea/libraries")
     if(!idlibs.exists()) {
         throw IllegalStateException()
     }
-    val doc = DocumentFactory.getInstance()?.createDocument("component")!!
+    val doc = DocumentFactory.getInstance()?.createDocument()!!
+    doc.addElement("component")
     val root = doc.getRootElement()!!
     root.addAttribute("name", "libraryTable")
-    root.addElement("properties").addAttribute("maven-id")
+    val lib = root.addElement("library")?.addAttribute("name", leader.id)
+    lib?.addElement("properties")?.addAttribute("maven-id", leader.id)
+    val ecl = lib?.addElement("CLASSES")!!
+    val ejd = lib?.addElement("JAVADOC")!!
+    val esrc = lib?.addElement("SOURCES")!!
     artifacts.forEach {
-
+        it.download(libDir)
+       //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
+        ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.jarName()}!}")
+        if(it.docs!=null) {
+            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.artifact}-${it.version}${it.docs}!}")
+        }
+        if(it.sources!=null) {
+            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${it.id}/${it.artifact}-${it.version}${it.sources}!}")
+        }
     }
+    val w = XMLWriter()
+    try {
+        val fn = leader.id.replace('.', '_').replace(':', '_')
+        val fw = FileWriter(File(idlibs, fn +".xml"))
+        w.setWriter(fw)
+        w.write(doc)
+        w.flush()
+    } finally {
+        w.close()
+    }
+
 }
 
 class Artifact(val id: String, val group: String, val artifact: String, val version: String, val packaging: String, val ts: Long): Comparable<Artifact> {
@@ -153,6 +203,10 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
     var sources: String? = null
     var scope: String = "compile"
     var deps : List<Artifact>? = null
+
+    fun jarName() : String {
+        return "$group-$version-$artifact.jar"
+    }
 
     fun pom(): String {
         val sb = StringBuilder("remotecontent?filepath=")
@@ -189,9 +243,9 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         val jn = file(".jar")
         save(dest, "$artifact.jar", ".jar")
         if(sources!=null)
-            save(dest, "$artifact$sources.jar", "$sources")
+            save(dest, "$artifact$sources", "$sources")
         if(docs!=null)
-            save(dest, "$artifact$docs.jar", "$docs")
+            save(dest, "$artifact$docs", "$docs")
 
         return "$group/$version"
     }
@@ -203,14 +257,19 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         println(file(ext))
         val io = getFile(file(ext))
         val fout = FileOutputStream(File(dir, fn))
-        val buffer = ByteArray(1024)
-        var len = io?.read(buffer)
-        while (len != -1) {
-            fout.write(buffer, 0, len);
-            len = io?.read(buffer);
-            if (Thread.interrupted()) {
-                throw InterruptedException();
+        try {
+            val buffer = ByteArray(1024)
+            var len = io?.read(buffer)
+            while (len != -1) {
+                fout.write(buffer, 0, len);
+                len = io?.read(buffer);
+                if (Thread.interrupted()) {
+                    throw InterruptedException();
+                }
             }
+            fout.flush()
+        } finally {
+            fout.close()
         }
     }
 

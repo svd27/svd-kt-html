@@ -4,6 +4,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.KeyEvent
 import java.awt.FlowLayout
 import javax.swing.event.ListSelectionEvent
+import java.util.ArrayList
 
 /**
  * Created with IntelliJ IDEA.
@@ -189,9 +190,12 @@ class DepsUI() {
                         this + JButton(object : AbstractAction("Package"){
                             public override fun actionPerformed(e: ActionEvent) {
                                 val sel = tbl.getSelectedRows()
+                                val artifacts = ArrayList<Artifact>(sel.size)
                                 sel.forEach {
-                                    tm.value(it)?.download(tfIdea.getText()+"/"+tfLibs?.getText()!!)
+                                    artifacts.add(tm.value(it)!!)
                                 }
+                                val pf = CfgFrame(artifacts, tfLibs?.getText()!!, tfIdea?.getText()!!)
+                                pf.show()
                             }
                         })
                     }
@@ -222,5 +226,96 @@ class DepsUI() {
         }
         af.pack()
         af.setVisible(true)
+    }
+}
+
+class CfgFrame(val artifacts:List<Artifact>, val libDir:String, val projectDir:String) {
+    var leader = artifacts.first()
+    val tfLeader = textfield {
+        setText(artifacts.first().id)
+    }
+    val tfProject = textfield {setText(projectDir)}
+
+    val tm = tablemodel<Artifact> {
+
+        cols = object : ColProvider<Artifact> {
+            val cols = array("id", "group", "artifact", "version", "packaging")
+            override fun get(col: Int): String {
+                return cols[col]
+            }
+            override fun count(): Int {
+                return cols.size
+            }
+        }
+
+        vals = object : ValProvider<Artifact> {
+
+            override fun value(t: Artifact, row: Int, col: Int): Any? {
+                return when(col) {
+                    0 -> t.id
+                    1 -> t.group
+                    2 -> t.artifact
+                    3 -> t.version
+                    4 -> t.packaging
+                    else -> "???"
+                }
+            }
+        }
+
+        artifacts.forEach { add(it) }
+    }
+
+    val tbl = JTable(tm)
+
+
+    public fun show() {
+        val f = frame("Configuration for ${leader.id}") {
+            north {
+                vbox {
+                    this+hbox {
+                        this+label("Leader:")
+                        this+tfLeader
+                        this+JButton(object:AbstractAction("Promote Selected"){
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val sel = tbl.getSelectedRows()
+                                if(sel.size==1) {
+                                    leader = tm.value(sel[0])!!
+                                    tfLeader.setText(leader.id)
+                                }
+                            }
+                        })
+                    }
+                    this+hbox {
+                        this+label("Lib Dir:")
+                        this+textfield {
+                            setText(libDir)
+                            setEnabled(false)
+                        }
+                        this+label("Lib Dir:")
+                        this+textfield {
+                            setText(libDir)
+                            setEnabled(false)
+                        }
+                    }
+                    this+hbox {
+                        this + JButton(object:AbstractAction("Download and Create Lib"){
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val cfg = LibCfg(leader, artifacts, libDir)
+                                pack(cfg, projectDir)
+                            }
+                        })
+                    }
+                }
+            }
+
+            center {
+                scrollpane {
+                    tbl
+                }
+            }
+
+        }
+        f.pack()
+        f.setVisible(true)
     }
 }

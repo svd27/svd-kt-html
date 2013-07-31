@@ -190,11 +190,13 @@ class SimpleTableModel<T>() : AbstractTableModel() {
 
     public fun remove(irows:Array<Int>) {
         irows.forEach {
-            val idx = rows.remove(it)
-
+            val idx = rows.remove(value(it))
+            fireTableRowsDeleted(idx, idx)
         }
     }
 
     public fun value(row:Int):T? = rows.get(row)
+
+
 }
 
