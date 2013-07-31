@@ -21,80 +21,58 @@ import javax.swing.JButton
 import javax.swing.AbstractAction
 import java.awt.event.ActionEvent
 import java.awt.FlowLayout
+import javax.swing.JTable
+import javax.swing.event.ListSelectionEvent
+import javax.swing.event.ListSelectionListener
+import java.util.ArrayList
+import org.dom4j.Element
+import java.util.regex.Pattern
+import javax.swing.JComponent
 
 /**
  * Created by sdju on 29.07.13.
  */
 
-fun main(args:Array<String>) {
+fun main(args: Array<String>) {
     //searchNexus("com.google.inject", "guice", "ALL")
-    val tfSearch = textfield {
-        setText("")
-        setColumns(100)
-    }
-    val af = frame("search") {
-        north {
-            val p: JPanel = panel {
-                setLayout(FlowLayout())
-                add(label("Query (g:a:v)"))
-                add(tfSearch)
-                add(JButton(object : AbstractAction("search") {
-                    public override fun actionPerformed(e: ActionEvent) {
-                        val toks = tfSearch.getText()?.split(':')!!
-                        if(toks.size == 0) return
-
-                        val q = Array<String>(3) {
-                            i ->
-                            if(i < toks.size) toks[i] else ""
-                        }
-
-
-                        searchNexus(q[0], q[1], q[2])
-                    }
-                }))
-                this
-            }
-            p
-        }
-    }
-    af.pack()
-    af.setVisible(true)
+    DepsUI().show()
 }
 
-fun searchNexus(group : String="", artifact:String="", version:String="ALL")  {
-    assert(group.length()+artifact.length()>0)
+fun searchNexus(group: String = "", artifact: String = "", version: String = "ALL", tm: SimpleTableModel<Artifact>) {
+    assert(group.length() + artifact.length() > 0)
 
     val template = StringBuilder()
     val il = template.length()
-    if(group.length()>0)
+    if(group.length() > 0 && group != "*")
         template.append("g%3A%22$group%22")
 
-    if(artifact.length()>0) {
-        if(il!=template.length()) template.append("%20AND%20")
+    if(artifact.length() > 0 && artifact != "*") {
+        if(il != template.length()) template.append("%20AND%20")
         template.append("a%3A%22$artifact%22")
     }
 
-    if(version.length()>0) {
-        if(version=="ALL")
+    if(version.length() > 0) {
+        if(version == "ALL")
             template.append("&core=gav")
         else {
-            if(il!=template.length()) template.append("%20AND%20")
+            if(il != template.length()) template.append("%20AND%20")
             template.append("v%3A%22$version%22")
         }
 
     }
     template.append("&wt=json")
+    val ex = "https://oss.sonatype.org/service/local/lucene/search?_dc=1375253977278&g=com.google.inject&a=guice&collapseresults=true"
 
     val prefix = "http://search.maven.org/solrsearch/select?q="
     //val query = prefix +URLEncoder.encode(template.toString(), "UTF-8")
-    val query = prefix +template.toString()
+    val query = prefix + template.toString()
     println("sending: ${query}")
 
     val client = DefaultHttpClient()
     val get = HttpGet(query)
 
     val response = client.execute(get)!!
-    if(response.getStatusLine()?.getStatusCode()!=200) throw IllegalStateException(response.getStatusLine()?.getReasonPhrase())
+    if(response.getStatusLine()?.getStatusCode() != 200) throw IllegalStateException(response.getStatusLine()?.getReasonPhrase())
 
     val sr = InputStreamReader(response.getEntity()!!.getContent()!!)
     val om = ObjectMapper()
@@ -104,31 +82,35 @@ fun searchNexus(group : String="", artifact:String="", version:String="ALL")  {
         nresp.forEach {
             val a = artifact(it as ObjectNode)
             println(a.id)
-            val pomin = getFile(a.pom())
+            tm.add(a)
+            //val pomin = getFile(a.pom())
 
 
-            val sax = SAXReader()
-            sax.read(pomin)
+            //val sax = SAXReader()
+            //sax.read(pomin)
 
         }
 
 }
 
 
-fun getFile(path : String) : InputStream {
+fun getFile(path: String): InputStream {
     val client = DefaultHttpClient()
-    println("http://search.maven.org/"+path)
-    val get = HttpGet("http://search.maven.org/"+path)
+    println("http://search.maven.org/" + path)
+    val get = HttpGet("http://search.maven.org/" + path)
 
     val response = client.execute(get)!!
-    if(response.getStatusLine()?.getStatusCode()!=200) throw IllegalStateException(response.getStatusLine()?.getReasonPhrase())
+    if(response.getStatusLine()?.getStatusCode() != 200) throw IllegalStateException(response.getStatusLine()?.getReasonPhrase())
 
     return  response.getEntity()!!.getContent()!!.buffered(1024)
 }
 
-fun artifact(it : ObjectNode) : Artifact {
+fun artifact(it: ObjectNode): Artifact {
+    println(it)
+    var vn = it.path("v")
+    if(vn is MissingNode) vn = it.path("latestVersion")
     val ri = Artifact(it.path("id")?.asText()!!, it.path("g")?.asText()!!,
-            it.path("a")?.asText()!!, it.path("v")?.asText()!!,
+            it.path("a")?.asText()!!, vn?.asText()!!,
             it.path("p")?.asText()!!, it.path("timestamp")?.asLong())
 
     val pec = it.path("ec")
@@ -136,11 +118,11 @@ fun artifact(it : ObjectNode) : Artifact {
         val ec = pec as ArrayNode
         ec.forEach {
             val s = it.textValue()
-            if(s=="-javadoc.jar") {
+            if(s == "-javadoc.jar") {
                 ri.docs = s
             }
 
-            if(s=="-sources.jar") {
+            if(s == "-sources.jar") {
                 ri.sources = s
             }
         }
@@ -149,16 +131,65 @@ fun artifact(it : ObjectNode) : Artifact {
     return ri
 }
 
-class Artifact(val id:String, val group:String, val artifact:String, val version:String, val packaging:String, val ts:Long) {
-    var docs : String? = null
-    var sources : String? = null
+class Artifact(val id: String, val group: String, val artifact: String, val version: String, val packaging: String, val ts: Long): Comparable<Artifact> {
+    var docs: String? = null
+    var sources: String? = null
+    var scope: String = "compile"
+    var deps : List<Artifact>? = null
 
-    fun pom() : String {
+    fun pom(): String {
         val sb = StringBuilder("remotecontent?filepath=")
         group.split('.').forEach { sb.append(it).append('/') }
         sb.append(artifact).append('/')
         sb.append(version).append('/')
         sb.append(artifact).append('-').append(version).append(".pom")
         return sb.toString()
+    }
+
+    public fun equals(o: Any?): Boolean {
+        return when(o) {
+            o is Artifact -> id.equals((o as Artifact).id)
+            else -> false
+        }
+    }
+
+
+    public override fun compareTo(other: Artifact): Int {
+        return id.compareToIgnoreCase(other.id)
+    }
+
+    public fun dependencies(): List<Artifact> {
+        if(deps!=null) return deps!!
+        val sax = SAXReader()
+        val dom = sax.read(getFile(pom()))!!
+        println(dom.asXML())
+        val res = ArrayList<Artifact>()
+
+        val xp = dom.selectNodes("//project/dependencies/dependency")
+        val root = dom.getRootElement()
+        val deps = root?.element("dependencies")
+        val dep = deps?.elements("dependency")
+        dep?.forEach {
+            val n = it as Element
+            println(it.asXML())
+            val  g = n.elementText("groupId")!!
+            val a = n.elementText("artifactId")!!
+            var v = n.elementText("version")!!
+            if(v.startsWith("\${")) {
+                val pp = Pattern.compile("\\$\\{(.*)\\}")
+                val m = pp.matcher(v)
+                if(m.matches()) {
+                    var pv = root?.element("properties")?.elementText(m.group(1))
+                    if(pv != null) v = pv!!
+                }
+            }
+            val s = n.elementText("scope")
+            val el = Artifact("$g:$a:$v", g, a, v, "", 0)
+            if(s != null) el.scope = s
+            res.add(el)
+        }
+
+        this.deps = res
+        return res
     }
 }

@@ -10,6 +10,11 @@ import javax.swing.JTextArea
 import javax.swing.table.TableModel
 import javax.swing.table.AbstractTableModel
 import javax.swing.JComponent
+import java.util.ArrayList
+import javax.swing.JViewport
+import javax.swing.JScrollPane
+import java.awt.Container
+import javax.swing.Box
 
 /**
  * Created by sdju on 29.07.13.
@@ -32,6 +37,27 @@ fun JFrame.south(c : ()->JComponent) {
     getContentPane()?.add(c(), BorderLayout.SOUTH)
 }
 
+fun vbox(init: Box.()->Unit) : Box {
+    val vb = Box.createVerticalBox()
+    vb.init()
+    return vb
+}
+
+fun hbox(init: Box.()->Unit) : Box {
+    val vb = Box.createHorizontalBox()
+    vb.init()
+    return vb
+}
+
+fun Box.vglue() {
+    add(Box.createVerticalGlue())
+}
+
+fun Box.hglue() {
+    add(Box.createHorizontalGlue())
+}
+
+
 fun JFrame.east(c : ()->JComponent) {
     getContentPane()?.add(c(), BorderLayout.EAST)
 }
@@ -44,6 +70,10 @@ fun panel(init:JPanel.()->Unit) : JPanel {
     val p :JPanel = JPanel(BorderLayout())
     p.init()
     return p
+}
+
+fun Container.plus(c: JComponent) {
+    add(c)
 }
 
 fun label(l:String) : JLabel {
@@ -62,6 +92,12 @@ fun textarea(init:JTextArea.()->Unit) : JTextArea {
     return tf
 }
 
+fun scrollpane(init:JScrollPane.()-> JComponent) :JScrollPane {
+    val sp = JScrollPane()
+    sp.setViewportView(sp.init())
+    return sp
+}
+
 fun<T> tablemodel(init:SimpleTableModel<T>.()->Unit) : SimpleTableModel<T> {
     val tm = SimpleTableModel<T>()
     tm.init()
@@ -71,7 +107,40 @@ fun<T> tablemodel(init:SimpleTableModel<T>.()->Unit) : SimpleTableModel<T> {
 
 trait RowProvider<T> {
     fun get(row:Int) : T? = null
+    fun add(t:T) : Int = -1
     fun count() : Int = 0
+    fun clear()
+    fun remove(t:T?) : Int = -1
+    fun remove(r:Int) : Int {
+        return remove(get(r))
+    }
+}
+
+public class DefaultRowsProvider<T> : RowProvider<T> {
+    private val rows : MutableList<T> = ArrayList<T>()
+
+
+    override fun get(row: Int): T? {
+        return rows.get(row)
+    }
+    override fun add(t: T): Int {
+        rows.add(t)
+        return count()-1
+    }
+    override fun count(): Int {
+        return rows.size()
+    }
+
+
+    override fun clear() {
+        rows.clear()
+    }
+
+    override fun remove(t:T?) :Int {
+        val idx = rows.indexOf(t)
+        rows.remove(idx)
+        return idx
+    }
 }
 
 trait ColProvider<T> {
@@ -83,11 +152,11 @@ trait ColProvider<T> {
 }
 
 trait ValProvider<T> {
-    fun value(row:Int, col:Int) : Any? = null
+    fun value(t:T, row:Int, col:Int) : Any? = null
 }
 
 class SimpleTableModel<T>() : AbstractTableModel() {
-    var rows : RowProvider<T> = object : RowProvider<T>{}
+    var rows : RowProvider<T> = DefaultRowsProvider()
     var cols : ColProvider<T> = object : ColProvider<T>{}
     var vals : ValProvider<T> = object : ValProvider<T>{}
 
@@ -98,8 +167,34 @@ class SimpleTableModel<T>() : AbstractTableModel() {
     public override fun getColumnCount(): Int {
         return cols.count()
     }
-    public override fun getValueAt(row: Int, col: Int): Any? {
-        return  vals.value(row, col)
+
+    public fun clear() {
+        rows.clear()
+        fireTableDataChanged()
     }
+    public override fun getColumnName(column: Int): String {
+        return cols.get(column)
+    }
+
+    public override fun getValueAt(row: Int, col: Int): Any? {
+        val v = value(row)
+        if(v==null) return "---"
+        return  vals.value(v, row, col)
+    }
+
+    public fun add(t:T) {
+        val idx = rows.add(t)
+        if(idx<0) return
+        fireTableRowsInserted(idx, idx)
+    }
+
+    public fun remove(irows:Array<Int>) {
+        irows.forEach {
+            val idx = rows.remove(it)
+
+        }
+    }
+
+    public fun value(row:Int):T? = rows.get(row)
 }
 

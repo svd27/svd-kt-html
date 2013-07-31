@@ -1,5 +1,6 @@
 package ch.passenger.kotlin.util.idea
 
+/*
 import org.vertx.java.core.Vertx
 import org.vertx.java.core.VertxFactory
 import org.vertx.java.platform.PlatformManager
@@ -228,3 +229,4 @@ class RepoInfo(val id:String, val group:String, val artifact:String, val version
         }
     }
 }
+*/
