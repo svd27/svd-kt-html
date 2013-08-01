@@ -19,6 +19,41 @@ class DepsUI() {
     var tfName : JTextField? = null
     var tfParent : JTextField? = null
     var tbl = JTable()
+    var af = JFrame()
+    private var _title : String = ""
+    var title : String
+            get() {return _title }
+            set(t) {
+                _title = t
+                af.setTitle(t)
+            }
+
+    val tm = tablemodel<Artifact>() {
+        cols = object : ColProvider<Artifact> {
+            val cols = array("id", "group", "artifact", "version", "packaging")
+            override fun get(col: Int): String {
+                return cols[col]
+            }
+            override fun count(): Int {
+                return cols.size
+            }
+        }
+
+        vals = object : ValProvider<Artifact> {
+
+            override fun value(t: Artifact, row: Int, col: Int): Any? {
+                return when(col) {
+                    0 -> t.id
+                    1 -> t.group
+                    2 -> t.artifact
+                    3 -> t.version
+                    4 -> t.packaging
+                    else -> "???"
+                }
+            }
+        }
+    }
+
 
     fun show() {
         val tfSearch = textfield {
@@ -26,31 +61,6 @@ class DepsUI() {
             setColumns(100)
         }
         val currentDep = label("")
-        val tm = tablemodel<Artifact>() {
-            cols = object : ColProvider<Artifact> {
-                val cols = array("id", "group", "artifact", "version", "packaging")
-                override fun get(col: Int): String {
-                    return cols[col]
-                }
-                override fun count(): Int {
-                    return cols.size
-                }
-            }
-
-            vals = object : ValProvider<Artifact> {
-
-                override fun value(t: Artifact, row: Int, col: Int): Any? {
-                    return when(col) {
-                        0 -> t.id
-                        1 -> t.group
-                        2 -> t.artifact
-                        3 -> t.version
-                        4 -> t.packaging
-                        else -> "???"
-                    }
-                }
-            }
-        }
 
         val dtm = tablemodel<Artifact>() {
             cols = object : ColProvider<Artifact> {
@@ -80,7 +90,7 @@ class DepsUI() {
 
         val dtbl = JTable(dtm)
 
-        val af = frame("search") {
+        af = frame("search") {
             north {
                 vbox {
                     this + panel {
@@ -107,7 +117,7 @@ class DepsUI() {
                     }
                     this + hbox {
                         this + hbox {
-                            this +label("IDEA library Folder:")
+                            this +label("Project Folder:")
                             this +textfield {
                                 tfIdea = this
                                 setColumns(50)
@@ -128,7 +138,7 @@ class DepsUI() {
                             this +textfield {
                                 tfLibs = this
                                 setColumns(50)
-                                setText(System.getProperty("lib"))
+                                setText("lib")
                             }
 
                         }
@@ -205,6 +215,57 @@ class DepsUI() {
                                 }
                                 val pf = CfgFrame(artifacts, tfLibs?.getText()!!, tfIdea?.getText()!!)
                                 pf.show()
+                            }
+                        })
+
+                        this + JButton(object : AbstractAction("Load Cfg..."){
+                            val jfc = JFileChooser(System.getProperty("user.dir"))
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val ok = jfc.showOpenDialog(af)
+                                if(ok==JFileChooser.APPROVE_OPTION) {
+                                    val f = jfc.getSelectedFile()
+                                    val cfg = readCfg(f!!)
+
+                                    val ui = DepsUI()
+                                    ui.title = cfg.leader.id
+                                    ui.tm.addAll(cfg.artifacts)
+                                    ui.show()
+                                    CfgFrame(cfg.artifacts, cfg.libDir, tfIdea?.getText()!!).show()
+                                }
+                            }
+                        })
+
+                        this + JButton(object : AbstractAction("Focus on Deps"){
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val sel = tbl.getSelectedRows()
+
+                                sel.forEach {
+                                    val a = tm.value(it)!!
+                                    val dui = DepsUI()
+                                    dui.tm.addAll(a.dependencies())
+                                    dui.show()
+                                    dui.title = "Dependencies of: ${a.id}"
+                                }
+
+                            }
+                        })
+
+                        this + JButton(object : AbstractAction("POM") {
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val sel = tbl.getSelectedRows()
+                                sel.forEach {
+                                    val a = tm.value(it)!!
+                                    val f = frame("POM: ${a.id}") {
+                                        center {
+                                            scrollpane {
+                                                JEditorPane("text/xml", a.getPOMDoc().asXML())
+                                            }
+                                        }
+                                    }
+                                    f.pack()
+                                    f.setVisible(true)
+                                }
+
                             }
                         })
                     }
@@ -298,9 +359,9 @@ class CfgFrame(val artifacts:List<Artifact>, val libDir:String, val projectDir:S
                         })
                     }
                     this+hbox {
-                        this+label("Lib Dir:")
+                        this+label("Project Dir:")
                         this+textfield {
-                            setText(libDir)
+                            setText(projectDir)
                             setEnabled(false)
                         }
                         this+label("Lib Dir:")
@@ -316,6 +377,17 @@ class CfgFrame(val artifacts:List<Artifact>, val libDir:String, val projectDir:S
                                 pack(cfg, projectDir)
                             }
                         })
+                        val bsave = JButton(object:AbstractAction("Save..."){
+                            val jfc = JFileChooser()
+
+                            public override fun actionPerformed(e: ActionEvent) {
+                                val ok = jfc.showOpenDialog(tfProject)
+                                if(ok==JFileChooser.APPROVE_OPTION) {
+                                    saveCfg(jfc.getSelectedFile()!!, LibCfg(leader, artifacts, libDir))
+                                }
+                            }
+                        })
+                        this + bsave
                     }
                 }
             }

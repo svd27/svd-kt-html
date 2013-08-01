@@ -1,0 +1,155 @@
+{
+  "name" : "org.eclipse.jetty:jetty-deploy:9.0.4.v20130625",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "org.eclipse.jetty:jetty-deploy:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-deploy",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-jmx:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-jmx",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-monitor:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-monitor",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-start:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-start",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-servlets:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-servlets",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-jsp:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-jsp",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-plus:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-plus",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-client:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-client",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-continuation:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-continuation",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-proxy:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-proxy",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-jaas:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-jaas",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-annotations:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-annotations",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-rewrite:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-rewrite",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty.spdy:spdy-core:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.spdy",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "spdy-core",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty.spdy:spdy-server:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.spdy",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "spdy-server",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty.spdy:spdy-http-server:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.spdy",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "spdy-http-server",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty.spdy:spdy-example-webapp:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.spdy",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "spdy-example-webapp",
+    "packaging" : ""
+  }, {
+    "id" : "org.eclipse.jetty:jetty-util:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-util",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-http:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-http",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-webapp:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-webapp",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-io:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-io",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-xml:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-xml",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-servlet:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-servlet",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-security:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-security",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty:jetty-server:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "jetty-server",
+    "packaging" : "jar"
+  } ]
+}

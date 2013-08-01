@@ -204,6 +204,10 @@ class SimpleTableModel<T:Comparable<T>>() : AbstractTableModel() {
         fireTableRowsInserted(idx, idx)
     }
 
+    public fun addAll(ts:Iterable<T>) {
+        ts.forEach { add(it) }
+    }
+
     public fun remove(irows:Array<Int>) {
         irows.forEach {
             val idx = rows.remove(value(it))

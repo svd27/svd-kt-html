@@ -34,6 +34,9 @@ import org.dom4j.DocumentFactory
 import org.dom4j.io.XMLWriter
 import java.io.FileWriter
 import org.dom4j.Document
+import java.io.FileReader
+import java.util.HashMap
+import java.io.FileNotFoundException
 
 /**
  * Created by sdju on 29.07.13.
@@ -100,6 +103,10 @@ fun searchNexus(group: String = "", artifact: String = "", version: String = "AL
     return res
 }
 
+val artifactCache : MutableMap<String,Artifact> = object : HashMap<String,Artifact>() {
+
+}
+
 
 fun getFile(path: String): InputStream {
     val client = DefaultHttpClient()
@@ -107,7 +114,7 @@ fun getFile(path: String): InputStream {
     val get = HttpGet("http://search.maven.org/" + path)
 
     val response = client.execute(get)!!
-    if(response.getStatusLine()?.getStatusCode() != 200) throw IllegalStateException(response.getStatusLine()?.getReasonPhrase())
+    if(response.getStatusLine()?.getStatusCode() != 200) throw FileNotFoundException(path +": " + response.getStatusLine()?.getReasonPhrase())
 
     return  response.getEntity()!!.getContent()!!.buffered(1024)
 }
@@ -116,7 +123,9 @@ fun artifact(it: ObjectNode): Artifact {
     println(it)
     var vn = it.path("v")
     if(vn is MissingNode) vn = it.path("latestVersion")
-    val ri = Artifact(it.path("id")?.asText()!!, it.path("g")?.asText()!!,
+    val id = it.path("id")?.asText()!!
+    if(artifactCache.containsKey(id)) return artifactCache[id]!!
+    val ri = Artifact(id, it.path("g")?.asText()!!,
             it.path("a")?.asText()!!, vn?.asText()!!,
             it.path("p")?.asText()!!, it.path("timestamp")?.asLong())
 
@@ -136,6 +145,50 @@ fun artifact(it: ObjectNode): Artifact {
     }
 
     return ri
+}
+
+public fun readCfg(f:File) : LibCfg {
+    val fr = FileReader(f)
+    val om = ObjectMapper()
+    val node = om.readTree(fr)!! as ObjectNode
+
+    val leaderId = node.path("name")!!.textValue()!!
+    val libDir = node.path("libdir")!!.textValue()!!
+
+    val aa = node.path("artifacts")!! as ArrayNode
+
+    var leader :Artifact? = null
+    val res = ArrayList<Artifact>()
+    aa.forEach {
+        val n = it!! as ObjectNode
+        val aid = n.path("id")!!.textValue()!!
+        val group = n.path("group")!!.textValue()!!
+        val version = n.path("version")!!.textValue()!!
+        val artifact = n.path("artifact")!!.textValue()!!
+        val list = searchNexus(group, artifact, version)
+        if(list.size()>0) {
+            res.add(list.first())
+            if(list.first().id==leaderId) leader = list.first()
+        }
+    }
+
+    if(leader==null) {
+        leader = res.first()
+    }
+    return LibCfg(leader!!, res, libDir)
+}
+
+public fun saveCfg(f:File, cfg:LibCfg) {
+    val om = ObjectMapper()
+    val sv = om.writerWithDefaultPrettyPrinter()!!.writeValueAsString(cfg.asJson())!!
+    val fw = FileWriter(f)
+    try {
+        fw.write(sv)
+        fw.flush()
+    } finally {
+        fw.close()
+    }
+
 }
 
 class LibCfg(val leader:Artifact, val artifacts:List<Artifact>, val libDir:String) {
@@ -159,10 +212,11 @@ class LibCfg(val leader:Artifact, val artifacts:List<Artifact>, val libDir:Strin
     }
 }
 
+
 public fun pack(cfg:LibCfg, projectDir:String) {
     val leader = cfg.leader
     val artifacts = cfg.artifacts
-    val libDir = cfg.libDir
+    var libDir = cfg.libDir
     var idlibs = File(projectDir+"/.idea/libraries")
     if(!idlibs.exists()) {
         throw IllegalStateException()
@@ -176,16 +230,21 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     val ecl = lib?.addElement("CLASSES")!!
     val ejd = lib?.addElement("JAVADOC")!!
     val esrc = lib?.addElement("SOURCES")!!
+    if(!libDir.startsWith("/")) libDir = "/"+libDir
     artifacts.forEach {
-        it.download(libDir)
-       //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
-        val jardir = "${it.group}/${it.version}/${it.artifact}"
-        ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.jarName()}!/")
-        if(it.docs!=null) {
-            ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.artifact}-${it.version}${it.docs}!/")
-        }
-        if(it.sources!=null) {
-            esrc.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$/$libDir/${jardir}/${it.artifact}-${it.version}${it.sources}!/")
+        try {
+            it.download(libDir)
+            //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
+            val jardir = "${it.group}/${it.version}/${it.artifact}"
+            ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$$libDir/${jardir}/${it.jarName()}!/")
+            if(it.docs!=null) {
+                ejd.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$$libDir/${jardir}/${it.artifact}-${it.version}${it.docs}!/")
+            }
+            if(it.sources!=null) {
+                esrc.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$$libDir/${jardir}/${it.artifact}-${it.version}${it.sources}!/")
+            }
+        } catch(e: FileNotFoundException) {
+            e.printStackTrace()
         }
     }
     val w = XMLWriter()
@@ -207,8 +266,8 @@ public fun pack(cfg:LibCfg, projectDir:String) {
 class Artifact(val id: String, val group: String, val artifact: String, val version: String, val packaging: String, val ts: Long): Comparable<Artifact> {
     var docs: String? = null
     var sources: String? = null
-    var scope: String = "compile"
     var deps : List<Artifact>? = null
+    var scope : String = ""
 
     fun jarName() : String {
         return "$artifact-$version.jar"
@@ -249,20 +308,22 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         val jn = file(".jar")
         save(dest, "$artifact-$version.jar", ".jar")
         if(sources!=null)
-            save(dest, "$artifact$sources", "$sources")
+            save(dest, "$artifact-$version$sources", "$sources")
         if(docs!=null)
-            save(dest, "$artifact$docs", "$docs")
+            save(dest, "$artifact-$version$docs", "$docs")
 
         return "$group/$version"
     }
 
     public fun save(dir:File, fn:String, ext:String) {
-        if(File(dir, fn).exists()) {
+        val target = File(dir, fn)
+        println("write file '${target.getAbsoluteFile()}'")
+        if(target.exists()) {
             return
         }
         println(file(ext))
         val io = getFile(file(ext))
-        val fout = FileOutputStream(File(dir, fn))
+        val fout = FileOutputStream(target)
         try {
             val buffer = ByteArray(1024)
             var len = io?.read(buffer)
@@ -342,8 +403,12 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         val pe = doc.getRootElement()?.element("parent")
         if(pe==null) return null
         val g = pe?.elementText("groupId")
-        val v = pe?.elementText("version")
+        var v = pe?.elementText("version")
         val a = pe?.elementText("artifactId")
+        if(v==null || v?.startsWith("\${")?:true)  {
+            //assume parent has same version as child
+            v = version
+        }
         return array(g, v, a)
     }
 
@@ -398,8 +463,12 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
                 v = resolveProperty(v!!)
             }
             val s = n.elementText("scope")
-            val el = Artifact("$g:$a:$v", g, a, v!!, "", 0)
-            if(s != null) el.scope = s
+            val aid = "$g:$a:$v"
+            val el =
+            if(artifactCache.containsKey(aid)) artifactCache[aid]!!
+            else Artifact(aid, g, a, v!!, "", 0)
+            if(s!=null) el.scope = s
+
             res.add(el)
         }
 
@@ -408,14 +477,16 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
     }
 
     fun resolveProperty(v:String) : String {
-        print("looking for property: $v in $id")
+        println("looking for property: $v in $id")
         val pp = Pattern.compile("\\$\\{(.*)\\}")
         val m = pp.matcher(v)
         var res :String = v
         if(m.matches()) {
+            if(m.group(1)=="project.version") return version
             var pv = getPOMDoc().getRootElement()?.element("properties")?.elementText(m.group(1))
             if(pv != null) res = pv!!
             else {
+                println("continue resolve in: ${getParentArtifact()?.id}")
                 res = getParentArtifact()?.resolveProperty(v)?:v
             }
         }
