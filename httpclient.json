@@ -1,0 +1,29 @@
+{
+  "name" : "org.apache.httpcomponents:httpclient:4.2.5",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "org.apache.httpcomponents:httpclient:4.2.5",
+    "group" : "org.apache.httpcomponents",
+    "version" : "4.2.5",
+    "artifact" : "httpclient",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.apache.httpcomponents:httpcore:4.2.4",
+    "group" : "org.apache.httpcomponents",
+    "version" : "4.2.4",
+    "artifact" : "httpcore",
+    "packaging" : "jar"
+  }, {
+    "id" : "commons-logging:commons-logging:1.1.1",
+    "group" : "commons-logging",
+    "version" : "1.1.1",
+    "artifact" : "commons-logging",
+    "packaging" : "jar"
+  }, {
+    "id" : "commons-codec:commons-codec:1.6",
+    "group" : "commons-codec",
+    "version" : "1.6",
+    "artifact" : "commons-codec",
+    "packaging" : "jar"
+  } ]
+}

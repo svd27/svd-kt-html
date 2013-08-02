@@ -8,6 +8,7 @@ import com.google.inject.Inject as inject
 import org.junit.Test as test
 import ch.passenger.kotlin.guice.*
 import com.google.inject.Guice
+import com.google.inject.TypeLiteral
 
 
 /**
@@ -20,13 +21,12 @@ class A(private val ai : Int) : Identifiable {
 
 named("test-aproducer")
 trait AProducer : ElementProducer<A> {
-
     override fun produce(f: Filter<A>): Iterator<A>
     override fun retrieve(vararg id: Long): Iterable<A>
 
 }
 
-class TestAProducer() : AProducer {
+class TestAProducer [inject]() : AProducer {
     protected override val observers: MutableSet<Observer<A>> = HashSet()
 
 
@@ -73,6 +73,8 @@ class InterestTests() {
             }
         }
 
+        val allBindings = gin.getAllBindings()
+        println(gin.getAllBindings())
         val ep = gin.getInstance<ElementProducer<A>>()
         assert(ep is AProducer)
     }

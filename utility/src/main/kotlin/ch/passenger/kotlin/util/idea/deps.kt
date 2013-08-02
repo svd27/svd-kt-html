@@ -42,6 +42,7 @@ import java.io.FileNotFoundException
  * Created by sdju on 29.07.13.
  */
 
+
 fun main(args: Array<String>) {
     //searchNexus("com.google.inject", "guice", "ALL")
     DepsUI().show()
@@ -217,6 +218,7 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     val leader = cfg.leader
     val artifacts = cfg.artifacts
     var libDir = cfg.libDir
+    val abslib = projectDir + if(projectDir.endsWith('/') || cfg.libDir.startsWith('/')) "" else "/" + cfg.libDir
     var idlibs = File(projectDir+"/.idea/libraries")
     if(!idlibs.exists()) {
         throw IllegalStateException()
@@ -225,7 +227,7 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     doc.addElement("component")
     val root = doc.getRootElement()!!
     root.addAttribute("name", "libraryTable")
-    val lib = root.addElement("library")?.addAttribute("name", leader.id)
+    val lib = root.addElement("library")?.addAttribute("name", leader.id)?.addAttribute("type", "repository")
     lib?.addElement("properties")?.addAttribute("maven-id", leader.id)
     val ecl = lib?.addElement("CLASSES")!!
     val ejd = lib?.addElement("JAVADOC")!!
@@ -233,7 +235,7 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     if(!libDir.startsWith("/")) libDir = "/"+libDir
     artifacts.forEach {
         try {
-            it.download(libDir)
+            it.download(abslib)
             //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
             val jardir = "${it.group}/${it.version}/${it.artifact}"
             ecl.addElement("root")?.addAttribute("url", "jar://\$PROJECT_DIR\$$libDir/${jardir}/${it.jarName()}!/")
