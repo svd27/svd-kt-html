@@ -73,7 +73,6 @@ class BasicGuiceTest {
 
 
     test
-    ignore
     fun createInjectorNative() {
         val module = object : AbstractModule() {
 
@@ -82,6 +81,7 @@ class BasicGuiceTest {
             }
         }
         val service = Guice.createInjector(module)!!.getInstance(javaClass<AService>())
+        print(service)
         assertNotNull(service)
     }
 }

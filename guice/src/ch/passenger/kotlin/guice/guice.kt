@@ -16,7 +16,6 @@ import com.google.inject.servlet.ServletModule
  */
 fun<T> Binder.bind() = bind(javaClass<T>())!!
 
-fun<T> AnnotatedBindingBuilder<in T>.to() = to(javaClass<T>())!!
 fun<T> LinkedBindingBuilder<in T>.to() = to(javaClass<T>())!!
 
 fun<T> Injector.getInstance() = getInstance(javaClass<T>())

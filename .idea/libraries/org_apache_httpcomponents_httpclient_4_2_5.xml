@@ -1,0 +1,23 @@
+<component name="libraryTable">
+  <library name="org.apache.httpcomponents:httpclient:4.2.5" type="repository">
+    <properties maven-id="org.apache.httpcomponents:httpclient:4.2.5" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.5/httpclient/httpclient-4.2.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.4/httpcore/httpcore-4.2.4.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-logging/1.1.1/commons-logging/commons-logging-1.1.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-codec/1.6/commons-codec/commons-codec-1.6.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.5/httpclient/httpclient-4.2.5-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.4/httpcore/httpcore-4.2.4-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-logging/1.1.1/commons-logging/commons-logging-1.1.1-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-codec/1.6/commons-codec/commons-codec-1.6-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.5/httpclient/httpclient-4.2.5-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.apache.httpcomponents/4.2.4/httpcore/httpcore-4.2.4-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-logging/1.1.1/commons-logging/commons-logging-1.1.1-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-codec/1.6/commons-codec/commons-codec-1.6-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
