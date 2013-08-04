@@ -29,7 +29,7 @@ class EchoService : BosorkService {
     override fun call(req: BosorkRequest): BosorkResponse {
         if(req is EchoRequest)
         return EchoResponse(req.session, id, req.clientId, req.echo)
-        wrongRequest(req, javaClass<EchoRequest>())
+        return wrongRequest(req, javaClass<EchoRequest>())
     }
 
 }
@@ -38,7 +38,7 @@ class EchoServiceProvider : ServiceProvider {
     override fun creates(): Iterable<URN> {
         return listOf(EchoServiceProvider.Echo)
     }
-    override fun create(service: URN): BosorkService {
+    override fun create(service: URN, app:BosorkApp): BosorkService {
         return EchoService()
     }
     override fun createOnStartup(): Iterable<URN> {
@@ -53,7 +53,7 @@ class EchoServiceProvider : ServiceProvider {
 class SimpleAuthProvider : AuthProvider {
     override val login: URN = URN.service("login", "test.bosork.org")
     override val finisher: URN = URN.service("logout", "test.bosork.org")
-    override fun create(service: URN): BosorkService {
+    override fun create(service: URN, app:BosorkApp): BosorkService {
         when(service) {
             login -> return object : BosorkService {
                 override val id: URN = login
@@ -68,7 +68,7 @@ class SimpleAuthProvider : AuthProvider {
                     if(req is LoginRequest) {
                         if (req.session is NullSession) {
                             if(req.user=="guest" && req.pwd == "test") {
-                                val s =SimpleSession(URN.token("test"))
+                                val s =SimpleSession(URN.token("test"), app)
                                 return LoginResponse(s, id, req.clientId, null)
                             }
                             return LoginResponse(req.session, id, req.clientId, BosorkLoginFailed(req.user))
@@ -77,7 +77,7 @@ class SimpleAuthProvider : AuthProvider {
                         }
                     }
 
-                    wrongRequest(req, javaClass<EchoRequest>())
+                    wrongRequest(req, javaClass<LoginRequest>())
                 }
             }
             finisher -> return object : BosorkService {
@@ -91,14 +91,10 @@ class SimpleAuthProvider : AuthProvider {
                 }
                 override fun call(req: BosorkRequest): BosorkResponse {
                     if(req is LogoutRequest) {
-                        if (req.session is NullSession) {
-
-                        } else {
-                            return LoginResponse(req.session, id, req.clientId, null)
-                        }
+                        return LogoutResponse(req.session, finisher, req.clientId)
                     }
 
-                    wrongRequest(req, javaClass<EchoRequest>())
+                    wrongRequest(req, javaClass<LogoutRequest>())
                 }
             }
             else -> throw BosorkServiceNotFound(service)
@@ -109,6 +105,8 @@ class SimpleAuthProvider : AuthProvider {
 class BosorkAppTests {
     test
     fun simpleLogin() {
-        val app = BosorkApp()
+        val sap = SimpleAuthProvider()
+        val app = BosorkApp(listOf(sap))
+
     }
 }

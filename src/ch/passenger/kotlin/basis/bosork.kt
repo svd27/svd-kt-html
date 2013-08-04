@@ -105,7 +105,7 @@ abstract class AbstractService(override public val id: URN, override public val 
 
 trait ServiceProvider {
     fun creates(): Iterable<URN>
-    fun create(service:URN): BosorkService
+    fun create(service:URN, app:BosorkApp): BosorkService
     fun createOnStartup() : Iterable<URN>
 }
 
