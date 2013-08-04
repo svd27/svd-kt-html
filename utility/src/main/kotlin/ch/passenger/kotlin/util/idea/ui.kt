@@ -13,6 +13,7 @@ import java.util.ArrayList
  * Time: 07:57
  * To change this template use File | Settings | File Templates.
  */
+var packButton = JButton()
 class DepsUI() {
     var tfIdea : JTextField? = null
     var tfLibs : JTextField? = null
@@ -20,6 +21,7 @@ class DepsUI() {
     var tfParent : JTextField? = null
     var tbl = JTable()
     var af = JFrame()
+
     private var _title : String = ""
     var title : String
             get() {return _title }
@@ -371,12 +373,26 @@ class CfgFrame(val artifacts:List<Artifact>, val libDir:String, val projectDir:S
                         }
                     }
                     this+hbox {
-                        this + JButton(object:AbstractAction("Download and Create Lib"){
+                        packButton = JButton(object:AbstractAction("Download and Create Lib"){
                             public override fun actionPerformed(e: ActionEvent) {
-                                val cfg = LibCfg(leader, artifacts, libDir)
-                                pack(cfg, projectDir)
+                                packButton.setEnabled(false)
+                                val w = object : SwingWorker<LibCfg,Void>() {
+                                    protected override fun doInBackground(): LibCfg? {
+                                        try {
+                                            val cfg = LibCfg(leader, artifacts, libDir)
+                                            pack(cfg, projectDir, packButton)
+                                            return cfg
+                                        } finally {
+                                            SwingUtilities.invokeLater {
+                                                packButton.setEnabled(true)
+                                            }
+                                        }
+                                    }
+                                }
+                                w.execute()
                             }
                         })
+                        this + packButton
                         val bsave = JButton(object:AbstractAction("Save..."){
                             val jfc = JFileChooser()
 

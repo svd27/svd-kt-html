@@ -1,0 +1,23 @@
+{
+  "name" : "com.google.inject:guice:3.0",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "com.google.inject:guice:3.0",
+    "group" : "com.google.inject",
+    "version" : "3.0",
+    "artifact" : "guice",
+    "packaging" : "jar"
+  }, {
+    "id" : "javax.inject:javax.inject:1",
+    "group" : "javax.inject",
+    "version" : "1",
+    "artifact" : "javax.inject",
+    "packaging" : "jar"
+  }, {
+    "id" : "aopalliance:aopalliance:1.0",
+    "group" : "aopalliance",
+    "version" : "1.0",
+    "artifact" : "aopalliance",
+    "packaging" : "jar"
+  } ]
+}

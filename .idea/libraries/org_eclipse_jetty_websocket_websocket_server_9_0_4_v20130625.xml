@@ -1,0 +1,26 @@
+<component name="libraryTable">
+  <library name="org.eclipse.jetty.websocket:websocket-server:9.0.4.v20130625" type="repository">
+    <properties maven-id="org.eclipse.jetty.websocket:websocket-server:9.0.4.v20130625" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-server/websocket-server-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-servlet/websocket-servlet-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-client/websocket-client-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-common/websocket-common-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-api/websocket-api-9.0.4.v20130625.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-server/websocket-server-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-servlet/websocket-servlet-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-client/websocket-client-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-common/websocket-common-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-api/websocket-api-9.0.4.v20130625-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-server/websocket-server-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-servlet/websocket-servlet-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-client/websocket-client-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-common/websocket-common-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.websocket/9.0.4.v20130625/websocket-api/websocket-api-9.0.4.v20130625-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

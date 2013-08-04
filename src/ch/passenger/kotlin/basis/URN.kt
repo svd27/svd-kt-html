@@ -68,5 +68,11 @@ public class URN(val urn:String) :Comparable<URN> {
             return URN("urn:$schema:$entity:$domain:$spec")
         }
 
+        fun service(name:String, domain:String): URN {
+            return URN("urn:bosork:service:$domain:$name")
+        }
+
     }
 }
+
+

@@ -37,6 +37,8 @@ import org.dom4j.Document
 import java.io.FileReader
 import java.util.HashMap
 import java.io.FileNotFoundException
+import javax.swing.ProgressMonitorInputStream
+import org.apache.http.HttpEntity
 
 /**
  * Created by sdju on 29.07.13.
@@ -109,7 +111,7 @@ val artifactCache : MutableMap<String,Artifact> = object : HashMap<String,Artifa
 }
 
 
-fun getFile(path: String): InputStream {
+fun getFile(path: String): HttpEntity {
     val client = DefaultHttpClient()
     println("http://search.maven.org/" + path)
     val get = HttpGet("http://search.maven.org/" + path)
@@ -117,7 +119,7 @@ fun getFile(path: String): InputStream {
     val response = client.execute(get)!!
     if(response.getStatusLine()?.getStatusCode() != 200) throw FileNotFoundException(path +": " + response.getStatusLine()?.getReasonPhrase())
 
-    return  response.getEntity()!!.getContent()!!.buffered(1024)
+    return  response.getEntity()!!
 }
 
 fun artifact(it: ObjectNode): Artifact {
@@ -214,7 +216,7 @@ class LibCfg(val leader:Artifact, val artifacts:List<Artifact>, val libDir:Strin
 }
 
 
-public fun pack(cfg:LibCfg, projectDir:String) {
+public fun pack(cfg:LibCfg, projectDir:String, monitor : JComponent?=null) {
     val leader = cfg.leader
     val artifacts = cfg.artifacts
     var libDir = cfg.libDir
@@ -235,6 +237,7 @@ public fun pack(cfg:LibCfg, projectDir:String) {
     if(!libDir.startsWith("/")) libDir = "/"+libDir
     artifacts.forEach {
         try {
+            it.monitor = monitor
             it.download(abslib)
             //<root url="jar://$PROJECT_DIR$/lib/vertx-platform-2.0.0-final.jar!/" />
             val jardir = "${it.group}/${it.version}/${it.artifact}"
@@ -270,6 +273,8 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
     var sources: String? = null
     var deps : List<Artifact>? = null
     var scope : String = ""
+
+    public var monitor : JComponent? = null
 
     fun jarName() : String {
         return "$artifact-$version.jar"
@@ -324,7 +329,10 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
             return
         }
         println(file(ext))
-        val io = getFile(file(ext))
+        val file = getFile(file(ext))
+        val io = ProgressMonitorInputStream(null, fn, file.getContent())
+        io.getProgressMonitor()?.setNote(fn)
+        io.getProgressMonitor()?.setMaximum(java.lang.Long(file.getContentLength()).intValue())
         val fout = FileOutputStream(target)
         try {
             val buffer = ByteArray(1024)
@@ -356,7 +364,7 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
 
     fun getPOMDoc() : Document {
         if(pom.identityEquals(POMNOTLOADED)) {
-            pom = SAXReader().read(getFile(pomFile()))!!
+            pom = SAXReader().read(getFile(pomFile()).getContent()!!)!!
         }
         return pom
     }
@@ -443,7 +451,7 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
     public fun dependencies(): List<Artifact> {
         if(deps!=null) return deps!!
         val sax = SAXReader()
-        val dom = sax.read(getFile(pomFile()))!!
+        val dom = sax.read(getFile(pomFile()).getContent()!!)!!
         println(dom.asXML())
         val res = ArrayList<Artifact>()
 
@@ -494,4 +502,17 @@ class Artifact(val id: String, val group: String, val artifact: String, val vers
         }
         return res
     }
+}
+
+trait ProgressObserver {
+    fun progress(source : ProgressSource)
+}
+
+trait ProgressSource {
+    var name : String
+    var blocks : Int
+    var currentBlock : Int
+    var currentBlockSize :Long
+    var currentBlockProgress : Long
+    var currentBlockName : String
 }

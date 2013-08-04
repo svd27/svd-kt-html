@@ -8,13 +8,15 @@ import java.util.ArrayList
 import com.google.inject.Module
 import com.google.inject.Guice
 import com.google.inject.binder.LinkedBindingBuilder
-import com.google.inject.servlet.ServletModule
+import javax.xml.validation.TypeInfoProvider
+import com.google.inject.TypeLiteral
 
 /**
  * Created by sdju on 24.07.13.
  * cf http://java.dzone.com/articles/kotlin-guice-example
  */
-fun<T> Binder.bind() = bind(javaClass<T>())!!
+//fun<T> Binder.bind() = bind(javaClass<T>())!!
+fun<T> Binder.bind() = bind(object :TypeLiteral<T>(){})!!
 
 fun<T> LinkedBindingBuilder<in T>.to() = to(javaClass<T>())!!
 

@@ -1,0 +1,35 @@
+{
+  "name" : "org.eclipse.jetty.websocket:websocket-server:9.0.4.v20130625",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "org.eclipse.jetty.websocket:websocket-server:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.websocket",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "websocket-server",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty.websocket:websocket-servlet:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.websocket",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "websocket-servlet",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty.websocket:websocket-client:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.websocket",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "websocket-client",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty.websocket:websocket-common:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.websocket",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "websocket-common",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.eclipse.jetty.websocket:websocket-api:9.0.4.v20130625",
+    "group" : "org.eclipse.jetty.websocket",
+    "version" : "9.0.4.v20130625",
+    "artifact" : "websocket-api",
+    "packaging" : "jar"
+  } ]
+}
