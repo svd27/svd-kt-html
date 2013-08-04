@@ -15,7 +15,8 @@ import net.engio.mbassy.listener.Handler
  * To change this template use File | Settings | File Templates.
  */
 open class BosorkError(val message:String, val cause:Throwable?) : Exception(message, cause)
-class BosorkServiceNotFound() : BosorkError("service not found", null)
+class BosorkServiceNotFound(val service:URN) : BosorkError("service ${service.urn} not found", null)
+class BosorkLoginFailed(val user:String) : BosorkError("login for user $user failed", null)
 
 class WrongRequestType(expected:Class<*>, received:Class<*>) :
 BosorkError("wrong request type ${received.getName()} expected: ${expected.getName()}",null)

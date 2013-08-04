@@ -50,7 +50,61 @@ class EchoServiceProvider : ServiceProvider {
     }
 }
 
-class SimpleAuthProvider
+class SimpleAuthProvider : AuthProvider {
+    override val login: URN = URN.service("login", "test.bosork.org")
+    override val finisher: URN = URN.service("logout", "test.bosork.org")
+    override fun create(service: URN): BosorkService {
+        when(service) {
+            login -> return object : BosorkService {
+                override val id: URN = login
+                override val shortName: String = id.specifier
+                override fun init() {
+
+                }
+                override fun destroy() {
+
+                }
+                override fun call(req: BosorkRequest): BosorkResponse {
+                    if(req is LoginRequest) {
+                        if (req.session is NullSession) {
+                            if(req.user=="guest" && req.pwd == "test") {
+                                val s =SimpleSession(URN.token("test"))
+                                return LoginResponse(s, id, req.clientId, null)
+                            }
+                            return LoginResponse(req.session, id, req.clientId, BosorkLoginFailed(req.user))
+                        } else {
+                            return LoginResponse(req.session, id, req.clientId, null)
+                        }
+                    }
+
+                    wrongRequest(req, javaClass<EchoRequest>())
+                }
+            }
+            finisher -> return object : BosorkService {
+                override val id: URN = finisher
+                override val shortName: String = id.specifier
+                override fun init() {
+
+                }
+                override fun destroy() {
+                    throw UnsupportedOperationException()
+                }
+                override fun call(req: BosorkRequest): BosorkResponse {
+                    if(req is LogoutRequest) {
+                        if (req.session is NullSession) {
+
+                        } else {
+                            return LoginResponse(req.session, id, req.clientId, null)
+                        }
+                    }
+
+                    wrongRequest(req, javaClass<EchoRequest>())
+                }
+            }
+            else -> throw BosorkServiceNotFound(service)
+        }
+    }
+}
 
 class BosorkAppTests {
     test
