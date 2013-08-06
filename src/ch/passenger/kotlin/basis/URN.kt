@@ -10,7 +10,7 @@ public class URN(val urn:String) :Comparable<URN> {
     private val pSchema = "symblicon|bosork"
     private val pDomConstituent = "[a-z][a-z0=9]*"
     private val pDomain = "$pDomConstituent\\.$pDomConstituent(\\.$pDomConstituent)+"
-    private val pEntity = "(word)|(token)|(interest)";
+    private val pEntity = "word|token|interest|service";
 
     public val scheme : String
     public val thing : String
@@ -20,16 +20,27 @@ public class URN(val urn:String) :Comparable<URN> {
 
     val pattern = Pattern.compile(
             //"urn:($pSchema):($pEntity):($pDomain):.*",
-            "^urn:($pSchema):($pEntity):($pDomain):([a-z0-9()+,\\-\\.:=@;\$_!*']|%[0-9a-f]{2})+$",
+            //"^urn:($pSchema):($pEntity):($pDomain):([a-z0-9+\\-\\.:+_@;\\$]+)$",
+            "^urn:($pSchema):($pEntity):($pDomain):([a-z0-9()+,\\-\\.:=@;\$_!*']+|%[0-9a-f]{2})$",
+
             Pattern.CASE_INSENSITIVE);
     {
         val m = pattern.matcher(urn)
         if(!m.matches())
             throw IllegalStateException("bad urn $urn")
+
         scheme = m.group(1)!!
         thing = m.group(2)!!
-        domain = m.group(6)!!
-        specifier = m.group(8)!!
+        domain = m.group(3)!!
+        specifier = m.group(5)!!
+    }
+
+
+    public fun dump() {
+        val m = pattern.matcher(urn)
+        for(i in 0..m.groupCount()) {
+            println("g$i: ${m.group(i)}")
+        }
     }
 
     public fun matcher() : Matcher {
@@ -74,5 +85,7 @@ public class URN(val urn:String) :Comparable<URN> {
 
     }
 }
+
+
 
 
