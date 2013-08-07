@@ -55,9 +55,11 @@ trait BosorkSession {
         log.info("handling ${req.service.urn}: ${req.session.token.urn} ${req.clientId} class: ${req.javaClass}")
         try {
             val s = app.service(req.service)
+            log.info("found service ${s?.id?.urn}")
             if(s!=null) respBus.publishAsync(s.invoke(req))
             else respBus.publishAsync(BosorkErrorResponse.make(req, BosorkServiceNotFound(req.service)))
         } catch(e: Exception) {
+            log.error("${e.getMessage()}", e)
             respBus.publishAsync(BosorkErrorResponse.make(req, e))
         }
     }
@@ -68,12 +70,12 @@ trait BosorkSession {
 
     fun requestChannel(owner:URN) : MBassador<PublishEnvelope> {
         if(!channels.containsKey(owner)) channels[owner] = MBassador(BusConfiguration.Default())
+        log.info("retrieve channel ${owner.urn} -> ${channels[owner]}")
         return channels[owner]!!
     }
 
     fun subscribe(channel:URN, l:Any) {
-        if(!channels.containsKey(channel)) throw BosorkError("$channel not found")
-        channels[channel]?.subscribe(l)
+        requestChannel(channel).subscribe(l)
     }
 }
 

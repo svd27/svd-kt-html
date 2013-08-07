@@ -10,7 +10,7 @@ public class URN(val urn:String) :Comparable<URN> {
     private val pSchema = "symblicon|bosork"
     private val pDomConstituent = "[a-z][a-z0=9]*"
     private val pDomain = "$pDomConstituent\\.$pDomConstituent(\\.$pDomConstituent)+"
-    private val pEntity = "word|token|interest|service";
+    private val pEntity = "word|token|interest|service|test";
 
     public val scheme : String
     public val thing : String

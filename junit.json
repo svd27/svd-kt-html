@@ -1,0 +1,17 @@
+{
+  "name" : "junit:junit:4.11",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "junit:junit:4.11",
+    "group" : "junit",
+    "version" : "4.11",
+    "artifact" : "junit",
+    "packaging" : "jar"
+  }, {
+    "id" : "org.hamcrest:hamcrest-core:1.3",
+    "group" : "org.hamcrest",
+    "version" : "1.3",
+    "artifact" : "hamcrest-core",
+    "packaging" : "jar"
+  } ]
+}

@@ -1,0 +1,11 @@
+{
+  "name" : "com.google.inject.extensions:guice-servlet:3.0",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "com.google.inject.extensions:guice-servlet:3.0",
+    "group" : "com.google.inject.extensions",
+    "version" : "3.0",
+    "artifact" : "guice-servlet",
+    "packaging" : "jar"
+  } ]
+}
