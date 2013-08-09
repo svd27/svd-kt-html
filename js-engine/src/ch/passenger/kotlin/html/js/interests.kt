@@ -8,5 +8,4 @@ import ch.passenger.kotlin.html.js.model.Identifiable
  */
 trait Interest : Observable<Identifiable> {
     val name : String
-    
 }
