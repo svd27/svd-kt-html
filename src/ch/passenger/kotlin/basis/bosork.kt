@@ -200,7 +200,7 @@ trait AuthProvider : ServiceProvider {
     }
 }
 
-public class BosorkApp(val providers: Iterable<ServiceProvider>) {
+public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvider>) : Identifiable{
     private val sessions : MutableMap<URN,BosorkSession> = HashMap()
     private val services : MutableMap<URN,BosorkService> = HashMap()
     val reqBus : MBassador<BosorkRequest> = MBassador(BusConfiguration.Default())

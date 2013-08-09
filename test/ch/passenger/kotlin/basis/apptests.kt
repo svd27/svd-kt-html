@@ -186,7 +186,7 @@ class BosorkAppTests {
     test
     fun simpleLogin() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
         app.start()
         var respReceived = false
         var loginSuccess = false
@@ -225,7 +225,7 @@ class BosorkAppTests {
     test
     fun simpleEcho() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
         app.start()
         var respReceived = false
         var loginSuccess = false
@@ -290,7 +290,7 @@ class BosorkAppTests {
     test
     fun doubleEcho() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
         app.start()
         var respReceived = false
         var loginSuccess = false
@@ -356,7 +356,7 @@ class BosorkAppTests {
     test
     fun doubleEchoEvent() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
         app.start()
         var respReceived = false
         var loginSuccess = false
