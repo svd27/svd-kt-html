@@ -39,6 +39,8 @@ import ch.passenger.kotlin.basis.BosorkError
 import java.nio.file.Files
 import java.io.FileInputStream
 import java.io.BufferedInputStream
+import com.fasterxml.jackson.databind.ObjectMapper
+import ch.passenger.kotlin.basis.LoginRequest
 
 /**
  * Created by sdju on 25.07.13.
@@ -193,6 +195,41 @@ class ResourceServlet : HttpServlet() {
     }
 }
 
+class LoginServlet() : HttpServlet() {
+    protected override fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
+        when(req?.getMethod()) {
+            "POST" -> {requestLogin(req!!,resp!!)}
+            else -> super<HttpServlet>.service(req, resp)
+        }
+    }
+
+    private fun requestLogin(req: HttpServletRequest, resp: HttpServletResponse) {
+        val om = ObjectMapper()
+        resp.setContentType("text/json")
+        resp.setCharacterEncoding("UTF-8")
+        val hs = req.getSession()
+        if(hs!=null) {
+            if(hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)!=null) {
+                val bs : BosorkServletSession = hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+                if(bs.token!=null) {
+                    val res = om.createObjectNode()
+                    res?.put("token", bs.token.urn)
+                    om.writerWithDefaultPrettyPrinter().writeValue(resp.getWriter(), res)
+                    return
+                }
+            }
+        }
+
+        val app = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
+
+        val node = om.readTree(req.getReader())
+        val user = node?.path("user")?.textValue()
+        val password = node?.path("pwd")?.textValue()
+        app.app.
+        val req = LoginRequest(app.app, )
+    }
+}
+
 
 
 
@@ -252,12 +289,4 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
         }
 
     }
-}
-
-fun main(args:Array<String>) {
-    val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "test"), ArrayList())
-    val wapp = AppServletModule(app, array(JSResource("resources/js/jquery-1.7.2.js", "test/resource"), CSSResource("resources/html/base.css", "test/resource")), File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"))
-    val waf = AppFactory(wapp, 2709)
-    waf.init()
-    waf.server?.start()
 }

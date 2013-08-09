@@ -205,9 +205,10 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
     private val services : MutableMap<URN,BosorkService> = HashMap()
     val reqBus : MBassador<BosorkRequest> = MBassador(BusConfiguration.Default())
     val respBus : MBassador<BosorkResponse> = MBassador(BusConfiguration.Default())
+    var auth : AuthProvider? = null
+
 
     fun start() {
-
         providers.forEach {
             p ->
             log.info("provider ${p}")
@@ -215,8 +216,13 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
                log.info("service ${it.urn}")
                services[it] = p.create(it, this)
            }
+            if(p is AuthProvider) {
+                if(auth!=null) throw BosorkError("more than one Auth configured old ${auth} new: ${p}")
+                auth = p
+            }
        }
        reqBus.subscribe(this)
+        respBus.subscribe(this)
     }
 
     [Handler]
@@ -225,6 +231,17 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
         val s = service(req.service)
         if(s==null) throw BosorkServiceNotFound(req.service)
         respBus.publishAsync(s.invoke(req))
+    }
+
+    [Handler]
+     fun handle(resp:BosorkResponse) {
+        if(resp is LoginResponse) {
+
+            if(resp.session!=null) {
+                log.info("LoginRequest created session: ${resp.session.token.urn}")
+                sessions[resp.session.token] = resp.session
+            }
+        }
     }
 
     fun stop() {
@@ -241,6 +258,13 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
 
     fun listen(l:Any) {
         respBus.subscribe(l)
+    }
+
+    fun login(user:String, pwd:String) : Int {
+        if(auth==null) throw BosorkError("no auth configured")
+        val req = LoginRequest(this, auth!!.login, 0, user, pwd)
+        request(req)
+        return 0
     }
 
 }
