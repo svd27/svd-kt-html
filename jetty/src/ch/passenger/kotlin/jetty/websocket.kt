@@ -13,7 +13,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory
  * Time: 05:12
  */
 
-abstract class BosorkWebsocketAdapter(session : HttpSession?) : WebSocketAdapter()
+abstract class BosorkWebsocketAdapter(protected val session : HttpSession?) : WebSocketAdapter()
 
 abstract class BosorkWebsocketServlet(val creator : WebSocketCreator) : WebSocketServlet() {
 

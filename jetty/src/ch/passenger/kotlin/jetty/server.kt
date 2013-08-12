@@ -41,6 +41,12 @@ import java.io.FileInputStream
 import java.io.BufferedInputStream
 import com.fasterxml.jackson.databind.ObjectMapper
 import ch.passenger.kotlin.basis.LoginRequest
+import com.fasterxml.jackson.databind.node.ObjectNode
+import org.eclipse.jetty.websocket.api.Session
+import org.eclipse.jetty.util.component.AbstractLifeCycle.AbstractLifeCycleListener
+import java.util.EventListener
+import javax.servlet.http.HttpSessionListener
+import javax.servlet.http.HttpSessionEvent
 
 /**
  * Created by sdju on 25.07.13.
@@ -127,15 +133,42 @@ class CSSResource(val path:String, val prefix:String) : BosorkWebResource {
     }
 }
 
-class InitServlet : HttpServlet() {
-    protected override fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
-        when(req?.getMethod()) {
-            "GET" -> { serve(req!!, resp!!)}
-            else -> super.service(req, resp)
+abstract class BosorkServlet : HttpServlet() {
+    protected abstract fun serve(req: HttpServletRequest, resp: HttpServletResponse)
+    protected abstract val methods : Set<String>
+    protected val om: ObjectMapper  = ObjectMapper()
+
+    protected override final fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
+        try {
+            if(methods.contains(req!!.getMethod())) serve(req, resp!!)
+            else throw IllegalStateException(req.getMethod() + " not supported")
+        } catch(e: Exception) {
+            log.error(e.getMessage(), e)
+            writeResponse(error(e), req!!, resp!!)
         }
+
     }
 
-    private fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
+    protected fun writeResponse(node:ObjectNode, req:HttpServletRequest, resp:HttpServletResponse) {
+        om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter()!!, node)
+        resp.getWriter()!!.flush()
+        resp.getWriter()!!.close()
+    }
+
+    protected fun error(t:Throwable): ObjectNode {
+        val error = om.createObjectNode()!!
+        error.put("cause", t.javaClass.getName())
+        error.put("message", t.getMessage())
+        val resp = om.createObjectNode()!!
+        resp.put("error", error)
+        return resp
+    }
+}
+
+class InitServlet : BosorkServlet() {
+    protected override val methods: Set<String> = setOf("GET")
+
+    protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
         val pw = resp.getWriter()!!
         val app = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
 
@@ -165,14 +198,12 @@ class InitServlet : HttpServlet() {
     }
 }
 
-class ResourceServlet : HttpServlet() {
-
-    protected override fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
-        when(req?.getMethod()) {
-            "GET" -> {resource(req!!,resp!!)}
-            else -> super<HttpServlet>.service(req, resp)
-        }
+class ResourceServlet : BosorkServlet() {
+    protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
+        resource(req, resp)
     }
+
+    protected override val methods: Set<String> = setOf("GET")
 
     fun resource(req: HttpServletRequest, resp: HttpServletResponse) {
         val app = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
@@ -195,16 +226,14 @@ class ResourceServlet : HttpServlet() {
     }
 }
 
-class LoginServlet() : HttpServlet() {
-    protected override fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
-        when(req?.getMethod()) {
-            "POST" -> {requestLogin(req!!,resp!!)}
-            else -> super<HttpServlet>.service(req, resp)
-        }
-    }
+class LoginServlet() : BosorkServlet() {
+    protected override val methods: Set<String> = setOf("POST")
 
+
+    protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
+        requestLogin(req, resp)
+    }
     private fun requestLogin(req: HttpServletRequest, resp: HttpServletResponse) {
-        val om = ObjectMapper()
         resp.setContentType("text/json")
         resp.setCharacterEncoding("UTF-8")
         val hs = req.getSession()
@@ -214,7 +243,7 @@ class LoginServlet() : HttpServlet() {
                 if(bs.token!=null) {
                     val res = om.createObjectNode()
                     res?.put("token", bs.token.urn)
-                    om.writerWithDefaultPrettyPrinter().writeValue(resp.getWriter(), res)
+                    om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter(), res)
                     return
                 }
             }
@@ -223,10 +252,11 @@ class LoginServlet() : HttpServlet() {
         val app = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
 
         val node = om.readTree(req.getReader())
-        val user = node?.path("user")?.textValue()
-        val password = node?.path("pwd")?.textValue()
-        app.app.
-        val req = LoginRequest(app.app, )
+        val user = node?.path("user")?.textValue()!!
+        val password = node?.path("pwd")?.textValue()!!
+        val cid = node?.path("cid")?.longValue()?:-1.toLong()
+        val lreq = LoginRequest(app.app, app.app.auth!!.login, cid, user, password)
+        app.app.request(lreq)
     }
 }
 
@@ -234,6 +264,12 @@ class LoginServlet() : HttpServlet() {
 
 
 class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>, val root:File) {
+    {
+        app.listen(this)
+    }
+
+
+
     fun init(ctx:ServletContext) {
         ctx.setAttribute(APP_ATTRIBUTE, this)
     }
@@ -244,6 +280,29 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
         log.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource"}")
         ctx.addServlet(javaClass<ResourceServlet>(), "/"+app.id.specifier+"/resource/*")
     }
+
+    fun sockets(ctx:ServletContextHandler) {
+        ctx.socket {
+            class Adaptor(s : HttpSession) : BosorkWebsocketAdapter(s) {
+
+                public override fun onWebSocketConnect(sess: Session?) {
+                    session
+                }
+
+
+                public override fun onWebSocketClose(statusCode: Int, reason: String?) {
+
+                }
+
+
+                public override fun onWebSocketText(message: String?) {
+                    getRemote()?.sendString(message?.toUpperCase())
+                }
+            }
+            Pair("/events", javaClass<Adaptor>() as Class<BosorkWebsocketAdapter>)
+        }
+    }
+
     class object {
         val APP_ATTRIBUTE : String = "BOSORK_APP"
     }
@@ -276,6 +335,18 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                         println("${ctx?.getSource()} destroyed")
                     }
                 })
+
+                val l = object : HttpSessionListener {
+                    public override fun sessionCreated(se: HttpSessionEvent?) {
+
+                    }
+                    public override fun sessionDestroyed(se: HttpSessionEvent?) {
+                        val hs : HttpSession = se!!.getSource()!! as HttpSession
+
+                    }
+                }
+
+                ctx.addEventListener(l)
 
                 //val dispatches = EnumSet.allOf(javaClass<DispatcherType>())
                 val dispatches = EnumSet.of(DispatcherType.ASYNC, DispatcherType.ERROR, DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST)
