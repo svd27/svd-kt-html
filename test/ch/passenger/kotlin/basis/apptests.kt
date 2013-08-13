@@ -11,6 +11,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.ScheduledFuture
 import net.engio.mbassy.listener.Invoke
+import kotlin.test.assertNotNull
 
 /**
  * Created with IntelliJ IDEA.
@@ -127,156 +128,82 @@ class EchoServiceProvider : ServiceProvider {
 }
 
 class SimpleAuthProvider : AuthProvider {
-    override val login: URN = LOGIN
-    override val finisher: URN = LOGOUT
-    override fun create(service: URN, app: BosorkApp): BosorkService {
-        when(service) {
-            login -> return object : BosorkService {
-                override val id: URN = login
-                override val shortName: String = id.specifier
-                override fun init() {
 
+    override fun createAuth(app:BosorkApp, sp: SessionFactory): AuthService {
+        return object : AuthService {
+            protected override val sp: SessionFactory = sp
+            override fun login(req: LoginRequest): LoginResponse {
+                if(req.user == "guest" && req.pwd == "test") {
+                    val s = sp.createSession(URN.token("test"))
+                    return LoginResponse(s, req.clientId)
                 }
-                override fun destroy() {
 
-                }
-                override fun call(req: BosorkRequest): BosorkResponse {
-                    if(req is LoginRequest) {
-                        if (req.session is NullSession) {
-                            if(req.user == "guest" && req.pwd == "test") {
-                                val s = AbstractSession(URN.token("test"), app)
-                                return LoginResponse(s, id, req.clientId, null)
-                            }
-                            return LoginResponse(req.session, id, req.clientId, BosorkLoginFailed(req.user))
-                        } else {
-                            return LoginResponse(req.session, id, req.clientId, null)
-                        }
-                    }
-
-                    wrongRequest(req, javaClass<LoginRequest>())
-                }
+                return LoginResponse(NullSession(app), req.clientId, BosorkLoginFailed(req.user))
             }
-            finisher -> return object : BosorkService {
-                override val id: URN = finisher
-                override val shortName: String = id.specifier
-                override fun init() {
 
-                }
-                override fun destroy() {
-                    throw UnsupportedOperationException()
-                }
-                override fun call(req: BosorkRequest): BosorkResponse {
-                    if(req is LogoutRequest) {
-                        return LogoutResponse(req.session, finisher, req.clientId)
-                    }
+            val shortName: String = LOGIN.specifier
 
-                    wrongRequest(req, javaClass<LogoutRequest>())
-                }
-            }
-            else -> throw BosorkServiceNotFound(service)
+            override val id: URN = LOGIN
         }
     }
+
     class object {
         val LOGIN = URN.service("login", "test.bosork.org")
         val LOGOUT = URN.service("logout", "test.bosork.org")
     }
 }
 
+class TestSessionFactoryProvider : SessionFactoryProvider {
+
+    override fun provider(app: BosorkApp): SessionFactory {
+        return TestSessionProvider(app)
+    }
+}
+
+class TestSessionProvider(private val app : BosorkApp) : SessionFactory {
+    override fun createSession(token: URN): BosorkSession {
+        return AbstractSession(token, app)
+    }
+}
+
 class BosorkAppTests {
     test
     fun simpleLogin() {
-        val sap = SimpleAuthProvider()
-        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(EchoServiceProvider()), TestSessionFactoryProvider(), SimpleAuthProvider())
         app.start()
-        var respReceived = false
-        var loginSuccess = false
-        val lock = Object()
 
-        val l = object : Any() {
-            [Handler]
-                    fun listen(resp: BosorkResponse) {
-                when(resp) {
-                    is LoginResponse -> {
-                        respReceived = true
-                        if(resp.error == null) {
-                            loginSuccess = true
-                        }
-                    }
-                    else -> {
-                    }
-                }
-                synchronized(lock) {
-                    lock.notifyAll()
-                }
-            }
-        }
+        val loginResponse = app.login(LoginRequest(1, "guest", "test"))
 
-        app.listen(l)
-
-        synchronized(lock) {
-            app.request(LoginRequest(app, SimpleAuthProvider.LOGIN, 1, "guest", "test"))
-            lock.wait()
-        }
-
-        assertTrue(respReceived)
-        assertTrue(loginSuccess)
+        assertNotNull(loginResponse.session)
+        assertNotNull(loginResponse.session.token)
     }
 
     test
     fun simpleEcho() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(EchoServiceProvider()), TestSessionFactoryProvider(), SimpleAuthProvider())
         app.start()
-        var respReceived = false
-        var loginSuccess = false
-        var session : BosorkSession = NullSession(app)
+
+        val loginResponse = app.login(LoginRequest(1, "guest", "test"))
+        var session : BosorkSession = loginResponse.session
         val echo = "A"
         var echoed = ""
         val lock = Object()
-
-        val l = object : Any() {
+        session.listen(object : Any() {
             [Handler]
                     fun listen(resp: BosorkResponse) {
                 when(resp) {
-                    is LoginResponse -> {
-                        respReceived = true
-                        if(resp.error == null) {
-                            loginSuccess = true
-                            session = resp.session
-                            session.listen(object : Any() {
-                                [Handler]
-                                        fun listen(resp: BosorkResponse) {
-                                    when(resp) {
-                                        is EchoResponse -> {
-                                            echoed = resp.echo
-                                            synchronized(lock) {
-                                                lock.notifyAll()
-                                            }
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            })
+                    is EchoResponse -> {
+                        echoed = resp.echo
+                        synchronized(lock) {
+                            lock.notifyAll()
                         }
                     }
-                    else -> {
-                    }
-                }
-                synchronized(lock) {
-                    lock.notifyAll()
+                    else -> {}
                 }
             }
-        }
+        })
 
-        app.listen(l)
-
-        synchronized(lock) {
-            app.request(LoginRequest(app, SimpleAuthProvider.LOGIN, 1, "guest", "test"))
-            lock.wait(1000)
-        }
-
-        assertTrue(respReceived)
-        assertTrue(loginSuccess)
 
         synchronized(lock) {
             session.request(EchoRequest(session, EchoServiceProvider.Echo, 1, echo))
@@ -290,59 +217,29 @@ class BosorkAppTests {
     test
     fun doubleEcho() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(EchoServiceProvider()), TestSessionFactoryProvider(), SimpleAuthProvider())
         app.start()
-        var respReceived = false
-        var loginSuccess = false
-        var session : BosorkSession = NullSession(app)
+        val loginResponse = app.login(LoginRequest(1, "guest", "test"))
+        var session : BosorkSession = loginResponse.session
         val echo = "ABC"
         val expect = "AABBCC"
         var echoed = ""
         val lock = Object()
 
-        val l = object : Any() {
+        session.listen(object : Any() {
             [Handler]
                     fun listen(resp: BosorkResponse) {
                 when(resp) {
-                    is LoginResponse -> {
-                        respReceived = true
-                        if(resp.error == null) {
-                            loginSuccess = true
-                            session = resp.session
-                            session.listen(object : Any() {
-                                [Handler]
-                                        fun listen(resp: BosorkResponse) {
-                                    when(resp) {
-                                        is EchoResponse -> {
-                                            echoed = resp.echo
-                                            synchronized(lock) {
-                                                lock.notifyAll()
-                                            }
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            })
+                    is EchoResponse -> {
+                        echoed = resp.echo
+                        synchronized(lock) {
+                            lock.notifyAll()
                         }
                     }
-                    else -> {
-                    }
-                }
-                synchronized(lock) {
-                    lock.notifyAll()
+                    else -> {}
                 }
             }
-        }
-
-        app.listen(l)
-
-        synchronized(lock) {
-            app.request(LoginRequest(app, SimpleAuthProvider.LOGIN, 1, "guest", "test"))
-            lock.wait(10000)
-        }
-
-        assertTrue(respReceived)
-        assertTrue(loginSuccess)
+        })
 
         synchronized(lock) {
             session.request(EchoRequest(session, EchoServiceProvider.DoubleEcho, 1, echo))
@@ -356,60 +253,31 @@ class BosorkAppTests {
     test
     fun doubleEchoEvent() {
         val sap = SimpleAuthProvider()
-        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(sap, EchoServiceProvider()))
+        val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "echo-app"), listOf(EchoServiceProvider()), TestSessionFactoryProvider(), SimpleAuthProvider())
         app.start()
-        var respReceived = false
-        var loginSuccess = false
-        var session : BosorkSession = NullSession(app)
+        val loginResponse = app.login(LoginRequest(1, "guest", "test"))
+        var session : BosorkSession = loginResponse.session
         val echo = "ABC"
         val expect = "AABBCC"
         var echoed = ""
         val lock = Object()
+        val elock = Object()
 
-        val l = object : Any() {
+        session.listen(object : Any() {
             [Handler]
                     fun listen(resp: BosorkResponse) {
                 when(resp) {
-                    is LoginResponse -> {
-                        respReceived = true
-                        if(resp.error == null) {
-                            loginSuccess = true
-                            session = resp.session
-                            session.listen(object : Any() {
-                                [Handler]
-                                        fun listen(resp: BosorkResponse) {
-                                    when(resp) {
-                                        is EchoResponse -> {
-                                            echoed = resp.echo
-                                            testLog.info("received response: ${resp.service.urn} -> ${resp.echo}")
-                                            synchronized(lock) {
-                                                lock.notifyAll()
-                                            }
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            })
+                    is EchoResponse -> {
+                        echoed = resp.echo
+                        synchronized(lock) {
+                            lock.notifyAll()
                         }
                     }
-                    else -> {
-                    }
-                }
-                synchronized(lock) {
-                    lock.notifyAll()
+                    else -> {}
                 }
             }
-        }
+        })
 
-        app.listen(l)
-
-        synchronized(lock) {
-            app.request(LoginRequest(app, SimpleAuthProvider.LOGIN, 1, "guest", "test"))
-            lock.wait(10000)
-        }
-
-        assertTrue(respReceived)
-        assertTrue(loginSuccess)
         var eventReceived :Boolean = false
 
         val el = object : Any() {
@@ -420,14 +288,19 @@ class BosorkAppTests {
 
                 testLog.info("${event.source.echo}")
                 eventReceived = true
+                synchronized(elock) {
+                    elock.notifyAll()
+                }
             }
         }
 
         synchronized(lock) {
             session.subscribe(EchoServiceProvider.DoubleEcho, el)
             session.request(EchoRequest(session, EchoServiceProvider.DoubleEcho, 1, echo))
-            lock.wait(10000)
-            lock.wait(10000)
+        }
+
+        synchronized(elock) {
+            if(!eventReceived) elock.wait(10000)
         }
 
         assertEquals(expect, echoed)

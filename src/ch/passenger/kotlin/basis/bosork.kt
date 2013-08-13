@@ -165,13 +165,9 @@ trait ServiceProvider {
 }
 
 
-class LoginRequest(val app : BosorkApp, override val service:URN, override val clientId:Long,
-                   val user:String, val pwd:String) : BosorkRequest {
-    override val session: BosorkSession = NullSession(app)
-}
+class LoginRequest(val clientId:Long,val user:String, val pwd:String)
 
-class LoginResponse(override val session:BosorkSession,override val service:URN,
-                    override val clientId:Long, val error:Throwable?) : BosorkResponse
+class LoginResponse(val session:BosorkSession,val clientId:Long, val error:Throwable?=null)
 
 trait Authoriser: BosorkService
 
@@ -186,42 +182,70 @@ class LogoutResponse(override val session:BosorkSession,override val service:URN
 
 trait Finisher : BosorkService
 
-trait AuthProvider : ServiceProvider {
-    val login : URN
-    val finisher : URN
 
 
-    override fun creates(): Iterable<URN> {
-        return listOf(login,finisher)
+trait AuthService  : Identifiable {
+    protected val sp : SessionFactory
+    final fun call(req: LoginRequest): LoginResponse {
+        return login(req)
     }
 
-    override fun createOnStartup(): Iterable<URN> {
-        return creates()
+    fun login(req:LoginRequest) : LoginResponse
+}
+
+class AnonymousAuthService(override protected val sp : SessionFactory) : AuthService {
+    val shortName: String = "login"
+
+    override fun login(req:LoginRequest): LoginResponse {
+        return LoginResponse(sp.createSession(URN.token("${next()}")),req.clientId)
+    }
+    override val id: URN = URN.service(shortName, "www.bosork.org")
+    class object {
+        private var count : Int = 0
+        fun next() : Int {
+            count = count+1
+            return count
+        }
+        val provider : AuthProvider = object : AuthProvider {
+            override fun createAuth(app: BosorkApp, sp: SessionFactory): AuthService {
+                return  AnonymousAuthService(sp)
+            }
+
+        }
     }
 }
 
-public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvider>) : Identifiable{
+trait AuthProvider {
+    fun createAuth(app:BosorkApp, sp: SessionFactory) : AuthService
+}
+
+trait SessionFactoryProvider {
+    fun provider(app:BosorkApp) : SessionFactory
+}
+
+trait SessionFactory {
+    fun createSession(token:URN) : BosorkSession
+}
+
+public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvider>, private val sfp: SessionFactoryProvider, private val authProvider: AuthProvider) : Identifiable{
     private val sessions : MutableMap<URN,BosorkSession> = HashMap()
     private val services : MutableMap<URN,BosorkService> = HashMap()
     val reqBus : MBassador<BosorkRequest> = MBassador(BusConfiguration.Default())
     val respBus : MBassador<BosorkResponse> = MBassador(BusConfiguration.Default())
-    var auth : AuthProvider? = null
+    private val sessionProvider: SessionFactory = sfp.provider(this)
+    private val auth : AuthService = authProvider.createAuth(this, sessionProvider)
 
 
     fun start() {
         providers.forEach {
             p ->
             log.info("provider ${p}")
-           p.createOnStartup().forEach {
-               log.info("service ${it.urn}")
-               services[it] = p.create(it, this)
-           }
-            if(p is AuthProvider) {
-                if(auth!=null) throw BosorkError("more than one Auth configured old ${auth} new: ${p}")
-                auth = p
+            p.createOnStartup().forEach {
+                log.info("service ${it.urn}")
+                services[it] = p.create(it, this)
             }
-       }
-       reqBus.subscribe(this)
+        }
+        reqBus.subscribe(this)
         respBus.subscribe(this)
     }
 
@@ -233,16 +257,6 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
         respBus.publishAsync(s.invoke(req))
     }
 
-    [Handler]
-     fun handle(resp:BosorkResponse) {
-        if(resp is LoginResponse) {
-
-            if(resp.session!=null) {
-                log.info("LoginRequest created session: ${resp.session.token.urn}")
-                sessions[resp.session.token] = resp.session
-            }
-        }
-    }
 
     fun stop() {
 
@@ -260,12 +274,10 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
         respBus.subscribe(l)
     }
 
-    fun login(user:String, pwd:String) : Int {
-        if(auth==null) throw BosorkError("no auth configured")
-        val req = LoginRequest(this, auth!!.login, 0, user, pwd)
-        request(req)
-        return 0
+    fun login(req:LoginRequest) : LoginResponse {
+        val loginResponse = auth.login(req)
+        if(loginResponse.error==null) sessions[loginResponse.session.token] = loginResponse.session
+        return loginResponse
     }
-
 }
 

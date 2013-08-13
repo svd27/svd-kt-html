@@ -47,6 +47,13 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle.AbstractLifeCycleListe
 import java.util.EventListener
 import javax.servlet.http.HttpSessionListener
 import javax.servlet.http.HttpSessionEvent
+import com.fasterxml.jackson.databind.JsonNode
+import javax.servlet.http.HttpSessionBindingListener
+import javax.servlet.http.HttpSessionActivationListener
+import javax.servlet.http.HttpSessionBindingEvent
+import javax.servlet.ServletConfig
+import net.engio.mbassy.listener.Handler as handler
+import ch.passenger.kotlin.basis.SessionFactory
 
 /**
  * Created by sdju on 25.07.13.
@@ -95,18 +102,36 @@ fun AbstractNetworkConnector.configure(cfg : AbstractNetworkConnector.()->Unit) 
     cfg()
 }
 
-class BosorkServletSession(val servletSession : HttpSession, override val app : BosorkApp, override val token: URN) : BosorkSession {
+class BosorkServletSession(override val app : BosorkApp, override var token: URN) :
+BosorkSession, HttpSessionBindingListener, HttpSessionActivationListener {
     override val attributes: MutableMap<String, Any?> = HashMap()
     override val reqBus: MBassador<BosorkRequest> = MBassador(BusConfiguration.Default())
     override val respBus: MBassador<BosorkResponse> = MBassador(BusConfiguration.Default())
     override val channels: MutableMap<URN, MBassador<PublishEnvelope>> = HashMap();
-
-    {
-        servletSession.setAttribute(SESSION_ATTRIBUTE, this)
-    }
+    val websocket : BosorkWebsocketAdapter? = null
 
     class object {
         val SESSION_ATTRIBUTE :String = "BOSORK-SESSION"
+    }
+
+
+    public override fun valueBound(event: HttpSessionBindingEvent?) {
+        log.info("im ${token.urn} officially part of this session ${event?.getSource()}: ${event?.getName()}")
+    }
+    public override fun valueUnbound(event: HttpSessionBindingEvent?) {
+        log.info("im ${token.urn} dead for this session ${event?.getSource()}: ${event?.getName()}")
+    }
+    public override fun sessionWillPassivate(se: HttpSessionEvent?) {
+        log.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} will go to sleep")
+    }
+    public override fun sessionDidActivate(se: HttpSessionEvent?) {
+        log.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} is waking up")
+    }
+}
+
+class DefaultWebAppSessionProvider : SessionFactory {
+    override fun createSession(token: URN, app: BosorkApp): BosorkSession {
+        return BosorkServletSession(app, token)
     }
 }
 
@@ -140,6 +165,8 @@ abstract class BosorkServlet : HttpServlet() {
 
     protected override final fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
         try {
+            val httpSession = req!!.getSession(true)
+            log.info("received req for ${httpSession?.getId()}")
             if(methods.contains(req!!.getMethod())) serve(req, resp!!)
             else throw IllegalStateException(req.getMethod() + " not supported")
         } catch(e: Exception) {
@@ -157,11 +184,20 @@ abstract class BosorkServlet : HttpServlet() {
 
     protected fun error(t:Throwable): ObjectNode {
         val error = om.createObjectNode()!!
+        error.put("state", "error")
         error.put("cause", t.javaClass.getName())
         error.put("message", t.getMessage())
         val resp = om.createObjectNode()!!
         resp.put("error", error)
         return resp
+    }
+
+    protected fun ok(payLoad:JsonNode?) : ObjectNode{
+        val ok = om.createObjectNode()!!
+        ok.put("state", "ok")
+        if(payLoad!=null)
+        ok.put("payload", payLoad)
+        return ok
     }
 }
 
@@ -230,6 +266,17 @@ class LoginServlet() : BosorkServlet() {
     protected override val methods: Set<String> = setOf("POST")
 
 
+    public override fun init(config: ServletConfig?) {
+        super<BosorkServlet>.init(config)
+        val app = config!!.getServletContext()!!.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
+        val l = object : Any() {
+            [handler]
+            fun listen(r: BosorkResponse) {
+                r.session.token = r.
+            }
+        }
+        app.app.listen(l)
+    }
     protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
         requestLogin(req, resp)
     }
@@ -257,6 +304,7 @@ class LoginServlet() : BosorkServlet() {
         val cid = node?.path("cid")?.longValue()?:-1.toLong()
         val lreq = LoginRequest(app.app, app.app.auth!!.login, cid, user, password)
         app.app.request(lreq)
+        writeResponse(ok(null), req, resp)
     }
 }
 
@@ -279,6 +327,17 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
         ctx.addServlet(javaClass<InitServlet>(), "/"+app.id.specifier)
         log.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource"}")
         ctx.addServlet(javaClass<ResourceServlet>(), "/"+app.id.specifier+"/resource/*")
+        val l = object : HttpSessionListener {
+            public override fun sessionCreated(se: HttpSessionEvent?) {
+                log.info("session created: ${se?.getSource()}")
+                val s : HttpSession
+            }
+            public override fun sessionDestroyed(se: HttpSessionEvent?) {
+                //val hs : HttpSession = se!!.getSource()!! as HttpSession
+
+            }
+        }
+        ctx.getSessionHandler()!!.addEventListener(l)
     }
 
     fun sockets(ctx:ServletContextHandler) {
@@ -296,7 +355,7 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
 
 
                 public override fun onWebSocketText(message: String?) {
-                    getRemote()?.sendString(message?.toUpperCase())
+                    //ignore
                 }
             }
             Pair("/events", javaClass<Adaptor>() as Class<BosorkWebsocketAdapter>)
@@ -329,6 +388,7 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                 //http://www.javaintegrations.com/2012/08/using-embedded-jetty-with-guice-servlet.html
                 ctx.addEventListener(object : ServletContextListener {
                     public override fun contextInitialized(ctx : ServletContextEvent?) {
+                        log.info("calling appmodule ${appmodule.app.id.urn} init")
                         appmodule.init(ctx?.getServletContext()!!)
                     }
                     public override fun contextDestroyed(ctx : ServletContextEvent?) {
@@ -336,23 +396,12 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                     }
                 })
 
-                val l = object : HttpSessionListener {
-                    public override fun sessionCreated(se: HttpSessionEvent?) {
-
-                    }
-                    public override fun sessionDestroyed(se: HttpSessionEvent?) {
-                        val hs : HttpSession = se!!.getSource()!! as HttpSession
-
-                    }
-                }
-
-                ctx.addEventListener(l)
-
                 //val dispatches = EnumSet.allOf(javaClass<DispatcherType>())
                 val dispatches = EnumSet.of(DispatcherType.ASYNC, DispatcherType.ERROR, DispatcherType.FORWARD, DispatcherType.INCLUDE, DispatcherType.REQUEST)
                 println(dispatches)
 
                 ctx.addServlet(javaClass<DefaultServlet>(), "/")
+                log.info("calling appmodule ${appmodule.app.id.urn} servlets")
                 appmodule.servlets(ctx)
 
                 ctx
