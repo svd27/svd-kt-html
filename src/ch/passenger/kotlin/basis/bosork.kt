@@ -102,22 +102,22 @@ class NullSession(override val app : BosorkApp) : BosorkSession {
 trait BosorkRequest {
     val session : BosorkSession
     val service : URN
-    val clientId : Long
+    val clientId : Int
 }
 
 trait BosorkResponse {
-    val session : BosorkSession
+    val token : URN
     val service : URN
-    val clientId : Long
+    val clientId : Int
 }
 
-public open class BosorkErrorResponse(override val session: BosorkSession,
-                                      override val service:URN, override val clientId: Long,
+public open class BosorkErrorResponse(override val token: URN,
+                                      override val service:URN, override val clientId: Int,
                                       val cause:Throwable)
 : BosorkResponse {
     class object {
         fun make(req:BosorkRequest, t:Throwable) : BosorkErrorResponse {
-            return BosorkErrorResponse(req.session, req.service, req.clientId, t)
+            return BosorkErrorResponse(req.session.token, req.service, req.clientId, t)
         }
     }
 }
@@ -179,10 +179,10 @@ trait Authoriser: BosorkService
 
 
 class LogoutRequest(override val session:BosorkSession, override val service:URN,
-                    override val clientId:Long) : BosorkRequest
+                    override val clientId:Int) : BosorkRequest
 
-class LogoutResponse(override val session:BosorkSession,override val service:URN,
-                    override val clientId:Long) : BosorkResponse
+class LogoutResponse(override val token:URN,override val service:URN,
+                    override val clientId:Int) : BosorkResponse
 
 
 trait Finisher : BosorkService

@@ -25,13 +25,13 @@ private val testLog = LoggerFactory.getLogger(javaClass<BosorkApp>()?.getPackage
 
 
 class EchoRequest(override val session: BosorkSession, override val service: URN,
-                  override val clientId: Long, val echo: String) : BosorkRequest {
+                  override val clientId: Int, val echo: String) : BosorkRequest {
     {
 
     }
 }
-class EchoResponse(override val session: BosorkSession, override val service: URN,
-                   override val clientId: Long, val echo: String) : BosorkResponse {
+class EchoResponse(override val token: URN, override val service: URN,
+                   override val clientId: Int, val echo: String) : BosorkResponse {
     {
         testLog.info("created echo: $echo")
     }
@@ -47,7 +47,7 @@ class EchoService() : AbstractService(EchoServiceProvider.Echo,
     }
     override fun call(req: BosorkRequest): BosorkResponse {
         if(req is EchoRequest)
-            return EchoResponse(req.session, id, req.clientId, req.echo)
+            return EchoResponse(req.session.token, id, req.clientId, req.echo)
         return wrongRequest(req, javaClass<EchoRequest>())
     }
 
@@ -99,7 +99,7 @@ class DoubleEchoService : BosorkService {
 
             scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(r, 1, 1, TimeUnit.SECONDS)
 
-            return EchoResponse(req.session, id, req.clientId, sb.toString())
+            return EchoResponse(req.session.token, id, req.clientId, sb.toString())
         }
         return wrongRequest(req, javaClass<EchoRequest>())
     }
