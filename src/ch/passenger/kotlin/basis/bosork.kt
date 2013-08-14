@@ -69,7 +69,10 @@ trait BosorkSession {
     }
 
     fun requestChannel(owner:URN) : MBassador<PublishEnvelope> {
-        if(!channels.containsKey(owner)) channels[owner] = MBassador(BusConfiguration.Default())
+        if(!channels.containsKey(owner)) {
+            channels[owner] = MBassador(BusConfiguration.Default())
+            channelRequested(owner, channels[owner]!!)
+        }
         log.info("retrieve channel ${owner.urn} -> ${channels[owner]}")
         return channels[owner]!!
     }
@@ -77,6 +80,8 @@ trait BosorkSession {
     fun subscribe(channel:URN, l:Any) {
         requestChannel(channel).subscribe(l)
     }
+
+    open fun channelRequested(owner:URN, channel:MBassador<PublishEnvelope>) {}
 }
 
 class AbstractSession(override val token: URN, override val app : BosorkApp): BosorkSession {
@@ -165,7 +170,7 @@ trait ServiceProvider {
 }
 
 
-class LoginRequest(val clientId:Long,val user:String, val pwd:String)
+open class LoginRequest(val clientId:Long,val user:String, val pwd:String)
 
 class LoginResponse(val session:BosorkSession,val clientId:Long, val error:Throwable?=null)
 
@@ -197,7 +202,7 @@ class AnonymousAuthService(override protected val sp : SessionFactory) : AuthSer
     val shortName: String = "login"
 
     override fun login(req:LoginRequest): LoginResponse {
-        return LoginResponse(sp.createSession(URN.token("${next()}")),req.clientId)
+        return LoginResponse(sp.createSession(req, URN.token("${next()}")),req.clientId)
     }
     override val id: URN = URN.service(shortName, "www.bosork.org")
     class object {
@@ -224,7 +229,7 @@ trait SessionFactoryProvider {
 }
 
 trait SessionFactory {
-    fun createSession(token:URN) : BosorkSession
+    fun createSession(req:LoginRequest, token:URN) : BosorkSession
 }
 
 public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvider>, private val sfp: SessionFactoryProvider, private val authProvider: AuthProvider) : Identifiable{
@@ -278,6 +283,14 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
         val loginResponse = auth.login(req)
         if(loginResponse.error==null) sessions[loginResponse.session.token] = loginResponse.session
         return loginResponse
+    }
+
+    fun session(id:URN) : BosorkSession? {
+        var r : BosorkSession? = null
+        sessions.values().forEach {
+            if(it.token.urn==id.urn) r = it
+        }
+        return r
     }
 }
 

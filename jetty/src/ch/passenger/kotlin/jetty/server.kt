@@ -54,6 +54,8 @@ import javax.servlet.http.HttpSessionBindingEvent
 import javax.servlet.ServletConfig
 import net.engio.mbassy.listener.Handler as handler
 import ch.passenger.kotlin.basis.SessionFactory
+import ch.passenger.kotlin.basis.SessionFactoryProvider
+import ch.passenger.kotlin.json.Jsonifier
 
 /**
  * Created by sdju on 25.07.13.
@@ -87,7 +89,7 @@ fun ServletContextHandler.socket(cfg : ServletContextHandler.() -> Pair<String,C
     val wsc = WebSocketCreator {
         (req,resp) ->
         val ctor = pair.second.getConstructor(javaClass<HttpSession>())
-        ctor.newInstance(req?.getSession())
+        ctor.newInstance(req?.getSession()!!)
     }
     class WSSServlet() : BosorkWebsocketServlet(wsc)
     val sh = ServletHolder(object : BosorkWebsocketServlet(wsc){})
@@ -95,20 +97,40 @@ fun ServletContextHandler.socket(cfg : ServletContextHandler.() -> Pair<String,C
     addServlet(sh, pair.first)
 }
 
-
-
+fun ServletContextHandler.socket(app:BosorkApp, cfg : ServletContextHandler.(BosorkApp) -> Pair<String,Class<BosorkWebsocketAdapter>>) {
+    val pair = cfg(app)
+    val wsc = WebSocketCreator {
+        (req,resp) ->
+        val ctor = pair.second.getConstructor(javaClass<HttpSession>())
+        val qs = req!!.getQueryString()!!
+        log.info("WS create: ${qs}")
+        val token = URN.token(qs)
+        log.info("WS query: ${token.urn}")
+        val bosorkSession = app.session(token)!! as BosorkServletSession
+        ctor.newInstance(bosorkSession.httpSession)
+    }
+    class WSSServlet() : BosorkWebsocketServlet(wsc)
+    val sh = ServletHolder(object : BosorkWebsocketServlet(wsc){})
+    //addServlet(javaClass<WSSServlet>(), pair.first)
+    addServlet(sh, pair.first)
+}
 
 fun AbstractNetworkConnector.configure(cfg : AbstractNetworkConnector.()->Unit) {
     cfg()
 }
 
-class BosorkServletSession(override val app : BosorkApp, override var token: URN) :
+class BosorkServletSession(override val app : BosorkApp, override var token: URN, val httpSession:HttpSession) :
 BosorkSession, HttpSessionBindingListener, HttpSessionActivationListener {
     override val attributes: MutableMap<String, Any?> = HashMap()
     override val reqBus: MBassador<BosorkRequest> = MBassador(BusConfiguration.Default())
     override val respBus: MBassador<BosorkResponse> = MBassador(BusConfiguration.Default())
     override val channels: MutableMap<URN, MBassador<PublishEnvelope>> = HashMap();
-    val websocket : BosorkWebsocketAdapter? = null
+    var events : BosorkWebsocketAdapter? = null
+    var responses : BosorkWebsocketAdapter? = null
+
+    {
+        httpSession.setAttribute(SESSION_ATTRIBUTE, this)
+    }
 
     class object {
         val SESSION_ATTRIBUTE :String = "BOSORK-SESSION"
@@ -127,11 +149,38 @@ BosorkSession, HttpSessionBindingListener, HttpSessionActivationListener {
     public override fun sessionDidActivate(se: HttpSessionEvent?) {
         log.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} is waking up")
     }
+
+
+    val eventer = object : Any() {
+        [handler]
+        fun listen(env:PublishEnvelope) {
+            events?.getRemote()?.sendStringByFuture(Jsonifier.asString(Jsonifier.serialise(env.event)))
+        }
+    }
+
+    val responder = object : Any() {
+        [handler]
+        fun listen(resp:BosorkResponse) {
+            responses?.getRemote()?.sendStringByFuture(Jsonifier.asString(Jsonifier.serialise(resp)))
+        }
+    }
+
+    override fun channelRequested(owner: URN, channel: MBassador<PublishEnvelope>) {
+        channel.subscribe(eventer)
+    }
 }
 
-class DefaultWebAppSessionProvider : SessionFactory {
-    override fun createSession(token: URN, app: BosorkApp): BosorkSession {
-        return BosorkServletSession(app, token)
+class DefaultWebAppSessionFactoryProvider : SessionFactoryProvider {
+
+    override fun provider(app: BosorkApp): SessionFactory {
+        return DefaultWebAppSessionProvider(app)
+    }
+}
+
+class DefaultWebAppSessionProvider(val app : BosorkApp) : SessionFactory {
+    override fun createSession(req:LoginRequest, token: URN): BosorkSession {
+        val wr = req as WebLoginRequest
+        return BosorkServletSession(app, token, wr.req.getSession(true)!!)
     }
 }
 
@@ -269,13 +318,6 @@ class LoginServlet() : BosorkServlet() {
     public override fun init(config: ServletConfig?) {
         super<BosorkServlet>.init(config)
         val app = config!!.getServletContext()!!.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
-        val l = object : Any() {
-            [handler]
-            fun listen(r: BosorkResponse) {
-                r.session.token = r.
-            }
-        }
-        app.app.listen(l)
     }
     protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
         requestLogin(req, resp)
@@ -288,9 +330,7 @@ class LoginServlet() : BosorkServlet() {
             if(hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)!=null) {
                 val bs : BosorkServletSession = hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
                 if(bs.token!=null) {
-                    val res = om.createObjectNode()
-                    res?.put("token", bs.token.urn)
-                    om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter(), res)
+                    om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter(), createResponse(bs.token))
                     return
                 }
             }
@@ -302,13 +342,66 @@ class LoginServlet() : BosorkServlet() {
         val user = node?.path("user")?.textValue()!!
         val password = node?.path("pwd")?.textValue()!!
         val cid = node?.path("cid")?.longValue()?:-1.toLong()
-        val lreq = LoginRequest(app.app, app.app.auth!!.login, cid, user, password)
-        app.app.request(lreq)
-        writeResponse(ok(null), req, resp)
+        val lreq = WebLoginRequest(req, cid, user, password)
+        val loginResponse = app.app.login(lreq)
+        if(loginResponse.error!=null) writeResponse(error(loginResponse.error!!), req, resp)
+        writeResponse(ok(createResponse(loginResponse.session.token)), req, resp)
+    }
+
+    fun createResponse(token:URN): ObjectNode {
+        val res = om.createObjectNode()
+        res?.put("token", token.urn)
+        return res!!
+    }
+}
+
+class WebLoginRequest(val req:HttpServletRequest, clientId:Long, user:String, pwd:String) : LoginRequest(clientId, user, pwd)
+
+class ResponseSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
+    public override fun onWebSocketConnect(sess: Session?) {
+        log.info("CONNECT ON SERVER")
+        if(session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)==null)
+            throw IllegalStateException("login before creating sockets")
+
+        val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        bs.responses = this
+    }
+
+
+    public override fun onWebSocketClose(statusCode: Int, reason: String?) {
+        val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        bs.responses = null
+    }
+
+
+    public override fun onWebSocketText(message: String?) {
+
     }
 }
 
 
+
+
+class EventsSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
+    public override fun onWebSocketConnect(sess: Session?) {
+        if(session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)==null)
+            throw IllegalStateException("login before creating sockets")
+
+        val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        bs.events = this
+    }
+
+
+    public override fun onWebSocketClose(statusCode: Int, reason: String?) {
+        val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        bs.events = null
+    }
+
+
+    public override fun onWebSocketText(message: String?) {
+
+    }
+}
 
 
 class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>, val root:File) {
@@ -325,8 +418,10 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
     fun servlets(ctx:ServletContextHandler) {
         log.info("adding ${javaClass<InitServlet>()} on path: ${app.id.specifier}")
         ctx.addServlet(javaClass<InitServlet>(), "/"+app.id.specifier)
-        log.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource"}")
+        log.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource/*"}")
         ctx.addServlet(javaClass<ResourceServlet>(), "/"+app.id.specifier+"/resource/*")
+        log.info("adding ${javaClass<LoginServlet>()} on path: ${"/"+app.id.specifier+"/login"}")
+        ctx.addServlet(javaClass<LoginServlet>(), "/"+app.id.specifier+"/login")
         val l = object : HttpSessionListener {
             public override fun sessionCreated(se: HttpSessionEvent?) {
                 log.info("session created: ${se?.getSource()}")
@@ -341,24 +436,12 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
     }
 
     fun sockets(ctx:ServletContextHandler) {
-        ctx.socket {
-            class Adaptor(s : HttpSession) : BosorkWebsocketAdapter(s) {
+        ctx.socket(this.app) {
+            Pair("/${app.id.specifier}/events", javaClass<EventsSocket>() as Class<BosorkWebsocketAdapter>)
+        }
 
-                public override fun onWebSocketConnect(sess: Session?) {
-                    session
-                }
-
-
-                public override fun onWebSocketClose(statusCode: Int, reason: String?) {
-
-                }
-
-
-                public override fun onWebSocketText(message: String?) {
-                    //ignore
-                }
-            }
-            Pair("/events", javaClass<Adaptor>() as Class<BosorkWebsocketAdapter>)
+        ctx.socket(this.app) {
+            Pair("/${app.id.specifier}/responses", javaClass<ResponseSocket>() as Class<BosorkWebsocketAdapter>)
         }
     }
 
@@ -403,6 +486,7 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                 ctx.addServlet(javaClass<DefaultServlet>(), "/")
                 log.info("calling appmodule ${appmodule.app.id.urn} servlets")
                 appmodule.servlets(ctx)
+                appmodule.sockets(ctx)
 
                 ctx
             }

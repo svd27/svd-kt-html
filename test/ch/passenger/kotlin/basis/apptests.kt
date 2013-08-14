@@ -134,7 +134,7 @@ class SimpleAuthProvider : AuthProvider {
             protected override val sp: SessionFactory = sp
             override fun login(req: LoginRequest): LoginResponse {
                 if(req.user == "guest" && req.pwd == "test") {
-                    val s = sp.createSession(URN.token("test"))
+                    val s = sp.createSession(req, URN.token("test"))
                     return LoginResponse(s, req.clientId)
                 }
 
@@ -161,7 +161,7 @@ class TestSessionFactoryProvider : SessionFactoryProvider {
 }
 
 class TestSessionProvider(private val app : BosorkApp) : SessionFactory {
-    override fun createSession(token: URN): BosorkSession {
+    override fun createSession(req:LoginRequest, token: URN): BosorkSession {
         return AbstractSession(token, app)
     }
 }
