@@ -21,7 +21,7 @@ import kotlin.test.assertNotNull
  * To change this template use File | Settings | File Templates.
  */
 
-private val testLog = LoggerFactory.getLogger(javaClass<BosorkApp>()?.getPackage()?.getName())!!
+private val testLog = LoggerFactory.getLogger(javaClass<EchoRequest>()?.getPackage()?.getName())!!
 
 
 class EchoRequest(override val session: BosorkSession, override val service: URN,
@@ -51,6 +51,13 @@ class EchoService() : AbstractService(EchoServiceProvider.Echo,
         return wrongRequest(req, javaClass<EchoRequest>())
     }
 
+
+    override fun request(): Class<out Any?> {
+        return javaClass<EchoRequest>()
+    }
+    override fun response(): Class<out Any?> {
+        return javaClass<EchoResponse>()
+    }
 }
 
 class TheEcho(val echo : String, override val id:URN) : Identifiable
@@ -104,6 +111,12 @@ class DoubleEchoService : BosorkService {
         return wrongRequest(req, javaClass<EchoRequest>())
     }
 
+    override fun request(): Class<out Any?> {
+        return javaClass<EchoRequest>()
+    }
+    override fun response(): Class<out Any?> {
+        return javaClass<EchoResponse>()
+    }
 }
 
 class EchoServiceProvider : ServiceProvider {

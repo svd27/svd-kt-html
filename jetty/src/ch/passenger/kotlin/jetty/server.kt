@@ -61,7 +61,7 @@ import ch.passenger.kotlin.json.Jsonifier
  * Created by sdju on 25.07.13.
  */
 
-val log = LoggerFactory.getLogger(javaClass<BosorkServletSession>().getPackage()!!.getName())!!
+val logJetty = LoggerFactory.getLogger(javaClass<BosorkServletSession>().getPackage()!!.getName())!!
 
 fun jetty(cfg : Server.()->Unit) : Server {
     val server = Server()
@@ -103,9 +103,9 @@ fun ServletContextHandler.socket(app:BosorkApp, cfg : ServletContextHandler.(Bos
         (req,resp) ->
         val ctor = pair.second.getConstructor(javaClass<HttpSession>())
         val qs = req!!.getQueryString()!!
-        log.info("WS create: ${qs}")
+        logJetty.info("WS create: ${qs}")
         val token = URN.token(qs)
-        log.info("WS query: ${token.urn}")
+        logJetty.info("WS query: ${token.urn}")
         val bosorkSession = app.session(token)!! as BosorkServletSession
         ctor.newInstance(bosorkSession.httpSession)
     }
@@ -138,35 +138,47 @@ BosorkSession, HttpSessionBindingListener, HttpSessionActivationListener {
 
 
     public override fun valueBound(event: HttpSessionBindingEvent?) {
-        log.info("im ${token.urn} officially part of this session ${event?.getSource()}: ${event?.getName()}")
+        logJetty.info("im ${token.urn} officially part of this session ${event?.getSource()}: ${event?.getName()}")
     }
     public override fun valueUnbound(event: HttpSessionBindingEvent?) {
-        log.info("im ${token.urn} dead for this session ${event?.getSource()}: ${event?.getName()}")
+        logJetty.info("im ${token.urn} dead for this session ${event?.getSource()}: ${event?.getName()}")
     }
     public override fun sessionWillPassivate(se: HttpSessionEvent?) {
-        log.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} will go to sleep")
+        logJetty.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} will go to sleep")
     }
     public override fun sessionDidActivate(se: HttpSessionEvent?) {
-        log.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} is waking up")
+        logJetty.info("${token.urn} my session ${se?.getSource()}: ${se?.getSession()} is waking up")
     }
 
 
     val eventer = object : Any() {
         [handler]
         fun listen(env:PublishEnvelope) {
-            events?.getRemote()?.sendStringByFuture(Jsonifier.asString(Jsonifier.serialise(env.event)))
+            val payload = Jsonifier.serialise(env.event, app)
+            events?.send(Jsonifier.asString(payload))
         }
     }
 
     val responder = object : Any() {
         [handler]
         fun listen(resp:BosorkResponse) {
-            responses?.getRemote()?.sendStringByFuture(Jsonifier.asString(Jsonifier.serialise(resp)))
+            logJetty.info("sending $resp")
+            responses?.send(Jsonifier.asString(Jsonifier.serialise(resp, app)))
+        }
+    }
+
+    {
+        respBus.subscribe(responder)
+        respBus.addErrorHandler {
+            log.error(it?.getMessage(), it?.getCause())
         }
     }
 
     override fun channelRequested(owner: URN, channel: MBassador<PublishEnvelope>) {
         channel.subscribe(eventer)
+        channel.addErrorHandler {
+            log.error(it?.getMessage(), it?.getCause())
+        }
     }
 }
 
@@ -215,11 +227,11 @@ abstract class BosorkServlet : HttpServlet() {
     protected override final fun service(req: HttpServletRequest?, resp: HttpServletResponse?) {
         try {
             val httpSession = req!!.getSession(true)
-            log.info("received req for ${httpSession?.getId()}")
-            if(methods.contains(req!!.getMethod())) serve(req, resp!!)
+            logJetty.info("received req for ${httpSession?.getId()}")
+            if(methods.contains(req.getMethod())) serve(req, resp!!)
             else throw IllegalStateException(req.getMethod() + " not supported")
         } catch(e: Exception) {
-            log.error(e.getMessage(), e)
+            logJetty.error(e.getMessage(), e)
             writeResponse(error(e), req!!, resp!!)
         }
 
@@ -317,7 +329,7 @@ class LoginServlet() : BosorkServlet() {
 
     public override fun init(config: ServletConfig?) {
         super<BosorkServlet>.init(config)
-        val app = config!!.getServletContext()!!.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
+        //val app = config!!.getServletContext()!!.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
     }
     protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
         requestLogin(req, resp)
@@ -329,10 +341,8 @@ class LoginServlet() : BosorkServlet() {
         if(hs!=null) {
             if(hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)!=null) {
                 val bs : BosorkServletSession = hs.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
-                if(bs.token!=null) {
-                    om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter(), createResponse(bs.token))
-                    return
-                }
+                om.writerWithDefaultPrettyPrinter()!!.writeValue(resp.getWriter(), createResponse(bs.token))
+                return
             }
         }
 
@@ -355,15 +365,30 @@ class LoginServlet() : BosorkServlet() {
     }
 }
 
-class WebLoginRequest(val req:HttpServletRequest, clientId:Long, user:String, pwd:String) : LoginRequest(clientId, user, pwd)
+class ServiceServlet(val service:URN) : BosorkServlet() {
 
-class ResponseSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
-    public override fun onWebSocketConnect(sess: Session?) {
-        log.info("CONNECT ON SERVER")
+    protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
+        val session = req.getSession()
         if(session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)==null)
             throw IllegalStateException("login before creating sockets")
 
         val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        logJetty.info("${service.urn} invoked")
+        bs.request(Jsonifier.deserialise(req.getReader()!!, bs.app, bs.app.service(service)!!.request()) as BosorkRequest)
+    }
+    protected override val methods: Set<String> = setOf("PUT")
+}
+
+class WebLoginRequest(val req:HttpServletRequest, clientId:Long, user:String, pwd:String) : LoginRequest(clientId, user, pwd)
+
+class ResponseSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
+    public override fun onWebSocketConnect(sess: Session?) {
+        logJetty.info("CONNECT ON SERVER")
+        if(session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)==null)
+            throw IllegalStateException("login before creating sockets")
+
+        val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
+        wssession = sess
         bs.responses = this
     }
 
@@ -377,6 +402,8 @@ class ResponseSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
     public override fun onWebSocketText(message: String?) {
 
     }
+
+
 }
 
 
@@ -387,6 +414,8 @@ class EventsSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
         if(session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE)==null)
             throw IllegalStateException("login before creating sockets")
 
+        log.info("!!!!somebody wants EVENTS!!!!!")
+        wssession = sess
         val bs = session?.getAttribute(BosorkServletSession.SESSION_ATTRIBUTE) as BosorkServletSession
         bs.events = this
     }
@@ -416,16 +445,22 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
     }
 
     fun servlets(ctx:ServletContextHandler) {
-        log.info("adding ${javaClass<InitServlet>()} on path: ${app.id.specifier}")
+        logJetty.info("adding ${javaClass<InitServlet>()} on path: ${app.id.specifier}")
         ctx.addServlet(javaClass<InitServlet>(), "/"+app.id.specifier)
-        log.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource/*"}")
+        logJetty.info("adding ${javaClass<ResourceServlet>()} on path: ${"/"+app.id.specifier+"/resource/*"}")
         ctx.addServlet(javaClass<ResourceServlet>(), "/"+app.id.specifier+"/resource/*")
-        log.info("adding ${javaClass<LoginServlet>()} on path: ${"/"+app.id.specifier+"/login"}")
+        logJetty.info("adding ${javaClass<LoginServlet>()} on path: ${"/"+app.id.specifier+"/login"}")
         ctx.addServlet(javaClass<LoginServlet>(), "/"+app.id.specifier+"/login")
+
+        app.services().forEach {
+            val sh = ServletHolder(ServiceServlet(it.id))
+            logJetty.info("adding ${it.id.urn} on path: ${"/"+app.id.specifier+"/${it.shortName}"}")
+            ctx.addServlet(sh, "/"+app.id.specifier+"/${it.shortName}")
+        }
+
         val l = object : HttpSessionListener {
             public override fun sessionCreated(se: HttpSessionEvent?) {
-                log.info("session created: ${se?.getSource()}")
-                val s : HttpSession
+                logJetty.info("session created: ${se?.getSource()}")
             }
             public override fun sessionDestroyed(se: HttpSessionEvent?) {
                 //val hs : HttpSession = se!!.getSource()!! as HttpSession
@@ -466,12 +501,12 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                 val ctx : ServletContextHandler = ServletContextHandler(ServletContextHandler.SESSIONS)
 
                 ctx.setContextPath("/")
-                log.info("!!!CL: ${ctx.getClassLoader()}")
+                logJetty.info("!!!CL: ${ctx.getClassLoader()}")
 
                 //http://www.javaintegrations.com/2012/08/using-embedded-jetty-with-guice-servlet.html
                 ctx.addEventListener(object : ServletContextListener {
                     public override fun contextInitialized(ctx : ServletContextEvent?) {
-                        log.info("calling appmodule ${appmodule.app.id.urn} init")
+                        logJetty.info("calling appmodule ${appmodule.app.id.urn} init")
                         appmodule.init(ctx?.getServletContext()!!)
                     }
                     public override fun contextDestroyed(ctx : ServletContextEvent?) {
@@ -484,7 +519,8 @@ class AppFactory(private val appmodule : AppServletModule, val port:Int) {
                 println(dispatches)
 
                 ctx.addServlet(javaClass<DefaultServlet>(), "/")
-                log.info("calling appmodule ${appmodule.app.id.urn} servlets")
+                logJetty.info("calling appmodule ${appmodule.app.id.urn} servlets")
+                appmodule.app.start()
                 appmodule.servlets(ctx)
                 appmodule.sockets(ctx)
 

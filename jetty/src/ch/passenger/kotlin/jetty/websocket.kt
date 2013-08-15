@@ -5,6 +5,9 @@ import javax.servlet.http.HttpSession
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory
+import org.eclipse.jetty.websocket.api.Session
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * Created with IntelliJ IDEA.
@@ -13,7 +16,17 @@ import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory
  * Time: 05:12
  */
 
-abstract class BosorkWebsocketAdapter(protected val session : HttpSession?) : WebSocketAdapter()
+private val log : Logger = LoggerFactory.getLogger(javaClass<BosorkWebsocketAdapter>().getPackage()!!.getName())!!
+
+abstract class BosorkWebsocketAdapter(protected val session : HttpSession?) : WebSocketAdapter() {
+    protected var wssession : Session? = null
+
+
+    public fun send(text: String) {
+        logJetty.info("ep: ${wssession?.getRemote()} sending: $text")
+        wssession?.getRemote()?.sendStringByFuture(text)
+    }
+}
 
 abstract class BosorkWebsocketServlet(val creator : WebSocketCreator) : WebSocketServlet() {
 

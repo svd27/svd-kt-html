@@ -39,7 +39,7 @@ abstract class HtmlElement(aid : String?) {
     fun writeChildren() : String {
         val sb  = StringBuilder()
         //TODO: null check not needed
-        children.each { if(it!=null) sb.append(it.render()) }
+        children.each { sb.append(it.render()) }
         return sb.toString()
     }
 
@@ -69,7 +69,7 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
         return list.get(name)
     }
 
-    fun containes(name : String) : Boolean {
+    fun contains(name : String) : Boolean {
         return list.containsKey(name)
     }
 }
@@ -106,7 +106,7 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
     }
 
     fun addClass(c : String) {
-        if(attributes.containes("class")) {
+        if(attributes.contains("class")) {
             val ca = attributes.att("class")
             attributes.att("class", ca?.value +" " +c)
         } else {

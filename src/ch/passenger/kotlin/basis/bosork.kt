@@ -146,8 +146,44 @@ trait BosorkService : Identifiable {
     fun wrongRequest(req:BosorkRequest, expected:Class<*>) :BosorkResponse {
         throw WrongRequestType(expected, req.javaClass)
     }
+    fun request() : Class<*>
+    fun response() : Class<*>
 }
 
+class AppServicesRequest(override val session: BosorkSession,override val clientId: Int) : BosorkRequest {
+    override val service: URN = AppServicesService.ME
+}
+
+class AppServicesResponse(override val token: URN, override val clientId: Int) : BosorkResponse {
+    override val service: URN = AppServicesService.ME
+}
+
+class AppServicesService : BosorkService {
+    override val shortName: String = ME.specifier
+    override fun init() {
+
+    }
+    override fun destroy() {
+
+    }
+    override fun call(req: BosorkRequest): BosorkResponse {
+        throw UnsupportedOperationException()
+    }
+
+
+    override fun request(): Class<out Any?> {
+        return javaClass<AppServicesRequest>()
+    }
+    override fun response(): Class<out Any?> {
+        return javaClass<AppServicesResponse>()
+    }
+
+    override val id: URN = ME
+
+    class object {
+        val ME : URN = URN.service("services", "www.bosork.org")
+    }
+}
 
 
 abstract class AbstractService(override public val id: URN, override public val shortName: String): BosorkService {
@@ -240,14 +276,24 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
     private val sessionProvider: SessionFactory = sfp.provider(this)
     private val auth : AuthService = authProvider.createAuth(this, sessionProvider)
 
+    fun services() : Iterable<BosorkService> {
+        return services.values()
+    }
 
     fun start() {
+        services[AppServicesService.ME] = AppServicesService()
+
+        val crq = services[AppServicesService.ME]?.request()
+        val crs = services[AppServicesService.ME]?.response()
+        log.info("${AppServicesService.ME.urn}: $crq -> $crs")
         providers.forEach {
             p ->
             log.info("provider ${p}")
             p.createOnStartup().forEach {
-                log.info("service ${it.urn}")
-                services[it] = p.create(it, this)
+                val service = p.create(it, this)
+                service.init()
+                log.info("service ${it.urn}: ${service.request()} -> ${service.response()}")
+                services[it] = service
             }
         }
         reqBus.subscribe(this)
@@ -264,7 +310,9 @@ public class BosorkApp(override val id:URN, val providers: Iterable<ServiceProvi
 
 
     fun stop() {
-
+        services.values().forEach {
+            it.destroy()
+        }
     }
 
     fun service(urn:URN) : BosorkService? {
