@@ -1,0 +1,11 @@
+{
+  "name" : "com.lowagie:itext:4.2.1",
+  "libdir" : "lib",
+  "artifacts" : [ {
+    "id" : "com.lowagie:itext:4.2.1",
+    "group" : "com.lowagie",
+    "version" : "4.2.1",
+    "artifact" : "itext",
+    "packaging" : "jar"
+  } ]
+}
