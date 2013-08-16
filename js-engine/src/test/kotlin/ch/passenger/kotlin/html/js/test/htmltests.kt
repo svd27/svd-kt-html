@@ -8,6 +8,9 @@ import ch.passenger.kotlin.html.js.html.MyWindow
 import ch.passenger.kotlin.html.js.html.DOMEvent
 import ch.passenger.kotlin.html.js.html.Callback
 import ch.passenger.kotlin.html.js.Session
+import js.debug.console
+import java.util.ArrayList
+import ch.passenger.kotlin.html.js.html.each
 
 class A(val v : String)
 
@@ -42,6 +45,35 @@ fun main(args: Array<String>) {
         val div = Div("content")
         div.div("") {
             text("hi")
+            select() {
+                val cb = object :Callback {
+                    override fun callback(event: DOMEvent) {
+                        console.log("selected target: ", event.target.id)
+                        console.log("selected target: ", event)
+                        val t = jq("#${event.target.id}")
+                        val sel = jq("#${event.target.id} option:selected")
+                        console.log("selected jq: ", t)
+                        console.log("selected jq selected: ", sel)
+                    }
+                }
+                change(cb)
+                var o = A("s")
+                option(o, o.v) {
+                    label(o.v)
+                    value(o.v)
+                    selected(true)
+                }
+                o = A("v")
+                option(o, o.v) {
+                    label(o.v)
+                    value(o.v)
+                }
+                o = A("d")
+                option(o, o.v) {
+                    label(o.v)
+                    value(o.v)
+                }
+            }
         }
 
         body.html(div.render())

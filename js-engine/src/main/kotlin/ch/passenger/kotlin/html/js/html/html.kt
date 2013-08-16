@@ -17,11 +17,6 @@ import js.dom.html.window
  * To change this template use File | Settings | File Templates.
  */
 
-fun<T> List<T>.each(it: (T) -> Unit) :Unit {
-    for(e in this)
-        it(e)
-}
-
 open class Attribute(val name:String, val value:String) {
     public fun render() : String {
         return "${name} = \"${value}\""
@@ -38,7 +33,6 @@ abstract class HtmlElement(aid : String?) {
 
     fun writeChildren() : String {
         val sb  = StringBuilder()
-        //TODO: null check not needed
         children.each { sb.append(it.render()) }
         return sb.toString()
     }
@@ -71,6 +65,10 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
 
     fun contains(name : String) : Boolean {
         return list.containsKey(name)
+    }
+
+    fun remove(name:String) {
+        list.remove(name)
     }
 }
 
@@ -274,7 +272,7 @@ class Select(id : String? = null) : Tag("select", id) {
         return writeChildren()
     }
     
-    fun<T> option(t:T, id:String, init : Option<T>.() -> Unit) {
+    fun<T> option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
         val o = Option(t, id)
         o.init()
         addChild(o)
@@ -296,7 +294,9 @@ class Option<T>(t:T, id : String? = null) : Tag("option", id) {
         attributes.att("disabled", "${fl}")
     }
     fun selected(fl : Boolean) {
-        attributes.att("selected", "${fl}")
+        if(fl)
+        attributes.att("selected", "selected")
+        else attributes.remove("selected")
     }
 
     fun label(l : String) {

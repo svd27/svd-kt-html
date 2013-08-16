@@ -64,3 +64,7 @@ public class ActionHolder {
 public native trait MyWindow {
     public native var bosork : Session?
 }
+
+public fun<T> List<T>.each(cb:(T)->Unit): Unit {
+        for(e in this) cb(e)
+}
