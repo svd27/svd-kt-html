@@ -182,20 +182,21 @@ open public class Session {
 
 
 
+/*
 fun main(args: Array<String>) {
 
     jq {
         val mw = (window as MyWindow)!!
         if(mw.bosork==null) {
             mw.bosork = Session()
-            jq("body").on("click", "a.action") {
-                event ->
-                mw.bosork!!.actionHolder.trigger(event)
-            }
-            jq("body").on("change", "select.action") {
-                event ->
-                mw.bosork!!.actionHolder.trigger(event)
-            }
+                jq("body").on("click", "a.action") {
+                    event ->
+                    mw.bosork!!.actionHolder.trigger(event)
+                }
+                jq("body").on("change", "select.action") {
+                    event ->
+                    mw.bosork!!.actionHolder.trigger(event)
+                }
             val title = jq("html head title")
             title.text("Words")
             jq("div#uri").text(window.document.baseURI)
@@ -206,7 +207,7 @@ fun main(args: Array<String>) {
         }
     }
 }
-
+*/
 
 fun sendAjax(url: String, method: String, msg: String, cb: (req: XMLHttpRequest) -> Unit) {
     var req = XMLHttpRequest()

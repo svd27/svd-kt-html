@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact name="jstest">
+    <output-path>$PROJECT_DIR$/out/artifacts/jstest</output-path>
+    <root id="root">
+      <element id="module-output" name="js-engine" />
+      <element id="directory" name="resources">
+        <element id="dir-copy" path="$PROJECT_DIR$/js-engine/src/test/resources" />
+      </element>
+    </root>
+  </artifact>
+</component>

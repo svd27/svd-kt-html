@@ -6,6 +6,7 @@
       <module fileurl="file://$PROJECT_DIR$/guice/guice.iml" filepath="$PROJECT_DIR$/guice/guice.iml" />
       <module fileurl="file://$PROJECT_DIR$/jetty/jetty.iml" filepath="$PROJECT_DIR$/jetty/jetty.iml" />
       <module fileurl="file://$PROJECT_DIR$/js-engine/js-engine.iml" filepath="$PROJECT_DIR$/js-engine/js-engine.iml" />
+      <module fileurl="file://$PROJECT_DIR$/puzzles-frontend/puzzles-frontend.iml" filepath="$PROJECT_DIR$/puzzles-frontend/puzzles-frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/svd-kt-html.iml" filepath="$PROJECT_DIR$/svd-kt-html.iml" />
       <module fileurl="file://$PROJECT_DIR$/symbolon/symbolon.iml" filepath="$PROJECT_DIR$/symbolon/symbolon.iml" />
       <module fileurl="file://$PROJECT_DIR$/utility/utility.iml" filepath="$PROJECT_DIR$/utility/utility.iml" />

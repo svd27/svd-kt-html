@@ -1,6 +1,6 @@
 package ch.passenger.kotlin.html.js
 
-import ch.passenger.kotlin.html.js.html.Observable
+import ch.passenger.kotlin.html.js.model.Observable
 import ch.passenger.kotlin.html.js.model.Identifiable
 
 /**

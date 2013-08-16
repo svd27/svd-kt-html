@@ -5,6 +5,7 @@ import java.util.ArrayList
 import java.util.HashSet
 import js.jquery.jq
 import java.util.HashMap
+import ch.passenger.kotlin.html.js.model.Observer
 
 /**
  * Created with IntelliJ IDEA.

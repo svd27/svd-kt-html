@@ -23,7 +23,7 @@ fun<T> List<T>.each(it: (T) -> Unit) :Unit {
 }
 
 open class Attribute(val name:String, val value:String) {
-    fun render() : String {
+    public fun render() : String {
         return "${name} = \"${value}\""
     }
 }
@@ -32,7 +32,7 @@ abstract class HtmlElement(aid : String?) {
     private val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
     public val tid : String = forceId(aid)
 
-    open fun render(): String {
+    public open fun render(): String {
         return writeChildren()
     }
 
@@ -50,7 +50,7 @@ abstract class HtmlElement(aid : String?) {
 }
 
 class Text(val content : String) : HtmlElement(null) {
-    override fun render(): String {
+    public override fun render(): String {
         return content
     }
 }
@@ -75,8 +75,9 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
 }
 
 fun forceId(aid : String?) : String {
-    if(aid==null) {
-        val SESSION = (window as MyWindow)!!.bosork!!
+    if(aid==null || aid.trim().length()==0) {
+        val SESSION = (window as MyWindow)!!.bosork
+        if(SESSION==null) return "id"
         return SESSION.genId()
     } else return aid
 }
@@ -86,7 +87,7 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
 
     abstract fun writeContent() : String
 
-    override fun render(): String {
+    public override fun render(): String {
         attributes.att("id", tid)
         return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
     }
@@ -135,7 +136,7 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
     }
 
     fun div(id:String?=null, init: Div.() -> Unit) {
-        val d = Div()
+        val d = Div(id)
         d.init()
         addChild(d)
     }

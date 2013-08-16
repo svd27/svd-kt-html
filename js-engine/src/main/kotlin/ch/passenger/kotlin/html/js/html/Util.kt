@@ -38,33 +38,6 @@ public trait Callback {
     fun callback(event : DOMEvent)
 }
 
-public trait Observer<T> {
-    fun add(t:T)
-    fun load(t:T)
-    fun remove(t:T)
-    fun delete(t:T)
-    fun update(t:T,prop:String,old:Any?,nv:Any?)
-}
-
-public trait Observable<T> {
-    val observers : Set<Observer<T>>
-
-    fun add(t:T) {
-        for(o in observers) o.add(t)
-    }
-    fun load(t:T) {
-        for(o in observers) o.load(t)
-    }
-    fun remove(t:T){
-        for(o in observers) o.remove(t)
-    }
-    fun delete(t:T) {
-        for(o in observers) o.delete(t)
-    }
-    fun update(t:T,prop:String,old:Any?,nv:Any?) {
-        for(o in observers) o.update(t, prop, old, nv)
-    }
-}
 
 public class ActionHolder {
     private val actions : MutableMap<Int,Callback> = HashMap()
