@@ -6,6 +6,8 @@ import java.util.HashMap
 import js.jquery.jq
 import ch.passenger.kotlin.html.js.Session
 import java.util.ArrayList
+import js.dom.html.document
+import js.debug.console
 
 /**
  * Created with IntelliJ IDEA.
@@ -14,7 +16,14 @@ import java.util.ArrayList
  * Time: 13:42
  * To change this template use File | Settings | File Templates.
  */
+public native fun document.addEventListener(kind:String, cb : (e:DOMEvent)->Unit, f:Boolean) : Unit = js.noImpl
+
+trait EventTarget {
+    public native fun addEventListener(kind:String, cb : (e:DOMEvent)->Any?, f:Boolean) : Unit = js.noImpl
+}
+
 public native fun JQuery.`val`(v: String?): JQuery = js.noImpl
+public native fun JQuery.on(types : String, cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
 public native fun JQuery.on(types : String, selector : String, cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
 public native fun JQuery.data(name: String,value : Any?): Unit = js.noImpl
 public native fun JQuery.data(name: String): Any? = js.noImpl
@@ -25,6 +34,8 @@ public native fun JQuery.text(): String? = js.noImpl
 public native fun JQuery.`val`(): Any? = js.noImpl
 public fun JQuery.value(): Any? = this.`val`()
 public fun JQuery.value(v:String?): JQuery = this.`val`(v)
+public native fun JQuery.mouseenter(cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
+public native fun JQuery.mouseleave(cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
 
 public native trait DOMEvent {
     public val target : HTMLElement
@@ -58,12 +69,29 @@ public class ActionHolder {
         actions.remove(id)
     }
 
-    fun trigger(e : DOMEvent) {
+    fun action(e : DOMEvent) {
         val said = jq(e.target).data("action").toString()
         val aid = safeParseInt(said)
 
         actions.get(aid)?.callback(e)
     }
+
+    fun enter(e : DOMEvent) {
+        val said = jq(e.target).data("enter-action").toString()
+        val aid = safeParseInt(said)
+
+        console.log("AH: resolved enter action: $aid")
+        actions.get(aid)?.callback(e)
+    }
+
+    fun leave(e : DOMEvent) {
+        val said = jq(e.target).data("leave-action").toString()
+        val aid = safeParseInt(said)
+
+        console.log("AH: resolved leave action: $aid")
+        actions.get(aid)?.callback(e)
+    }
+
 }
 
 public native trait MyWindow {

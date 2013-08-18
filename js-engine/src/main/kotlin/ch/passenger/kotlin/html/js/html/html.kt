@@ -14,6 +14,9 @@ import ch.passenger.kotlin.html.js.model.Dirty
 import js.dom.html.HTMLSelectElement
 import js.dom.html.HTMLOptionElement
 import js.dom.html.document
+import ch.passenger.kotlin.html.js.html.svg.SVG
+import ch.passenger.kotlin.html.js.html.svg.Extension
+import ch.passenger.kotlin.html.js.html.svg.Length
 
 /**
  * Created with IntelliJ IDEA.
@@ -63,6 +66,16 @@ abstract class HtmlElement(aid : String?) : Dirty {
         console.log("adding: ", e.render())
         children.add(e)
     }
+
+    fun find(id:String) : HtmlElement? {
+        var result : HtmlElement? = null
+        if(id==id()) return this
+        each {
+            result = it.find(id)
+        }
+
+        return result
+    }
 }
 
 class Text(val content : String) : HtmlElement(null) {
@@ -107,8 +120,11 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
     val attributes : AttributeList = AttributeList(HashMap())
 
     abstract fun writeContent() : String
+    abstract fun preRender()
 
     public override fun render(): String {
+        console.log("render tag $name:${id()}")
+        preRender()
         dirty = false
         attributes.att("id", tid)
         return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
@@ -131,16 +147,27 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
     fun addClass(c : String) {
         if(attributes.contains("class")) {
             val ca = attributes.att("class")
-            attributes.att("class", ca?.value +" " +c)
+            val prefix = ca?.value?:""
+            attributes.att("class", "$prefix $c")
         } else {
             attributes.att("class", c)
         }
+    }
+
+    public fun clear() {
+        console.log("${id()} clearing")
+        children.clear()
     }
 }
 
 
 
 abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
+
+    override open fun preRender() {
+
+    }
+
     fun text(s:String) {
         addChild(Text(s))
     }
@@ -157,10 +184,11 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         addChild(a)
     }
 
-    fun div(id:String?=null, init: Div.() -> Unit) {
+    fun div(id:String?=null, init: Div.() -> Unit) : Div {
         val d = Div(id)
         d.init()
         addChild(d)
+        return d
     }
 
     fun span(init: Span.() -> Unit) {
@@ -186,6 +214,13 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
 
     fun appendFlow(c : FlowContainer) {
         addChild(c)
+    }
+
+    fun svg(w:Length,h:Length,id:String?=null, init:SVG.()->Unit) : FlowContainer {
+        val svg = SVG(Extension(w,h),id)
+        svg.init()
+        addChild(svg)
+        return this
     }
 }
 
@@ -237,6 +272,10 @@ class Table(public var title: String, id : String? = null) : Tag("table", id) {
         addChild(h)
     }
 
+
+    override fun preRender() {
+
+    }
 }
 
 class TBody(id : String? = null) : Tag("tbody", id) {
@@ -250,6 +289,11 @@ class TBody(id : String? = null) : Tag("tbody", id) {
         row.init()
         addChild(row)
     }
+
+
+    override fun preRender() {
+
+    }
 }
 
 class THead(id : String? = null) : Tag("thead", id) {
@@ -262,6 +306,11 @@ class THead(id : String? = null) : Tag("thead", id) {
         val row = TableRow()
         row.init()
         addChild(row)
+    }
+
+
+    override fun preRender() {
+
     }
 }
 
@@ -280,14 +329,16 @@ class TableRow(id : String? = null) : Tag("tr", id) {
     override fun writeContent(): String {
         return writeChildren()
     }
+
+
+    override fun preRender() {
+
+    }
 }
 
 
-class Div(id : String? = null) : FlowContainer("div", id) {
-}
-
-class Span(id : String? = null) : FlowContainer("span", id) {
-}
+class Div(id : String? = null) : FlowContainer("div", id)
+class Span(id : String? = null) : FlowContainer("span", id)
 
 class TableCell(id : String? = null) : FlowContainer("td", id)
 
@@ -301,6 +352,8 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
     private val options : MutableList<Option<T>> = ArrayList<Option<T>>();
 
     {
+        if(model.multi) attributes.att("multiple", "true")
+        else attributes.remove("multiple")
         console.log("---select init called---")
         val obs = object : AbstractObserver<T>() {
             override fun added(t: T) {
@@ -358,7 +411,7 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
             }
         }
         val aid = SESSION.actionHolder.add(cb)
-        addClass("action")
+        addClass("change")
         atts {
             att("data-action", "${aid}")
         }
@@ -413,6 +466,10 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
 
     }
 
+
+    override fun preRender() {
+
+    }
 }
 
 class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
@@ -444,5 +501,10 @@ class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
     override fun writeContent(): String {
         if(text!=null) return text?.render()!!
         return ""
+    }
+
+
+    override fun preRender() {
+
     }
 }

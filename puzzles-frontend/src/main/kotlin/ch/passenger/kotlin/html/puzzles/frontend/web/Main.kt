@@ -22,11 +22,11 @@ fun main(args: Array<String>) {
             mw.bosork = Session()
             jq("body").on("click", "a.action") {
                 event ->
-                mw.bosork!!.actionHolder.trigger(event)
+                mw.bosork!!.actionHolder.action(event)
             }
             jq("body").on("change", "select.action") {
                 event ->
-                mw.bosork!!.actionHolder.trigger(event)
+                mw.bosork!!.actionHolder.action(event)
             }
             val title = jq("html head title")
             title.text("Words")

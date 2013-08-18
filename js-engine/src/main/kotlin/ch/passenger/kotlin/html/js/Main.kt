@@ -15,6 +15,7 @@ import ch.passenger.kotlin.html.js.html.*
 import ch.passenger.kotlin.html.js.model.WordTableModel
 import js.dom.html.document
 import ch.passenger.kotlin.html.js.binding.WebSocket
+import ch.passenger.kotlin.html.js.html.*
 
 /**
  * Created with IntelliJ IDEA.
@@ -83,12 +84,12 @@ open public class Session {
         }
         ws.onerror = {
             e ->
-            jq("div#messages").append("ws error " + e?.data)
+            jq("div#messages").append("ws error " + e.data)
         }
 
         ws.onmessage = {
             e ->
-            jq("div#messages").append("ws msg " + e?.data)
+            jq("div#messages").append("ws msg " + e.data)
         }
     }
 
@@ -183,20 +184,12 @@ open public class Session {
     }
 
     public fun refresh(el:HtmlElement) {
+        console.log("refreshing: ${el.id()} dirty: ${el.dirty}")
         if(el.dirty) {
-            console.log("${el.id()} is dirty: render ${el.render()}")
-            jq("#${el.id()}").parent().html(el.render())
+            jq("#${el.id()}").replaceWith(el.render())
         } else
         el.each {
-            if(it.dirty) {
-                console.log("${it.id()} is dirty: render ${it.render()}")
-                jq("#${it.id()}").parent().html(it.render())
-            } else {
-                console.log("$it ${it.id()} clean checking children")
-                it.each {
-                    refresh(it)
-                }
-            }
+            refresh(it)
         }
     }
     fun refresh() {

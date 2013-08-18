@@ -70,28 +70,35 @@ trait Dirty {
     public fun dirty() : Boolean = dirty
 }
 
-trait Model<T> : Observable<T>,Dirty {
-    var t : T
+trait Model<T> : Observable<T> {
+    var t : T?
 
 }
 
 
-class ValueHolder<T>(init:T) {
-    var value : T = init
+class ValueHolder<T>(init:T?) {
+    var value : T? = init
 
-    fun toString() : String = value.toString()
+    fun toString() : String = value?.toString()?:""
 }
 
-abstract class AbstractModel<T>(v:T) : Model<T> {
+abstract class AbstractModel<T>(v:T?) : Model<T> {
     val value : ValueHolder<T> = ValueHolder(v)
-    override var t : T = v
-    get() = $t
-    set(v:T) {val ov = $t; $t = v; if(ov!=v) dirty=true; fireUpdate(t, "", ov, v)}
+    override var t : T?
+    get() = value.value
+    set(v:T?) {
+        val ov = value.value; value.value = v;
+        if(ov!=v) {
+            if(t!=null)
+              if(ov!=null) fireUpdate(t!!, "", ov, v)
+              else fireAdd(t!!)
+            else fireRemove(ov!!)
+        }
+    }
 }
 
 trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
     val items : C
-
 
     protected fun init() {
         items.each {
