@@ -29,7 +29,11 @@ abstract class TableModel<T: Identifiable>(): Observer<T>   {
     public val columns: MutableList<String> = ArrayList()
     public var title: String = "Table"
 
-    override fun load(t: T) {
+
+    override fun unloaded(t: T) {
+        removed(t)
+    }
+    override fun loaded(t: T) {
         for(i in 0..content.size()) {
             if(content[i].id.equals(t.id)) {
                 content[i] = t
@@ -49,17 +53,17 @@ abstract class TableModel<T: Identifiable>(): Observer<T>   {
         for(l in listeners) l.rowAdded(i, t)
     }
 
-    override fun remove(t: T) {
+    override fun removed(t: T) {
         throw UnsupportedOperationException()
     }
-    override fun delete(t: T) {
+    override fun deleted(t: T) {
         throw UnsupportedOperationException()
     }
-    override fun update(t: T, prop: String, old: Any?, nv: Any?) {
+    override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
         throw UnsupportedOperationException()
     }
 
-    override fun add(t: T) {
+    override fun added(t: T) {
         throw UnsupportedOperationException()
     }
 

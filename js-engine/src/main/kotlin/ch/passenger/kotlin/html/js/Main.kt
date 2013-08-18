@@ -1,6 +1,7 @@
 package ch.passenger.kotlin.html.js
 
 import js.*
+import js.debug.console
 import js.jquery.jq
 import js.dom.html5.*
 import js.dom.html.window
@@ -28,7 +29,7 @@ open public class Session {
     var base: String? = null
     val words = HashMap<Long, Word>()
     var root: FlowContainer = Div("xxxyyyxxx")
-    var rootSelector: String = "div#container"
+    var rootSelector: String = "body"
     var initialised = false
     val actionHolder = ActionHolder()
     var nextId = 0
@@ -126,6 +127,7 @@ open public class Session {
                 val div = Div("content")
                 root = div
                 val top = Div("top")
+                /*
                 top.select("interests") {
                     option("", "-1") {
                         label("NONE")
@@ -145,6 +147,7 @@ open public class Session {
                     }
                     change(cb)
                 }
+                */
 
                 div.appendFlow(top)
 
@@ -177,6 +180,28 @@ open public class Session {
 
     fun fullRender() {
         jq(rootSelector).html(root.render())
+    }
+
+    public fun refresh(el:HtmlElement) {
+        if(el.dirty) {
+            console.log("${el.id()} is dirty: render ${el.render()}")
+            jq("#${el.id()}").parent().html(el.render())
+        } else
+        el.each {
+            if(it.dirty) {
+                console.log("${it.id()} is dirty: render ${it.render()}")
+                jq("#${it.id()}").parent().html(it.render())
+            } else {
+                console.log("$it ${it.id()} clean checking children")
+                it.each {
+                    refresh(it)
+                }
+            }
+        }
+    }
+    fun refresh() {
+        console.log("session refresh")
+        refresh(root)
     }
 }
 
@@ -227,10 +252,6 @@ fun sendAjax(url: String, method: String, msg: String, cb: (req: XMLHttpRequest)
         req.send(msg)
 }
 
-
-fun<T> Array<T>.each(it: (T)->Unit) {
-    for(e in this)  it(e)
-}
 
 fun mytable(json: Array<Definition>): Unit {
     val table: Table = Table("Table")

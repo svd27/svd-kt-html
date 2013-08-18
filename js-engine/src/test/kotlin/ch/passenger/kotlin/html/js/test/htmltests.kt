@@ -11,8 +11,24 @@ import ch.passenger.kotlin.html.js.Session
 import js.debug.console
 import java.util.ArrayList
 import ch.passenger.kotlin.html.js.html.each
+import ch.passenger.kotlin.html.js.html.*
+import js.jquery.JQuery
+import ch.passenger.kotlin.html.js.model.StringSelectionModel
+import ch.passenger.kotlin.html.js.model.AbstractObserver
+import ch.passenger.kotlin.html.js.model.AbstractSelectionModel
 
-class A(val v : String)
+class A(val v : String, val d:Double) {
+    fun toString() : String = "$v:$d"
+}
+class AConverter : Converter<A> {
+
+    override fun convert2string(t: A): String {
+        return "${t.v}=${t.d}"
+    }
+    override fun convert2target(s: String): A {
+        throw UnsupportedOperationException()
+    }
+}
 
 /**
  * Created by sdju on 16.08.13.
@@ -43,9 +59,25 @@ fun main(args: Array<String>) {
         val body = jq("body")
 
         val div = Div("content")
+        val stringModel = StringSelectionModel(listOf("s", "v", "d"), false)
+        val complexModel = object : AbstractSelectionModel<A>(listOf(A("s", 1.toDouble()), A("v", 2.toDouble()), A("d", 3.toDouble())), false) {}
         div.div("") {
             text("hi")
-            select() {
+
+            console.log("model size: ${stringModel.items.size()}")
+            val obs = object : AbstractObserver<String>() {
+                override fun loaded(t: String) {
+                    console.log("Selected: $t")
+                    val a = A(t, 1.toDouble())
+                    complexModel.add(a)
+                    complexModel.select(a)
+                }
+                override fun unloaded(t: String) {
+                    console.log("Unselected: $t")
+                }
+            }
+            stringModel.addObserver(obs)
+            select(stringModel) {
                 val cb = object :Callback {
                     override fun callback(event: DOMEvent) {
                         console.log("selected target: ", event.target.id)
@@ -54,29 +86,38 @@ fun main(args: Array<String>) {
                         val sel = jq("#${event.target.id} option:selected")
                         console.log("selected jq: ", t)
                         console.log("selected jq selected: ", sel)
+                        val el = event.data
+                        console.log("event.data: ${event.data}: ${el}")
                     }
                 }
-                change(cb)
-                var o = A("s")
-                option(o, o.v) {
-                    label(o.v)
-                    value(o.v)
-                    selected(true)
+
+            }
+        }
+        div.div("complex") {
+            text("complex")
+            console.log("model size: ${complexModel.items.size()}")
+            val obs = object : AbstractObserver<A>() {
+                override fun loaded(t: A) {
+                    console.log("Selected: ${t.v}")
                 }
-                o = A("v")
-                option(o, o.v) {
-                    label(o.v)
-                    value(o.v)
-                }
-                o = A("d")
-                option(o, o.v) {
-                    label(o.v)
-                    value(o.v)
+                override fun unloaded(t: A) {
+                    console.log("Unselected: ${t.v}")
                 }
             }
+                complexModel.addObserver(obs)
+                select(complexModel, AConverter()) {
+                    val cb = object :Callback {
+                        override fun callback(event: DOMEvent) {
+                            console.log("event.data: ${event.data}: ${event.data}")
+                        }
+                    }
+                    //change(cb)
+                }
         }
 
         body.html(div.render())
+        val SESSION = (window as MyWindow)!!.bosork!!
+        SESSION.root = div
 
     }
 }

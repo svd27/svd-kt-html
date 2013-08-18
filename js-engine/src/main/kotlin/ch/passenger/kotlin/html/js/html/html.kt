@@ -8,6 +8,12 @@ import js.jquery.jq
 import ch.passenger.kotlin.html.js.Session
 import js.debug.console
 import js.dom.html.window
+import ch.passenger.kotlin.html.js.model.SelectionModel
+import ch.passenger.kotlin.html.js.model.AbstractObserver
+import ch.passenger.kotlin.html.js.model.Dirty
+import js.dom.html.HTMLSelectElement
+import js.dom.html.HTMLOptionElement
+import js.dom.html.document
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,11 +29,27 @@ open class Attribute(val name:String, val value:String) {
     }
 }
 
-abstract class HtmlElement(aid : String?) {
-    private val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
+abstract class HtmlElement(aid : String?) : Dirty {
+    public override var dirty: Boolean = false
+    set(v) {
+        $dirty = v
+        if(dirty) {
+            console.log("$this ${this.id()} wants a refresh")
+            val SESSION = (window as MyWindow)!!.bosork!!
+            SESSION.refresh(this)
+        }
+    }
+    protected val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
     public val tid : String = forceId(aid)
 
+    public fun each(cb: (el:HtmlElement) -> Unit) {
+        children.each { cb(it) }
+    }
+
+    public fun id() : String = tid
+
     public open fun render(): String {
+        dirty = false
         return writeChildren()
     }
 
@@ -45,6 +67,7 @@ abstract class HtmlElement(aid : String?) {
 
 class Text(val content : String) : HtmlElement(null) {
     public override fun render(): String {
+        dirty = false
         return content
     }
 }
@@ -86,6 +109,7 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
     abstract fun writeContent() : String
 
     public override fun render(): String {
+        dirty = false
         attributes.att("id", tid)
         return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
     }
@@ -145,8 +169,8 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         s.init()
     }
     
-    fun select(id:String?=null, init: Select.() -> Unit) {
-        val s = Select()
+    fun<T,C:MutableCollection<T>> select(model:SelectionModel<T,C>,conv:Converter<T>?=null, id:String?=null, init: Select<T,C>.() -> Unit) {
+        val s = Select(model, conv, id)
         s.init()
         addChild(s)
     }
@@ -267,28 +291,131 @@ class Span(id : String? = null) : FlowContainer("span", id) {
 
 class TableCell(id : String? = null) : FlowContainer("td", id)
 
-class Select(id : String? = null) : Tag("select", id) {
-    override fun writeContent(): String {
-        return writeChildren()
-    }
-    
-    fun<T> option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
-        val o = Option(t, id)
-        o.init()
-        addChild(o)
-    }
+trait Converter<T> {
+    fun convert2string(t:T) : String
+    fun convert2target(s:String):T
+}
 
-    fun change(cb : Callback) {
+class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val converter:Converter<T>?=null, id : String? = null) : Tag("select", id) {
+    var listener : Callback? = null
+    private val options : MutableList<Option<T>> = ArrayList<Option<T>>();
+
+    {
+        console.log("---select init called---")
+        val obs = object : AbstractObserver<T>() {
+            override fun added(t: T) {
+                console.log("adding option: ${t.toString()}")
+                if(find(t)==null) {
+                    addOption(t)
+                    console.log("added option: ${t.toString()}")
+                }
+            }
+            override fun loaded(t: T) {
+                val o = find(t)
+                if(o!=null) {
+                    if(!o.selected()) {
+                        console.log("selecting $o")
+                        o.selected(true)
+                        dirty = true
+                    }
+                }
+            }
+            override fun unloaded(t: T) {
+                val o = find(t)
+                if(o!=null) {
+                    if(o.selected()) {
+                        console.log("deselecting $o")
+                        o.selected(false)
+                        dirty = true
+                    }
+                }
+            }
+            override fun removed(t: T) {
+                val o = find(t)
+                if(o!=null) {
+                    options.remove(o)
+                    dirty = true
+                }
+            }
+            override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
+                val o = find(t)
+                if(o != null) {
+                    dirty = true
+                }
+            }
+        }
+        console.log("adding observer to $model")
+        model.items.each {(t:T) ->
+            addOption(t)
+        }
+
+        model.addObserver(obs)
         val SESSION = (window as MyWindow)!!.bosork!!
+        val cb = object : Callback {
+
+            override fun callback(event: DOMEvent) {
+                change(event)
+            }
+        }
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
         atts {
             att("data-action", "${aid}")
         }
     }
+
+    fun addOption(t:T) {
+        val cnv = converter
+        option(t){text(if(cnv==null) value.toString() else cnv.convert2string(value))}
+    }
+
+    fun find(t:T) : Option<T>? {
+        var found : Option<T>? = null
+        options.each {
+            if(t==it.value) {
+                found = it
+            }
+        }
+        return found
+    }
+
+
+
+    override fun writeContent(): String {
+        val sb = StringBuilder()
+        options.each { sb.append(it.render()) }
+        return sb.toString()
+    }
+    
+    fun option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
+        console.log("create option: $t")
+        val o : Option<T> = Option<T>(t, id)
+        o.init()
+        options.add(o)
+    }
+
+    private fun change(event: DOMEvent) {
+        val sel = jq("#${event.target.id} option")
+
+        val hsel = window.document.getElementById(id()) as HTMLSelectElement
+
+        console.log("hsel.options.length: ${hsel.options.length.toInt()} -> ${((hsel.options.length.toInt())-1)}")
+        for(i in 0..((hsel.options.length.toInt())-1)) {
+            val hopt = hsel.options.item(i) as HTMLOptionElement
+            val opt = options[i]
+            console.log("comparing ${hopt.value} with opt: ${opt.value.toString()}")
+            if(hopt.selected==opt.selected()) continue
+            if(hopt.selected) model.select(opt.value)
+            else model.deselect(opt.value)
+        }
+
+        event.data = sel.value()
+
+    }
+
 }
 
-class Option<T>(t:T, id : String? = null) : Tag("option", id) {
+class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
     var text : Text? = null
     fun disabled(fl : Boolean) {
         attributes.att("disabled", "${fl}")
@@ -297,6 +424,10 @@ class Option<T>(t:T, id : String? = null) : Tag("option", id) {
         if(fl)
         attributes.att("selected", "selected")
         else attributes.remove("selected")
+    }
+
+    fun selected() : Boolean {
+        return attributes.contains("selected")
     }
 
     fun label(l : String) {

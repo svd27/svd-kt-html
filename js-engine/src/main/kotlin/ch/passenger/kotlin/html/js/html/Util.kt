@@ -5,6 +5,7 @@ import js.jquery.JQuery
 import java.util.HashMap
 import js.jquery.jq
 import ch.passenger.kotlin.html.js.Session
+import java.util.ArrayList
 
 /**
  * Created with IntelliJ IDEA.
@@ -20,10 +21,14 @@ public native fun JQuery.data(name: String): Any? = js.noImpl
 public native fun JQuery.removeData(name: String): Unit = js.noImpl
 public native fun JQuery.replaceWith(html: String?): JQuery = js.noImpl
 public native fun JQuery.has(selector: String?): JQuery = js.noImpl
+public native fun JQuery.text(): String? = js.noImpl
+public native fun JQuery.`val`(): Any? = js.noImpl
+public fun JQuery.value(): Any? = this.`val`()
+public fun JQuery.value(v:String?): JQuery = this.`val`(v)
 
 public native trait DOMEvent {
     public val target : HTMLElement
-    public val data : Any?
+    public var data : Any?
 
     fun targetId() {
         target.id
@@ -65,6 +70,19 @@ public native trait MyWindow {
     public native var bosork : Session?
 }
 
-public fun<T> List<T>.each(cb:(T)->Unit): Unit {
+public fun<T> Iterable<T>.each(cb:(T)->Unit): Unit {
         for(e in this) cb(e)
+}
+
+public fun<T> Array<T>.each(cb:(T)->Unit): Unit {
+    for(e in this) cb(e)
+}
+
+public fun<T> listOf(vararg  t:T) : List<T> {
+    val l = ArrayList<T>()
+    t.each {
+        l.add(it)
+    }
+
+    return l
 }
