@@ -6,6 +6,7 @@ import js.debug.console
 import js.dom.html.window
 import ch.passenger.kotlin.html.js.html.MyWindow
 import ch.passenger.kotlin.html.js.html.Callback
+import js.dom.core.Node
 
 /**
  * Created by Duric on 18.08.13.
@@ -207,6 +208,9 @@ abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stro
     override var fill: Paint? = null
 
 
+    protected override fun preRefreshHook(n: Node) {
+        writeSvgContent()
+    }
     override fun writeSvgContent() {
         writeFill()
         writeStroke()
@@ -218,6 +222,7 @@ StrokeAndFill("rect", id), Extended,Rounded {
     override val me: SvgElement = this
     override val rounding : Rounding = Rounding(px(0), px(0))
     override fun writeSvgContent() {
+        //TODO: cant call super implementation
         writeFill()
         writeStroke()
         writePosition()

@@ -29,6 +29,8 @@ public native fun JQuery.data(name: String,value : Any?): Unit = js.noImpl
 public native fun JQuery.data(name: String): Any? = js.noImpl
 public native fun JQuery.removeData(name: String): Unit = js.noImpl
 public native fun JQuery.replaceWith(html: String?): JQuery = js.noImpl
+public native fun JQuery.after(html: String?): JQuery = js.noImpl
+public native fun JQuery.before(html: String?): JQuery = js.noImpl
 public native fun JQuery.has(selector: String?): JQuery = js.noImpl
 public native fun JQuery.text(): String? = js.noImpl
 public native fun JQuery.`val`(): Any? = js.noImpl
@@ -100,6 +102,11 @@ public native trait MyWindow {
 
 public fun<T> Iterable<T>.each(cb:(T)->Unit): Unit {
         for(e in this) cb(e)
+}
+
+public fun<T> List<T>.eachIdx(cb:(Int,T)->Unit): Unit {
+    val l = this.size()-1
+    for(i in 0..l) cb(i, get(i))
 }
 
 public fun<T> Array<T>.each(cb:(T)->Unit): Unit {

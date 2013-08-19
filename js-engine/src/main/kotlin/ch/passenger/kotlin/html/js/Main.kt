@@ -186,7 +186,44 @@ open public class Session {
     public fun refresh(el:HtmlElement) {
         console.log("refreshing: ${el.id()} dirty: ${el.dirty}")
         if(el.dirty) {
-            jq("#${el.id()}").replaceWith(el.render())
+            val n = window.document.getElementById(el.id())
+            if(n!=null) {
+                console.log("target node ${n.nodeName}:${n.attributes.getNamedItem("id")?.nodeValue}")
+                el.refresh(n)
+            } else {
+                console.log("new element found: ${el.id()}")
+                val p = root.parent(el)
+                if(p!=null) {
+                    var sibling = p.precedingSibling(el)
+                    var preceding = true
+                    if(sibling==null) {
+                        preceding = false
+                        sibling = p.nextSibling(el)
+                    }
+                    if(sibling != null) {
+                        val sn = window.document.getElementById(sibling?.id())
+                        if(sn == null) {
+                            console.log("sibling not rendered giving up on insert after")
+                            val pn = window.document.getElementById(p.id())
+                            if(pn == null) {
+                                console.log("parent not rendered! really giving up")
+                            } else {
+                                console.log("no sibling rendering into ${p.id()}")
+                                jq("#${p.id()}").html(el.render())
+                            }
+                        } else {
+                            var order = if(preceding) "after" else "before"
+                            console.log("inserting ${el.id()} to ${sibling?.id()} $order")
+                            if(preceding)
+                                jq("#${sibling!!.id()}").after(el.render())
+                            else
+                                jq("#${sibling!!.id()}").before(el.render())
+                        }
+
+
+                    }
+                }
+            }
         } else
         el.each {
             refresh(it)

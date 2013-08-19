@@ -235,13 +235,14 @@ fun main(args: Array<String>) {
                 console.log("showing selections in ${divshow.id()}")
                 divshow.clear()
                 complexModel.selections.each {
-                    divshow.span {
+                    divshow.span() {
                         text("$it")
+                        dirty = true
                     }
                 }
                 //val SESSION = (window as MyWindow)!!.bosork!!
                 //SESSION.refresh(divshow)
-                divshow.dirty = true
+
             }
             override fun loaded(t: A) {
                 console.log("$t selected")
@@ -255,7 +256,7 @@ fun main(args: Array<String>) {
 
         div.div("svg") {
             svg(percent(100), percent(100), "enterrec") {
-                rect(px(10), px(10), px(90), px(90)) {
+                rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))
                     mouseenter(object:Callback {
@@ -263,7 +264,7 @@ fun main(args: Array<String>) {
                             console.log("enter")
                             fill(ANamedColor("red"))
                             val SESSION = (window as MyWindow)!!.bosork!!
-                            val me = SESSION.root.find("enterrec")
+                            val me = SESSION.root.find("rect")
                             me?.dirty = true
                         }
                     })
@@ -282,7 +283,7 @@ fun main(args: Array<String>) {
                             console.log("leave")
                             fill(ANamedColor("magenta"))
                             val SESSION = (window as MyWindow)!!.bosork!!
-                            val me = SESSION.root.find("enterrec")
+                            val me = SESSION.root.find("rect")
                             me?.dirty = true
                         }
                     })

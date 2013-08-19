@@ -17,6 +17,10 @@ import js.dom.html.document
 import ch.passenger.kotlin.html.js.html.svg.SVG
 import ch.passenger.kotlin.html.js.html.svg.Extension
 import ch.passenger.kotlin.html.js.html.svg.Length
+import js.dom.core.Node
+import js.dom.core.Attr
+import js.dom.core.Element
+import js.dom.core.TypeInfo
 
 /**
  * Created with IntelliJ IDEA.
@@ -25,6 +29,11 @@ import ch.passenger.kotlin.html.js.html.svg.Length
  * Time: 19:14
  * To change this template use File | Settings | File Templates.
  */
+
+fun session() : Session{
+    val mw = window as MyWindow
+    return mw.bosork!!
+}
 
 open class Attribute(val name:String, val value:String) {
     public fun render() : String {
@@ -37,7 +46,9 @@ abstract class HtmlElement(aid : String?) : Dirty {
     set(v) {
         $dirty = v
         if(dirty) {
-            console.log("$this ${this.id()} wants a refresh")
+            var desc = "$this"
+            if(this is Tag) desc = this.name
+            console.log("$desc ${this.id()} wants a refresh")
             val SESSION = (window as MyWindow)!!.bosork!!
             SESSION.refresh(this)
         }
@@ -55,6 +66,8 @@ abstract class HtmlElement(aid : String?) : Dirty {
         dirty = false
         return writeChildren()
     }
+
+    abstract fun refresh(n:Node)
 
     fun writeChildren() : String {
         val sb  = StringBuilder()
@@ -76,6 +89,53 @@ abstract class HtmlElement(aid : String?) : Dirty {
 
         return result
     }
+
+    public fun parent(e:HtmlElement) : HtmlElement? {
+        var res : HtmlElement? = null
+        each { if(it.id()==e.id()) res = this }
+        if(res==null) {
+            each {
+                var parent : HtmlElement? = null
+                parent = it.parent(e)
+                if(parent!=null) res = parent
+            }
+        }
+        return res
+    }
+
+    public fun precedingSibling(e:HtmlElement) : HtmlElement? {
+       val idx = indexOf(e)
+        if(idx==0) return null
+        if(idx>0) return children[idx-1]
+        var res : HtmlElement? = null
+        each {
+            val s = it.precedingSibling(e)
+            if(s!=null) res = s
+        }
+
+        return res
+    }
+
+    public fun nextSibling(e:HtmlElement) : HtmlElement? {
+        val idx = indexOf(e)
+        if(idx==0) return if(children.size()>1) children[1] else null
+        if(idx>0) return if(children.size()>idx+1) children[idx+1] else children[idx-1]
+        var res : HtmlElement? = null
+        each {
+            val s = it.nextSibling(e)
+            if(s!=null) res = s
+        }
+
+        return res
+    }
+
+    fun indexOf(e:HtmlElement) : Int {
+        var idx = -1
+        children.eachIdx {
+            (i,c) -> if(c.id()==e.id()) idx = i
+        }
+        return idx
+    }
 }
 
 class Text(val content : String) : HtmlElement(null) {
@@ -83,8 +143,22 @@ class Text(val content : String) : HtmlElement(null) {
         dirty = false
         return content
     }
+
+
+    override fun refresh(n: Node) {
+        n.textContent = content
+    }
 }
 
+
+native trait DOMAttribute {
+    public native val name: String
+    public native var specified: Boolean
+    public native var value: String
+    public native var ownerElement: Element
+    public native var schemaTypeInfo: TypeInfo
+    public native var isId: Boolean
+}
 
 class AttributeList(private val list : MutableMap<String,Attribute>) {
     fun att(name : String, value : String) {
@@ -105,6 +179,33 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
 
     fun remove(name:String) {
         list.remove(name)
+    }
+
+    fun refresh(n:Node) {
+        val l = n.attributes.length.toInt()
+        for(i in 0..(l-1)) {
+            val na = n.attributes.item(i) as Attr
+            if(na!=null && !list.containsKey(na.name)) {
+                console.log("lost att ${na.name}")
+                n.attributes.removeNamedItem(na.name)
+            } else if(na!=null) {
+                val a = na as DOMAttribute
+                val v = list[na.nodeName]
+                console.log("modify att ${a.name}: ${a.value} -> $v")
+                if(v!=null)
+                a.value = v.value
+                else n.attributes.removeNamedItem(a.name)
+            }
+        }
+
+        list.values().each {
+            if(n.attributes.getNamedItem(it.name)==null) {
+                console.log("gained att ${it.name}: ${it.value}")
+                val a = window.document.createAttribute(it.name)!! as DOMAttribute
+                a.value = it.value
+                n.attributes.setNamedItem(a as Attr)
+            }
+        }
     }
 }
 
@@ -128,6 +229,26 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
         dirty = false
         attributes.att("id", tid)
         return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
+    }
+
+
+    override final fun refresh(n: Node) {
+        console.log("refresh Tag $name ${id()}")
+        preRefreshHook(n)
+        dirty = false
+        attributes.refresh(n)
+        refreshHook(n)
+        each {
+            session().refresh(it)
+        }
+    }
+
+    protected open fun refreshHook(n:Node) {
+
+    }
+
+    protected open fun preRefreshHook(n:Node) {
+
     }
 
     fun writeAtts(): String {
@@ -191,7 +312,7 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         return d
     }
 
-    fun span(init: Span.() -> Unit) {
+    fun span(id:String?=null, init: Span.() -> Unit) {
         val s = Span()
         addChild(s)
         s.init()
@@ -439,7 +560,13 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         options.each { sb.append(it.render()) }
         return sb.toString()
     }
-    
+
+
+    override fun refreshHook(n: Node) {
+        options.each {
+            session().refresh(it)
+        }
+    }
     fun option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
         console.log("create option: $t")
         val o : Option<T> = Option<T>(t, id)
