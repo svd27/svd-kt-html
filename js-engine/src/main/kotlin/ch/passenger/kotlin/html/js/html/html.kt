@@ -21,6 +21,7 @@ import js.dom.core.Node
 import js.dom.core.Attr
 import js.dom.core.Element
 import js.dom.core.TypeInfo
+import java.util.HashSet
 
 /**
  * Created with IntelliJ IDEA.
@@ -41,8 +42,21 @@ open class Attribute(val name:String, val value:String) {
     }
 }
 
+public val ROOT_PARENT : HtmlElement = Text("")
+
 abstract class HtmlElement(aid : String?) : Dirty {
-    public override var dirty: Boolean = false
+    var parent : HtmlElement? = null
+    var node : Node? = null
+    var hidden : Boolean = false
+    set(v) {
+       if(v!=hidden) {
+           $hidden=v
+           dirty = true
+           if(hidden) detach() else createNode()
+       }
+    }
+
+    public override var dirty: Boolean = true
     set(v) {
         $dirty = v
         if(dirty) {
@@ -53,8 +67,12 @@ abstract class HtmlElement(aid : String?) : Dirty {
             SESSION.refresh(this)
         }
     }
-    protected val children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
+    private val _children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
+    protected val children : List<HtmlElement>
+    get() = _children
+
     public val tid : String = forceId(aid)
+    public abstract fun createNode() : Node?
 
     public fun each(cb: (el:HtmlElement) -> Unit) {
         children.each { cb(it) }
@@ -62,22 +80,15 @@ abstract class HtmlElement(aid : String?) : Dirty {
 
     public fun id() : String = tid
 
-    public open fun render(): String {
+    abstract fun doRefresh()
+    fun refresh() {
         dirty = false
-        return writeChildren()
+        doRefresh()
     }
 
-    abstract fun refresh(n:Node)
-
-    fun writeChildren() : String {
-        val sb  = StringBuilder()
-        children.each { sb.append(it.render()) }
-        return sb.toString()
-    }
-
-    fun addChild(e : HtmlElement) {
-        console.log("adding: ", e.render())
-        children.add(e)
+    protected fun addChild(e : HtmlElement) {
+        console.log("adding: ", e)
+        _children.add(e)
     }
 
     fun find(id:String) : HtmlElement? {
@@ -90,18 +101,6 @@ abstract class HtmlElement(aid : String?) : Dirty {
         return result
     }
 
-    public fun parent(e:HtmlElement) : HtmlElement? {
-        var res : HtmlElement? = null
-        each { if(it.id()==e.id()) res = this }
-        if(res==null) {
-            each {
-                var parent : HtmlElement? = null
-                parent = it.parent(e)
-                if(parent!=null) res = parent
-            }
-        }
-        return res
-    }
 
     public fun precedingSibling(e:HtmlElement) : HtmlElement? {
        val idx = indexOf(e)
@@ -119,7 +118,7 @@ abstract class HtmlElement(aid : String?) : Dirty {
     public fun nextSibling(e:HtmlElement) : HtmlElement? {
         val idx = indexOf(e)
         if(idx==0) return if(children.size()>1) children[1] else null
-        if(idx>0) return if(children.size()>idx+1) children[idx+1] else children[idx-1]
+        if(idx>0) return if(children.size()>idx+1) children[idx+1] else null
         var res : HtmlElement? = null
         each {
             val s = it.nextSibling(e)
@@ -136,29 +135,82 @@ abstract class HtmlElement(aid : String?) : Dirty {
         }
         return idx
     }
+
+    fun detach() {
+        if (node!=null) {
+            if(parent!=null && parent?.node!=null) {
+                parent?.node?.removeChild(node!!)
+            }
+            node = null
+            each { it.detach() }
+        }
+    }
+
+    public fun clear(refresh:Boolean=false) {
+        val cl = ArrayList<HtmlElement>()
+        cl.addAll(children)
+        cl.each { remove(it) }
+        if(refresh) dirty = true
+    }
+
+    protected fun remove(c:HtmlElement) {
+        val idx = indexOf(c)
+        if(idx >=0) {
+            c.clear()
+            c.detach()
+
+            //should have no more references to DOM after detaching all
+            _children.remove(idx)
+
+        }
+    }
+
+    fun insertIntoParent() {
+        var sib = precedingSibling(this)
+        var preceed = true
+        if(sib==null) {
+            preceed=false
+            sib = nextSibling(this)
+        }
+
+
+        if(sib!=null && sib?.node!=null) {
+            if(preceed) {
+                parent?.node?.insertBefore(node!!,sib?.node!!)
+            } else {
+                if(sib?.node?.nextSibling!=null) {
+                    parent?.node?.insertBefore(node!!,sib?.node!!.nextSibling!!)
+                } else {
+                    parent?.node?.appendChild(node!!)
+                }
+            }
+        } else {
+            parent?.node?.appendChild(node!!)
+        }
+    }
 }
 
-class Text(val content : String) : HtmlElement(null) {
-    public override fun render(): String {
-        dirty = false
-        return content
+class Text(initial : String) : HtmlElement(null) {
+    var content : String = initial
+    set(s) {if(content!=s) {$content=s; dirty = true}}
+
+    public override fun createNode() : Node?{
+        if(hidden) return null
+        if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
+            node = window.document.createTextNode(content)!!
+            if(parent!=ROOT_PARENT) insertIntoParent()
+        }
+        return node
     }
 
 
-    override fun refresh(n: Node) {
-        n.textContent = content
+    override fun doRefresh() {
+        if(node==null) return
+        node?.nodeValue = content
     }
 }
 
 
-native trait DOMAttribute {
-    public native val name: String
-    public native var specified: Boolean
-    public native var value: String
-    public native var ownerElement: Element
-    public native var schemaTypeInfo: TypeInfo
-    public native var isId: Boolean
-}
 
 class AttributeList(private val list : MutableMap<String,Attribute>) {
     fun att(name : String, value : String) {
@@ -181,7 +233,8 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
         list.remove(name)
     }
 
-    fun refresh(n:Node) {
+    fun refresh(n:Node?) {
+        if(n==null) return
         val l = n.attributes.length.toInt()
         for(i in 0..(l-1)) {
             val na = n.attributes.item(i) as Attr
@@ -217,49 +270,36 @@ fun forceId(aid : String?) : String {
     } else return aid
 }
 
-abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
+abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), EventManager {
+    protected override val listeners: MutableMap<EventTypes, MutableSet<(DOMEvent) -> Unit>> = HashMap()
     val attributes : AttributeList = AttributeList(HashMap())
 
-    abstract fun writeContent() : String
-    abstract fun preRender()
-
-    public override fun render(): String {
-        console.log("render tag $name:${id()}")
-        preRender()
-        dirty = false
-        attributes.att("id", tid)
-        return "<${name} ${writeAtts()}>" + writeContent() + "</${name}>"
-    }
-
-
-    override final fun refresh(n: Node) {
+    override fun doRefresh() {
         console.log("refresh Tag $name ${id()}")
-        preRefreshHook(n)
+        preRefreshHook()
         dirty = false
-        attributes.refresh(n)
-        refreshHook(n)
-        each {
-            session().refresh(it)
+        if(node!=null) attributes.refresh(node)
+        postRefreshHook()
+    }
+
+
+    public override fun createNode(): Node? {
+        if(hidden) return null
+        if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
+            node = window.document.createElement(name)
+            initListeners()
+            if(parent!=ROOT_PARENT) insertIntoParent()
         }
+        return node
     }
-
-    protected open fun refreshHook(n:Node) {
-
-    }
-
-    protected open fun preRefreshHook(n:Node) {
+    protected open fun postRefreshHook() {
 
     }
 
-    fun writeAtts(): String {
-        val sb = StringBuilder()
-        for(a in attributes.values()) {
-            sb.append(a.render())
-            sb.append(" ")
-        }
+    protected open fun preRefreshHook() {
 
-        return sb.toString()
     }
+
 
     fun atts(init : AttributeList.() -> Unit) {
         attributes.init()
@@ -274,20 +314,11 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid) {
             attributes.att("class", c)
         }
     }
-
-    public fun clear() {
-        console.log("${id()} clearing")
-        children.clear()
-    }
 }
 
 
 
 abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
-
-    override open fun preRender() {
-
-    }
 
     fun text(s:String) {
         addChild(Text(s))
@@ -329,10 +360,6 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         addChild(t)
     }
 
-    override final fun writeContent(): String {
-        return writeChildren()
-    }
-
     fun appendFlow(c : FlowContainer) {
         addChild(c)
     }
@@ -357,20 +384,13 @@ class Link(val href : String) : FlowContainer("a") {
             att("data-action", "${aid}")
         }
     }
+
 }
 
 class Table(public var title: String, id : String? = null) : Tag("table", id) {
-    var caption : Caption? = null
-    var body : TBody? = null
-    var head : THead? = null
-
-    override fun writeContent(): String {
-        val sb : StringBuilder = StringBuilder()
-        if(caption!=null) sb.append(caption?.render())
-        if(head!=null) sb.append(head?.render())
-        if(body!=null) sb.append(body?.render())
-        return sb.toString()
-    }
+    private var caption : Caption? = null
+    private var body : TBody? = null
+    private var head : THead? = null
 
     fun caption(init : Caption.() -> Unit): Unit {
         var c = Caption()
@@ -394,44 +414,22 @@ class Table(public var title: String, id : String? = null) : Tag("table", id) {
     }
 
 
-    override fun preRender() {
-
-    }
 }
 
 class TBody(id : String? = null) : Tag("tbody", id) {
 
-    override fun writeContent(): String {
-        return writeChildren()
-    }
-
     fun tr(init : TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
         addChild(row)
-    }
-
-
-    override fun preRender() {
-
     }
 }
 
 class THead(id : String? = null) : Tag("thead", id) {
-
-    override fun writeContent(): String {
-        return writeChildren()
-    }
-
     fun tr(init : TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
         addChild(row)
-    }
-
-
-    override fun preRender() {
-
     }
 }
 
@@ -445,15 +443,6 @@ class TableRow(id : String? = null) : Tag("tr", id) {
         val c = TableCell()
         c.init()
         addChild(c)
-    }
-
-    override fun writeContent(): String {
-        return writeChildren()
-    }
-
-
-    override fun preRender() {
-
     }
 }
 
@@ -470,7 +459,6 @@ trait Converter<T> {
 
 class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val converter:Converter<T>?=null, id : String? = null) : Tag("select", id) {
     var listener : Callback? = null
-    private val options : MutableList<Option<T>> = ArrayList<Option<T>>();
 
     {
         if(model.multi) attributes.att("multiple", "true")
@@ -507,7 +495,7 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
             override fun removed(t: T) {
                 val o = find(t)
                 if(o!=null) {
-                    options.remove(o)
+                    remove(o)
                     dirty = true
                 }
             }
@@ -545,57 +533,36 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
 
     fun find(t:T) : Option<T>? {
         var found : Option<T>? = null
-        options.each {
-            if(t==it.value) {
-                found = it
+        each {
+            if(it is Option<*> && t==it.value) {
+                found = it as Option<T>
             }
         }
         return found
     }
 
-
-
-    override fun writeContent(): String {
-        val sb = StringBuilder()
-        options.each { sb.append(it.render()) }
-        return sb.toString()
-    }
-
-
-    override fun refreshHook(n: Node) {
-        options.each {
-            session().refresh(it)
-        }
-    }
     fun option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
         console.log("create option: $t")
         val o : Option<T> = Option<T>(t, id)
         o.init()
-        options.add(o)
+        addChild(o)
     }
 
     private fun change(event: DOMEvent) {
-        val sel = jq("#${event.target.id} option")
-
-        val hsel = window.document.getElementById(id()) as HTMLSelectElement
-
-        console.log("hsel.options.length: ${hsel.options.length.toInt()} -> ${((hsel.options.length.toInt())-1)}")
-        for(i in 0..((hsel.options.length.toInt())-1)) {
-            val hopt = hsel.options.item(i) as HTMLOptionElement
-            val opt = options[i]
-            console.log("comparing ${hopt.value} with opt: ${opt.value.toString()}")
-            if(hopt.selected==opt.selected()) continue
-            if(hopt.selected) model.select(opt.value)
-            else model.deselect(opt.value)
+        each {
+            val o = it as Option<T>
+            val n = o.node
+            if(n!=null) {
+                val on = n as HTMLOptionElement
+                if(on.selected!=o.selected()) {
+                    if(on.selected) {
+                        model.select(o.value)
+                    } else {
+                        model.deselect(o.value)
+                    }
+                }
+            }
         }
-
-        event.data = sel.value()
-
-    }
-
-
-    override fun preRender() {
-
     }
 }
 
@@ -624,14 +591,51 @@ class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
     fun text(s : String) {
         text = Text(s)
     }
-    
-    override fun writeContent(): String {
-        if(text!=null) return text?.render()!!
-        return ""
+}
+
+trait EventListener {
+    fun handleEvent(e:DOMEvent) : Any?
+}
+
+enum class EventTypes {
+    mouseenter mouseleave click change
+}
+
+trait EventManager {
+    protected val listeners : MutableMap<EventTypes,MutableSet<(e:DOMEvent)->Unit>>
+    protected val node : Node?
+
+    fun initListeners() {
+        if(node!=null) {
+            val et = node as EventTarget
+            listeners.keySet().each {
+                kind ->
+                listeners[kind]?.each {
+                    et.addEventListener(kind.name(), it, false)
+                }
+            }
+        }
     }
 
+    fun getListeners(kind:EventTypes) : MutableSet<(e:DOMEvent)->Unit>{
+        if(listeners[kind]==null) {
+            listeners.put(kind,HashSet())
+        }
 
-    override fun preRender() {
-
+        return listeners[kind]!!
     }
+
+    fun mouseenter(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.mouseenter).add(cb)
+    }
+    fun mouseleave(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.mouseleave).add(cb)
+    }
+    fun click(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.click).add(cb)
+    }
+    fun change(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.change).add(cb)
+    }
+
 }

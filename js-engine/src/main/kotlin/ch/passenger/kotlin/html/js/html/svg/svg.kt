@@ -15,21 +15,11 @@ class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Ext
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
 
-    override fun writeContent(): String {
-
-        return writeChildren()
-    }
-
     fun rect(x:Length,y:Length,w:Length,h:Length,id:String?=null,init:Rect.()->Unit) : Rect {
         val r = Rect(Position(x,y), Extension(w,h), id)
         r.init()
         addChild(r)
         return r
-    }
-
-
-    override fun writeSvgContent() {
-        writeExtend()
     }
 }
 
@@ -44,40 +34,7 @@ inline fun percent(v:Double) : Length = Length(v,Measure.percent)
 inline fun percent(v:Int) : Length = percent(v.toDouble())
 
 abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
-    abstract fun writeSvgContent()
-    override fun writeContent(): String {
-        return writeChildren()
-    }
 
-
-    override fun preRender() {
-        writeSvgContent()
-    }
-
-    fun mouseenter(cb:Callback) {
-        val SESSION = (window as MyWindow)!!.bosork!!
-        val aid = SESSION.actionHolder.add(cb)
-        addClass("mouseenter")
-        atts {
-            att("data-enter-action", "${aid}")
-        }
-    }
-    fun mouseleave(cb:Callback) {
-        val SESSION = (window as MyWindow)!!.bosork!!
-        val aid = SESSION.actionHolder.add(cb)
-        addClass("mouseleave")
-        atts {
-            att("data-leave-action", "${aid}")
-        }
-    }
-    fun click(cb:Callback) {
-        val SESSION = (window as MyWindow)!!.bosork!!
-        val aid = SESSION.actionHolder.add(cb)
-        addClass("action")
-        atts {
-            att("data-action", "${aid}")
-        }
-    }
 }
 
 public enum class Measure {
@@ -206,29 +163,12 @@ trait Filled : Shape {
 abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stroked,Filled {
     override var stroke: Paint? = null
     override var fill: Paint? = null
-
-
-    protected override fun preRefreshHook(n: Node) {
-        writeSvgContent()
-    }
-    override fun writeSvgContent() {
-        writeFill()
-        writeStroke()
-    }
 }
 
 class Rect(override val position : Position, override val extend : Extension, id:String?) :
 StrokeAndFill("rect", id), Extended,Rounded {
     override val me: SvgElement = this
     override val rounding : Rounding = Rounding(px(0), px(0))
-    override fun writeSvgContent() {
-        //TODO: cant call super implementation
-        writeFill()
-        writeStroke()
-        writePosition()
-        writeExtend()
-        writeRounded()
-    }
 }
 
 class ANamedColor( override val name: String ) : NamedColor {

@@ -30,11 +30,17 @@ open public class Session {
     var base: String? = null
     val words = HashMap<Long, Word>()
     var root: FlowContainer = Div("xxxyyyxxx")
+    set(r) {
+        $root = r
+        r.parent = ROOT_PARENT
+        renderer.body(r)
+    }
     var rootSelector: String = "body"
     var initialised = false
     val actionHolder = ActionHolder()
     var nextId = 0
     var token: Token? = null
+    val renderer : Renderer = Renderer(window.document)
 
     fun genId(): String {
         nextId = nextId + 1
@@ -44,190 +50,19 @@ open public class Session {
         if(initialised) return
         val load = Div("loader")
         load.text("loading")
-        jq("body").append(load.render())
-        jq("body").append(Div("container").render())
-        jq("body").append(Div("messages").render())
-        login()
+
         initialised = true
     }
 
-    fun login() {
 
-        sendAjax(base!! + "/symblicon/login", "POST", "{\"user\":\"svd\",\"pwd\":\"sdfsdfsdfsdf\"}") {
-            req ->
-            if(req.readyState == 4 as Short) {
-                token = JSON.parse<Token>(req.responseText)
-                val wc = Div("welcome")
-                wc.text("TOKEN: ${token?.token}")
-                jq("div#container").append(wc.render())
-                initWs()
-
-            }
-        }
-
-
-    }
-
-    fun initWs() {
-        val ws = WebSocket("ws:"+base!!.substring(4)+"/events")
-        jq("div#messages").append("ws created")
-        ws.onopen = {
-            e ->
-            val twss = e.target as WebSocket
-            jq("div#messages").append("ws open ${twss.readyState}")
-            ws.send("hihihi")
-            initWords()
-        }
-        ws.onclose = {
-            e ->
-            jq("div#messages").append("ws closed")
-        }
-        ws.onerror = {
-            e ->
-            jq("div#messages").append("ws error " + e.data)
-        }
-
-        ws.onmessage = {
-            e ->
-            jq("div#messages").append("ws msg " + e.data)
-        }
-    }
-
-    fun initWords() {
-        sendAjax(base!! + "/symblicon/words", "GET", "") {
-            req ->
-            var t = req.responseText
-            var ready = req.readyState
-            if(ready == 4 as Short) {
-                val parsed = JSON.parse<Array<Word>>(t)
-
-
-                val tm = WordTableModel()
-                parsed.each { tm.content.add(it) }
-                val table = TableRenderer<Word>(tm, "table")
-                table.renderers.put("id", object : CellRenderer<Word> {
-                    override fun render(t: Word, v: Any?, row: Int, col: String): FlowContainer {
-                        val s = Span()
-                        s.a("#") {
-                            text("${v}")
-                            val cb = object : Callback {
-                                var w: Word = t
-                                override fun callback(event: DOMEvent) {
-                                    event.preventDefault()
-                                    val s = Span()
-                                    s.text(w.name)
-                                    jq("div#detail").html(s.render())
-                                }
-                            }
-                            action(cb)
-                        }
-
-                        return s
-                    }
-                })
-                val div = Div("content")
-                root = div
-                val top = Div("top")
-                /*
-                top.select("interests") {
-                    option("", "-1") {
-                        label("NONE")
-                        text("NONE")
-                    }
-                    option("NEW", "new") {
-                        label("NEW")
-                        text("NEW")
-                    }
-                    val cb = object : Callback {
-                        override fun callback(event: DOMEvent) {
-                            val s = Span()
-                            val sel = jq("#${event.target.id} option:selected")
-                            s.text(sel.html())
-                            jq("div#detail").html(s.render())
-                        }
-                    }
-                    change(cb)
-                }
-                */
-
-                div.appendFlow(top)
-
-                val tdiv = Div("container-table")
-                div.appendFlow(tdiv)
-                val ddiv = Div("detail")
-                div.appendFlow(ddiv)
-                table.appendTo(tdiv, tm, table)
-                fullRender()
-
-            }
-
-        }
-    }
-
-    fun fetchWord(id: Long) {
-        if(!words.containsKey(id))
-            sendAjax(base + "/symblicon/words/word?id=${id}", "GET", "") {
-                req ->
-                var t = req.responseText
-                var ready = req.readyState
-                if(ready == 4 as Short) {
-                    //jq("input#out").`val`(t)
-                    //val parsed = JSON.parse<Word>(t)
-
-                }
-            }
-    }
 
 
     fun fullRender() {
-        jq(rootSelector).html(root.render())
+        renderer.render(root)
     }
 
     public fun refresh(el:HtmlElement) {
-        console.log("refreshing: ${el.id()} dirty: ${el.dirty}")
-        if(el.dirty) {
-            val n = window.document.getElementById(el.id())
-            if(n!=null) {
-                console.log("target node ${n.nodeName}:${n.attributes.getNamedItem("id")?.nodeValue}")
-                el.refresh(n)
-            } else {
-                console.log("new element found: ${el.id()}")
-                val p = root.parent(el)
-                if(p!=null) {
-                    var sibling = p.precedingSibling(el)
-                    var preceding = true
-                    if(sibling==null) {
-                        preceding = false
-                        sibling = p.nextSibling(el)
-                    }
-                    if(sibling != null) {
-                        val sn = window.document.getElementById(sibling?.id())
-                        if(sn == null) {
-                            console.log("sibling not rendered giving up on insert after")
-                            val pn = window.document.getElementById(p.id())
-                            if(pn == null) {
-                                console.log("parent not rendered! really giving up")
-                            } else {
-                                console.log("no sibling rendering into ${p.id()}")
-                                jq("#${p.id()}").html(el.render())
-                            }
-                        } else {
-                            var order = if(preceding) "after" else "before"
-                            console.log("inserting ${el.id()} to ${sibling?.id()} $order")
-                            if(preceding)
-                                jq("#${sibling!!.id()}").after(el.render())
-                            else
-                                jq("#${sibling!!.id()}").before(el.render())
-                        }
-
-
-                    }
-                }
-            }
-        } else
-        el.each {
-            refresh(it)
-        }
+        renderer.render(el)
     }
     fun refresh() {
         console.log("session refresh")
@@ -236,33 +71,6 @@ open public class Session {
 }
 
 
-
-/*
-fun main(args: Array<String>) {
-
-    jq {
-        val mw = (window as MyWindow)!!
-        if(mw.bosork==null) {
-            mw.bosork = Session()
-                jq("body").on("click", "a.action") {
-                    event ->
-                    mw.bosork!!.actionHolder.trigger(event)
-                }
-                jq("body").on("change", "select.action") {
-                    event ->
-                    mw.bosork!!.actionHolder.trigger(event)
-                }
-            val title = jq("html head title")
-            title.text("Words")
-            jq("div#uri").text(window.document.baseURI)
-
-            var idx = window.document.baseURI.lastIndexOf("/")
-            mw.bosork!!.base = window.document.baseURI.substring(0, idx)
-            mw.bosork!!.session_init()
-        }
-    }
-}
-*/
 
 fun sendAjax(url: String, method: String, msg: String, cb: (req: XMLHttpRequest) -> Unit) {
     var req = XMLHttpRequest()

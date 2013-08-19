@@ -4,7 +4,8 @@
     <root id="root">
       <element id="module-output" name="js-engine" />
       <element id="directory" name="resources">
-        <element id="dir-copy" path="$PROJECT_DIR$/js-engine/src/test/resources" />
+        <element id="dir-copy" path="$PROJECT_DIR$/js-engine/resources" />
+        <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma3.js" />
       </element>
     </root>
   </artifact>

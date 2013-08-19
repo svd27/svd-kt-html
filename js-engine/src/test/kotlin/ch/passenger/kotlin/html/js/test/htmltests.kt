@@ -259,42 +259,28 @@ fun main(args: Array<String>) {
                 rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))
-                    mouseenter(object:Callback {
-                        override fun callback(event: DOMEvent) {
-                            console.log("enter")
-                            fill(ANamedColor("red"))
-                            val SESSION = (window as MyWindow)!!.bosork!!
-                            val me = SESSION.root.find("rect")
-                            me?.dirty = true
-                        }
-                    })
-                    /*
-                    click(object:Callback {
-                        override fun callback(event: DOMEvent) {
-                            console.log("click")
-                            fill(ANamedColor("red"))
-                            val SESSION = (window as MyWindow)!!.bosork!!
-                            val me = SESSION.root.find("enterrec")
-                            me?.dirty = true
-                        }
-                    })*/
-                    mouseleave(object:Callback {
-                        override fun callback(event: DOMEvent) {
-                            console.log("leave")
-                            fill(ANamedColor("magenta"))
-                            val SESSION = (window as MyWindow)!!.bosork!!
-                            val me = SESSION.root.find("rect")
-                            me?.dirty = true
-                        }
-                    })
+                    mouseenter {
+                        console.log("enter")
+                        fill(ANamedColor("red"))
+                        dirty = true
+                    }
+
+
+                    mouseleave {
+                        console.log("leave")
+                        fill(ANamedColor("magenta"))
+                    }
+
+                    click {
+                        console.log("click")
+                        fill(ANamedColor("peach"))
+                    }
                 }
             }
         }
 
 
-        body.html(div.render())
         val SESSION = (window as MyWindow)!!.bosork!!
         SESSION.root = div
-
     }
 }

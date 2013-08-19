@@ -8,6 +8,8 @@ import ch.passenger.kotlin.html.js.Session
 import java.util.ArrayList
 import js.dom.html.document
 import js.debug.console
+import js.dom.core.Element
+import js.dom.core.TypeInfo
 
 /**
  * Created with IntelliJ IDEA.
@@ -38,6 +40,16 @@ public fun JQuery.value(): Any? = this.`val`()
 public fun JQuery.value(v:String?): JQuery = this.`val`(v)
 public native fun JQuery.mouseenter(cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
 public native fun JQuery.mouseleave(cb : (event : DOMEvent) -> Unit): Unit = js.noImpl
+
+native trait DOMAttribute {
+    public native val name: String
+    public native var specified: Boolean
+    public native var value: String
+    public native var ownerElement: Element
+    public native var schemaTypeInfo: TypeInfo
+    public native var isId: Boolean
+}
+
 
 public native trait DOMEvent {
     public val target : HTMLElement
