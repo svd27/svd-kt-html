@@ -40,7 +40,19 @@ open public class Session {
     val actionHolder = ActionHolder()
     var nextId = 0
     var token: Token? = null
-    val renderer : Renderer = Renderer(window.document)
+    val renderer : Renderer = Renderer(window.document);
+
+    {
+        base = window.document.baseURI
+        /*
+        if(base?.endsWith("/")?:false) {
+            val idx = window.document.baseURI.lastIndexOf("/")
+            base = window.document.baseURI.substring(0, idx)
+        }
+        */
+
+        console.log("!!!INIT SESSION!!! $base from ${window.document.baseURI}")
+    }
 
     fun genId(): String {
         nextId = nextId + 1

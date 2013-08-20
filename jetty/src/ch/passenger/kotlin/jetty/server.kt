@@ -56,6 +56,12 @@ import net.engio.mbassy.listener.Handler as handler
 import ch.passenger.kotlin.basis.SessionFactory
 import ch.passenger.kotlin.basis.SessionFactoryProvider
 import ch.passenger.kotlin.json.Jsonifier
+import ch.passenger.kotlin.basis.BosorkService
+import ch.passenger.kotlin.basis.ServiceProvider
+import com.fasterxml.jackson.databind.node.ArrayNode
+import ch.passenger.kotlin.basis.AnonymousAuthService
+import ch.passenger.kotlin.basis.AuthProvider
+import java.io.StringReader
 
 /**
  * Created by sdju on 25.07.13.
@@ -197,27 +203,6 @@ class DefaultWebAppSessionProvider(val app : BosorkApp) : SessionFactory {
 }
 
 
-trait BosorkWebResource {
-    fun createHeadTag() : String
-}
-
-class JSResource(val path:String, val prefix:String) : BosorkWebResource {
-
-    override fun createHeadTag(): String {
-        return """
-        <script type="text/javascript" src="${prefix}/${path}"></script>
-        """
-    }
-}
-
-class CSSResource(val path:String, val prefix:String) : BosorkWebResource {
-
-    override fun createHeadTag(): String {
-        return """
-        <link rel="stylesheet" type="text/css" href="${prefix}/${path}">
-        """
-    }
-}
 
 abstract class BosorkServlet : HttpServlet() {
     protected abstract fun serve(req: HttpServletRequest, resp: HttpServletResponse)
@@ -320,6 +305,61 @@ class ResourceServlet : BosorkServlet() {
         fis.close()
         out.close()
 
+    }
+}
+
+class WebWorkerServlet : BosorkServlet() {
+    protected override fun serve(req: HttpServletRequest, resp: HttpServletResponse) {
+        resource(req, resp)
+    }
+
+    protected override val methods: Set<String> = setOf("GET")
+
+    fun resource(req: HttpServletRequest, resp: HttpServletResponse) {
+        resp.setContentType("text/javascript")
+        val asm = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
+
+        val dir = File(asm.root, "resources/worker")
+        val fecma = File(dir, "kotlinEcma3.js")
+        val fww = File(dir, "webworker.js")
+
+        var f = fecma
+        log.info("adding $f to worker.js ${f.exists()} exists ${f.canRead()} can read abs: ${f.getAbsolutePath()}")
+        if(f.exists() && f.canRead()) {
+            log.info("reading $f to worker.js")
+            val name = f.getName()
+            if(name=="jquery-1.8.3.js") {
+                log.info("ignoring $name")
+            } else {
+                f.readLines().forEach {
+                    log.debug(it)
+                    resp.getWriter()?.append(it)
+                    resp.getWriter()?.append("\n")
+                }
+                //resp.getWriter()?.append("\nconsole.log('>>>>> loaded: ${f.getName()} <<<<<<')\n")
+            }
+        }
+
+        f = fww
+        log.info("adding $f to worker.js ${f.exists()} exists ${f.canRead()} can read abs: ${f.getAbsolutePath()}")
+        if(f.exists() && f.canRead()) {
+            log.info("reading $f to worker.js")
+            val name = f.getName()
+            if(name=="jquery-1.8.3.js") {
+                log.info("ignoring $name")
+            } else {
+                f.readLines().forEach {
+                    log.debug(it)
+                    resp.getWriter()?.append(it)
+                    resp.getWriter()?.append("\n")
+                }
+                //resp.getWriter()?.append("\nconsole.log('>>>>> loaded: ${f.getName()} <<<<<<')\n")
+            }
+        }
+
+
+        resp.getWriter()?.flush()
+        resp.getWriter()?.close()
     }
 }
 
@@ -433,7 +473,7 @@ class EventsSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
 }
 
 
-class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>, val root:File) {
+class AppServletModule(val app:BosorkApp, val resources:Iterable<BosorkWebResource>, val root:File) {
     {
         app.listen(this)
     }
@@ -451,6 +491,8 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
         ctx.addServlet(javaClass<ResourceServlet>(), "/"+app.id.specifier+"/resource/*")
         logJetty.info("adding ${javaClass<LoginServlet>()} on path: ${"/"+app.id.specifier+"/login"}")
         ctx.addServlet(javaClass<LoginServlet>(), "/"+app.id.specifier+"/login")
+        logJetty.info("adding ${javaClass<WebWorkerServlet>()} on path: ${"/"+app.id.specifier+"/webworker"}")
+        ctx.addServlet(javaClass<WebWorkerServlet>(), "/"+app.id.specifier+"/webworker")
 
         app.services().forEach {
             val sh = ServletHolder(ServiceServlet(it.id))
@@ -483,6 +525,59 @@ class AppServletModule(val app:BosorkApp, val resources:Array<BosorkWebResource>
     class object {
         val APP_ATTRIBUTE : String = "BOSORK_APP"
     }
+}
+
+fun<T> Iterator<T>.each(cb:(n:T)->Unit) {
+    while (hasNext()) {
+        cb(next())
+    }
+}
+
+fun ArrayNode.each(cb:(n:JsonNode)->Unit) {
+    this.iterator().each { cb(it) }
+}
+
+public fun readAppCfg(f:File) : AppCfg {
+    val om = ObjectMapper()
+    val root = om.readTree(java.io.FileReader(f))
+    val title = root?.path("title")?.textValue()
+    val port = root?.path("port")?.intValue()
+    val appname = root?.path("app")?.textValue()
+
+    val links = root?.path("links") as ArrayNode
+
+    val resources = ArrayList<BosorkWebResource>()
+    links.each {
+        val href = it.path("href")?.textValue()
+        val kind = it.path("type")?.textValue()
+        val rel = it.path("rel")?.textValue()
+        resources.add(LinkResource(href!!, "$appname/resource", kind!!, rel!!))
+    }
+
+    val scripts = root?.path("scripts") as ArrayNode
+
+    scripts.each {
+        val src = it.path("src")?.textValue()
+        val kind = it.path("type")?.textValue()
+
+        resources.add(JSResource(src!!, "$appname/resource"))
+    }
+
+    return AppCfg(f.getParentFile()!!, appname!!, port!!, resources)
+}
+
+class AppCfg(val root: File, val appname:String, val port:Int, val resources:Iterable<BosorkWebResource>) {
+    var services : List<ServiceProvider> = ArrayList()
+    var auth : AuthProvider = AnonymousAuthService.provider
+}
+
+public fun startApp(cfg:AppCfg) {
+    val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", cfg.appname),
+            cfg.services, DefaultWebAppSessionFactoryProvider(), cfg.auth)
+    val asm = AppServletModule(app, cfg.resources, cfg.root)
+    val af = AppFactory(asm, cfg.port)
+    af.init()
+    af.server?.start()
 }
 
 class AppFactory(private val appmodule : AppServletModule, val port:Int) {

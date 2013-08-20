@@ -10,6 +10,7 @@
       <module fileurl="file://$PROJECT_DIR$/svd-kt-html.iml" filepath="$PROJECT_DIR$/svd-kt-html.iml" />
       <module fileurl="file://$PROJECT_DIR$/symbolon/symbolon.iml" filepath="$PROJECT_DIR$/symbolon/symbolon.iml" />
       <module fileurl="file://$PROJECT_DIR$/utility/utility.iml" filepath="$PROJECT_DIR$/utility/utility.iml" />
+      <module fileurl="file://$PROJECT_DIR$/webworker/webworker.iml" filepath="$PROJECT_DIR$/webworker/webworker.iml" />
     </modules>
   </component>
 </project>

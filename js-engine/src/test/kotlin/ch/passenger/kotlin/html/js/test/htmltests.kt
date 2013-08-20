@@ -26,9 +26,11 @@ import ch.passenger.kotlin.html.js.binding.MutationObserverInit
 import ch.passenger.kotlin.html.js.binding.MutationRecord
 import ch.passenger.kotlin.html.js.binding.*
 import js.dom.core.Node
+import ch.passenger.kotlin.html.js.worker.Worker
+import ch.passenger.kotlin.html.js.html.svg.Grid
 
-class A(val v : String, val d:Double) {
-    fun toString() : String = "$v:$d"
+class A(val v: String, val d: Double) {
+    fun toString(): String = "$v:$d"
 }
 class AConverter : Converter<A> {
 
@@ -44,9 +46,9 @@ class AConverter : Converter<A> {
  * Created by sdju on 16.08.13.
  */
 
-public native fun document.addEventListener(kind:String, cb : (e:DOMEvent)->Any?, f:Boolean) : Unit = js.noImpl
+public native fun document.addEventListener(kind: String, cb: (e: DOMEvent)->Any?, f: Boolean): Unit = js.noImpl
 
-fun dump(n:Node) {
+fun dump(n: Node) {
     console.log("Dump ${n.localName}:${n?.attributes?.getNamedItem("id")?.nodeValue}")
     n.childNodes.each {
         dump(it)
@@ -54,25 +56,28 @@ fun dump(n:Node) {
 }
 
 
-
 fun main(args: Array<String>) {
     //"DOMNodeInserted"
+    console.log("################################# MAIN #################################")
+    if(window.document == null) {
+        console.log("worker mode ....")
+        val mw = (window as MyWindow)!!
+        mw.self?.postMessage("Worker started")
 
-    val cb = {(e:DOMEvent) -> {
-        console.log("DOM STRUCTURE ${e.target}")
-    }};
-    val et = window.document as EventTarget
-    et.addEventListener("DOMNodeInserted", cb, false)
-    //window.document.addEventListener("DOMNodeInserted", cb, false)
+    } else initUI()
 
+}
+
+fun initUI() {
     jq {
         val mw = (window as MyWindow)!!
         mw.bosork = Session()
 
         val div = Div("content")
         val stringModel = StringSelectionModel(listOf("s", "v", "d"), false)
-        val complexModel = object : AbstractSelectionModel<A>(listOf(A("s", 1.toDouble()), A("v", 2.toDouble()), A("d", 3.toDouble())), true) {}
-        div.div("") {
+        val complexModel = object : AbstractSelectionModel<A>(listOf(A("s", 1.toDouble()), A("v", 2.toDouble()), A("d", 3.toDouble())), true) {
+        }
+        div.div() {
             text("hi")
 
             console.log("model size: ${stringModel.items.size()}")
@@ -114,17 +119,17 @@ fun main(args: Array<String>) {
                     console.log("Unselected: ${t.v}")
                 }
             }
-                complexModel.addObserver(obs)
-                select(complexModel, AConverter()) {
-                    val cb = object :Callback {
-                        override fun callback(event: DOMEvent) {
-                            console.log("event.data: ${event.data}: ${event.data}")
-                        }
+            complexModel.addObserver(obs)
+            select(complexModel, AConverter()) {
+                val cb = object :Callback {
+                    override fun callback(event: DOMEvent) {
+                        console.log("event.data: ${event.data}: ${event.data}")
                     }
-                    //change(cb)
                 }
+                //change(cb)
+            }
         }
-        val divselection : Div = Div("selection")
+        val divselection: Div = Div("selection")
         divselection.span {
             text("Whats selected")
         }
@@ -160,9 +165,9 @@ fun main(args: Array<String>) {
 
         div.div("svg") {
             atts {
-                att("style","width: 100%; height: 100%;")
+                att("style", "width: 100%; height: 100%;")
             }
-            svg(100.px(), 100.px(), "enterrec") {
+            val svg = svg(100.px(), 100.px(), "enterrec") {
                 rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))
@@ -187,10 +192,33 @@ fun main(args: Array<String>) {
                     }
                 }
             }
+
+            val grid = Grid(svg, 100, 100, 9, 9, "grid")
+            grid.paint { stroke(ANamedColor("black")) }
+        }
+
+        div.div("worker") {
+            //TODO: cant call text inside each
+            val SESSION = (window as MyWindow)!!.bosork!!
+            val path = "${SESSION.base}/webworker"
+            console.log("requesting worker on: $path")
+            val w = Worker(path)
+            w.onmessage = {
+                e ->
+                val SESSION = (window as MyWindow)!!.bosork!!
+                val wdiv = SESSION.root.find("worker") as FlowContainer
+                console.log("Worker said: ${e.data}")
+                wdiv.span() {
+                    text("${e} ${e.data}")
+                }
+            }
+            console.log("starting worker", w)
+            w.postMessage("start")
         }
 
 
         val SESSION = (window as MyWindow)!!.bosork!!
         SESSION.root = div
     }
+
 }

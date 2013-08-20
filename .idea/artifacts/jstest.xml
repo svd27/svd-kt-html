@@ -6,7 +6,12 @@
       <element id="directory" name="resources">
         <element id="dir-copy" path="$PROJECT_DIR$/js-engine/resources" />
         <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma3.js" />
+        <element id="directory" name="worker">
+          <element id="module-output" name="webworker" />
+          <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma3.js" />
+        </element>
       </element>
+      <element id="file-copy" path="$PROJECT_DIR$/js-engine/apps/htmltests/bosork.json" />
     </root>
   </artifact>
 </component>

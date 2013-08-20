@@ -368,11 +368,11 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         addChild(c)
     }
 
-    fun svg(w:Length,h:Length,id:String?=null, init:SVG.()->Unit) : FlowContainer {
+    fun svg(w:Length,h:Length,id:String?=null, init:SVG.()->Unit) : SVG {
         val svg = SVG(Extension(w,h),id)
         svg.init()
         addChild(svg)
-        return this
+        return svg
     }
 }
 

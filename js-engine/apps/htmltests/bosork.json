@@ -1,0 +1,33 @@
+{
+    "title": "Bosork Client Examples",
+    "port": 2709,
+    "app": "examples",
+    "links": [
+        {
+            "href": "resources/css/base.css",
+            "rel": "stylesheet",
+            "type": "text/css"
+        },
+        {
+            "href": "resources/css/fonts.css",
+            "rel": "stylesheet",
+            "type": "text/css"
+        }
+    ],
+    "scripts" : [
+        {
+            "src": "resources/js/jquery-1.8.3.js",
+            "type": "text/javascript"
+        },
+        {
+            "src": "resources/kotlinEcma3.js",
+            "type": "text/javascript"
+        },
+        {
+            "src": "js-engine.js",
+            "type": "text/javascript"
+        }
+
+    ]
+
+}

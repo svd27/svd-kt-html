@@ -10,6 +10,7 @@ import js.dom.html.document
 import js.debug.console
 import js.dom.core.Element
 import js.dom.core.TypeInfo
+import ch.passenger.kotlin.html.js.worker.Worker
 
 /**
  * Created with IntelliJ IDEA.
@@ -108,8 +109,11 @@ public class ActionHolder {
 
 }
 
+public native trait URL
+
 public native trait MyWindow {
     public native var bosork : Session?
+    public native val self : Worker?
 }
 
 public fun<T> Iterable<T>.each(cb:(T)->Unit): Unit {

@@ -39,8 +39,8 @@ class AppTests {
         val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "test"), ArrayList<ServiceProvider>(),
                 DefaultWebAppSessionFactoryProvider(), AnonymousAuthService.provider)
 
-        val wapp = AppServletModule(app, array(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
-                CSSResource("resources/html/base.css", "test/resource")),
+        val wapp = AppServletModule(app, listOf(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
+                LinkResource.css("resources/html/base.css", "test/resource")),
                 File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"))
 
         val waf = AppFactory(wapp, 2709)
@@ -118,8 +118,8 @@ class AppTests {
         val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", "test"), listOf(EchoServiceProvider()),
                 DefaultWebAppSessionFactoryProvider(), AnonymousAuthService.provider)
 
-        val wapp = AppServletModule(app, array(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
-                CSSResource("resources/html/base.css", "test/resource")),
+        val wapp = AppServletModule(app, listOf(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
+                LinkResource.css("resources/html/base.css", "test/resource")),
                 File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"))
 
         val waf = AppFactory(wapp, 2709)

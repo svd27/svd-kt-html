@@ -6,6 +6,7 @@ import js.debug.console
 import js.dom.html.window
 import js.dom.core.Node
 import ch.passenger.kotlin.html.js.html.DOMEvent
+import java.util.StringBuilder
 
 /**
  * Created by Duric on 18.08.13.
@@ -14,7 +15,7 @@ import ch.passenger.kotlin.html.js.html.DOMEvent
 
 val nsSvg = "http://www.w3.org/2000/svg"
 
-class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended {
+class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
 
@@ -25,16 +26,26 @@ class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Ext
     }
 
 
+    protected override fun preRefreshHook() {
+        writeExtend()
+    }
+}
+
+trait ShapeContainer {
+    val me : SvgElement
+
     fun rect(x:Length,y:Length,w:Length,h:Length,id:String?=null,init:Rect.()->Unit) : Rect {
         val r = Rect(Position(x,y), Extension(w,h), id)
         r.init()
-        addChild(r)
+        me.addElement(r)
         return r
     }
 
-
-    protected override fun preRefreshHook() {
-        writeExtend()
+    fun path(id:String?=null,init:Path.()->Unit) : Path {
+        val p = Path(id)
+        p.init()
+        me.addElement(p)
+        return p
     }
 }
 
@@ -66,6 +77,9 @@ abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
         return node
     }
 
+    public fun addElement(e:SvgElement) {
+        addChild(e)
+    }
 
     override fun mouseenter(cb: (DOMEvent) -> Unit) {
         mouseover(cb)
@@ -217,9 +231,45 @@ StrokeAndFill("rect", id), Extended,Rounded {
         writeStroke()
         writeRounded()
     }
+}
+
+class Path(id:String?) : StrokeAndFill("path", id) {
+    override val me: SvgElement = this
+    private var buffer: StringBuilder = StringBuilder()
 
 
+    fun l(x:Int,y:Int) : Path {
+        cC("l", x, y)
+        return this
+    }
 
+    fun L(x:Int,y:Int) : Path {
+        cC("L", x, y)
+        return this
+    }
+
+    fun m(x:Int,y:Int) : Path {
+        cC("m", x, y)
+        return this
+    }
+
+    fun M(x:Int,y:Int) : Path {
+        cC("M", x, y)
+        return this
+    }
+
+    private fun cC(cmd:String, x:Int, y:Int) {
+        buffer.append("$cmd $x $y ")
+    }
+
+    public fun done() {
+        attributes.att("d", buffer.toString())
+    }
+
+    protected override fun preRefreshHook() {
+        writeFill()
+        writeStroke()
+    }
 }
 
 class ANamedColor( override val name: String ) : NamedColor {

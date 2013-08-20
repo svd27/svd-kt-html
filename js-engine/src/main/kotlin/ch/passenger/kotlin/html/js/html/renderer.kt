@@ -29,6 +29,7 @@ class Renderer(protected val doc:Document) {
             body.removeChild(it)
         }
         val n = if(e.node==null) e.createNode() else e.node
+        console.log("body append: $n")
         if(n==null) return
         console.log("append body ${n.nodeName}")
         body.appendChild(n)
