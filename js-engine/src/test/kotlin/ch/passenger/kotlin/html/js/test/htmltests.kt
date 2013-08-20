@@ -53,28 +53,6 @@ fun dump(n:Node) {
     }
 }
 
-fun muadded(added:Node) {
-    console.log("MU ADD ${added.localName}")
-    val mocfg = A("x",1.0) as MutationObserverInit
-    mocfg.childList = true
-    mocfg.subtree = true
-
-    val mocb = {
-        (recs:Array<MutationRecord>) ->
-
-        recs.each {
-            console.log("MUTATION ${it.`type`}")
-            it.addedNodes.each {
-                //dump(it)
-                muadded(it)
-            }
-        }
-    }
-
-    console.log("observe ${added.attributes.getNamedItem("id")?.nodeValue}")
-    val mobs = MutationObserver(mocb)
-    mobs.observe(added, mocfg)
-}
 
 
 fun main(args: Array<String>) {
@@ -89,81 +67,7 @@ fun main(args: Array<String>) {
 
     jq {
         val mw = (window as MyWindow)!!
-
-        if(mw.bosork==null) {
-            mw.bosork = Session()
-            jq("body").on("click", ".action") {
-                event ->
-                mw.bosork!!.actionHolder.action(event)
-            }
-            jq("body").on("change", ".change") {
-                event ->
-                mw.bosork!!.actionHolder.action(event)
-            }
-            jq("body").on("mouseenter", ".mouseenter") {
-                event ->
-                console.log("main.enter")
-                mw.bosork!!.actionHolder.enter(event)
-            }
-            jq("body").on("mouseleave", ".mouseleave") {
-                event ->
-                console.log("main.leave")
-                mw.bosork!!.actionHolder.leave(event)
-            }
-            jq("body").on("DOMNodeInsertedIntoDocument") {
-                console.log("DOM modified $it ${it.target.id}")
-            }
-            val e = window.document.getElementById("svg")
-            val title = jq("html head title")
-            title.text("Words")
-            jq("div#uri").text(window.document.baseURI)
-
-
-            var idx = window.document.baseURI.lastIndexOf("/")
-            mw.bosork!!.base = window.document.baseURI.substring(0, idx)
-            //mw.bosork!!.session_init()
-        }
-        val bodynl = window.document.getElementsByTagName("body")
-        val bt = bodynl.item(0)
-        /*
-        val mocfg = MutationObserverInit()
-        mocfg.childList = true
-        mocfg.subtree = true
-        */
-        val mocfg = A("x",1.0) as MutationObserverInit
-        mocfg.childList = true
-        mocfg.subtree = true
-
-        val mocb = {
-            (recs:Array<MutationRecord>) ->
-
-            jq(".mouseenter").mouseenter {
-                event ->
-                console.log("mouseenter main.enter")
-                mw.bosork!!.actionHolder.enter(event)
-            }
-
-            jq(".mouseleave").mouseleave() {
-                event ->
-                console.log("mouseleave main.leave")
-                mw.bosork!!.actionHolder.leave(event)
-            }
-
-            recs.each {
-                console.log("ROOT MUTATION ${it.`type`}")
-                it.addedNodes.each {
-                    //dump(it)
-                    muadded(it)
-                }
-            }
-        }
-        val mobs = MutationObserver(mocb)
-
-        console.log("MU start root observer on $bt")
-        if(bt!=null)
-            mobs.observe(bt, mocfg)
-
-        val body = jq("body")
+        mw.bosork = Session()
 
         val div = Div("content")
         val stringModel = StringSelectionModel(listOf("s", "v", "d"), false)
@@ -255,7 +159,10 @@ fun main(args: Array<String>) {
         })
 
         div.div("svg") {
-            svg(percent(100), percent(100), "enterrec") {
+            atts {
+                att("style","width: 100%; height: 100%;")
+            }
+            svg(100.px(), 100.px(), "enterrec") {
                 rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))

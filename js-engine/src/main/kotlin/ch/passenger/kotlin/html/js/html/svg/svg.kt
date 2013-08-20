@@ -21,6 +21,11 @@ class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Ext
         addChild(r)
         return r
     }
+
+
+    protected override fun preRefreshHook() {
+        writeExtend()
+    }
 }
 
 fun px(v:Int) : Length {
@@ -32,6 +37,8 @@ inline fun cm(v:Double) : Length= Length(v, Measure.cm)
 inline fun cm(v:Int) : Length= cm(v.toDouble())
 inline fun percent(v:Double) : Length = Length(v,Measure.percent)
 inline fun percent(v:Int) : Length = percent(v.toDouble())
+
+fun Number.px() : Length = Length(this.toDouble(), Measure.px)
 
 abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
 
@@ -169,6 +176,14 @@ class Rect(override val position : Position, override val extend : Extension, id
 StrokeAndFill("rect", id), Extended,Rounded {
     override val me: SvgElement = this
     override val rounding : Rounding = Rounding(px(0), px(0))
+
+    protected override fun preRefreshHook() {
+        writePosition()
+        writeExtend()
+        writeFill()
+        writeStroke()
+        writeRounded()
+    }
 }
 
 class ANamedColor( override val name: String ) : NamedColor {

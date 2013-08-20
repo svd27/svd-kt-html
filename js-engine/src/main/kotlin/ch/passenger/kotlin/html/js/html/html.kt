@@ -87,6 +87,7 @@ abstract class HtmlElement(aid : String?) : Dirty {
     }
 
     protected fun addChild(e : HtmlElement) {
+        e.parent = this
         console.log("adding: ", e)
         _children.add(e)
     }
@@ -206,6 +207,8 @@ class Text(initial : String) : HtmlElement(null) {
 
     override fun doRefresh() {
         if(node==null) return
+        detach()
+        createNode()
         node?.nodeValue = content
     }
 }
@@ -285,8 +288,10 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
 
     public override fun createNode(): Node? {
         if(hidden) return null
+        console.log("create Tag $name in ${parent?.id()}: ${parent?.node?.nodeName}")
         if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
             node = window.document.createElement(name)
+            attributes.refresh(node)
             initListeners()
             if(parent!=ROOT_PARENT) insertIntoParent()
         }
@@ -512,23 +517,14 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         }
 
         model.addObserver(obs)
-        val SESSION = (window as MyWindow)!!.bosork!!
-        val cb = object : Callback {
-
-            override fun callback(event: DOMEvent) {
-                change(event)
-            }
-        }
-        val aid = SESSION.actionHolder.add(cb)
-        addClass("change")
-        atts {
-            att("data-action", "${aid}")
+        change {
+            onSelect(it)
         }
     }
 
     fun addOption(t:T) {
         val cnv = converter
-        option(t){text(if(cnv==null) value.toString() else cnv.convert2string(value))}
+        option(t){label(if(cnv==null) value.toString() else cnv.convert2string(value))}
     }
 
     fun find(t:T) : Option<T>? {
@@ -548,7 +544,7 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         addChild(o)
     }
 
-    private fun change(event: DOMEvent) {
+    private fun onSelect(event: DOMEvent) {
         each {
             val o = it as Option<T>
             val n = o.node
@@ -564,6 +560,8 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
             }
         }
     }
+
+
 }
 
 class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
@@ -588,9 +586,15 @@ class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
         attributes.att("value", l)
     }
     
-    fun text(s : String) {
-        text = Text(s)
+
+/*
+    protected override fun postRefreshHook() {
+        if(node!=null) {
+            val on = node as HTMLOptionElement
+            on.label = attributes?.att("label")?.value?:"---"
+        }
     }
+*/
 }
 
 trait EventListener {

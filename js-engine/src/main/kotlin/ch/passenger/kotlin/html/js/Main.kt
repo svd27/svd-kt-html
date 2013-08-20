@@ -50,7 +50,7 @@ open public class Session {
         if(initialised) return
         val load = Div("loader")
         load.text("loading")
-
+        root = load
         initialised = true
     }
 

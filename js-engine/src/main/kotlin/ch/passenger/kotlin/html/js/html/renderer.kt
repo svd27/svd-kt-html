@@ -12,14 +12,15 @@ class Renderer(protected val doc:Document) {
         console.log("render $e:${e.id()} hidden: ${e.hidden} dirty: ${e.dirty}")
         if(!e.hidden && e.dirty) {
             var node = e.node
-            if(node ==null)
+            if(node ==null){
                 node = e.createNode()
+            }
             if(node==null) return
             e.refresh()
             e.each {
                 render(it)
             }
-        }
+        } else console.log("no work")
     }
 
     fun body(e:HtmlElement) {
@@ -29,7 +30,8 @@ class Renderer(protected val doc:Document) {
         }
         val n = if(e.node==null) e.createNode() else e.node
         if(n==null) return
-        body.appendChild(n!!)
+        console.log("append body ${n.nodeName}")
+        body.appendChild(n)
         render(e)
     }
 }
