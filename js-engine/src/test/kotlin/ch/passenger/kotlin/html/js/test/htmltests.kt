@@ -196,8 +196,34 @@ fun initUI() {
             }
 
             val grid = Grid(svg, 300, 300, 9, 9, "grid")
+
             grid.outerWidth = 3.px()
-            grid.paint { stroke(ANamedColor("black")) }
+            grid.legend = false
+            grid.paint()
+            /*
+            grid.group?.mousemove {
+                e ->
+                val me = e as DOMMouseEvent
+                console.log("sx: ${me.screenX} sy: ${me.screenY}")
+                console.log("cx: ${me.clientX} cy: ${me.clientY}")
+                val svgp = grid.group?.client2locale(me.clientX, me.clientY)
+                console.log("wx: ${svgp?.x} wy: ${svgp?.y}")
+                val cp = grid.cell(me)
+                console.log("${cp.row},${cp.col}")
+            }
+            */
+
+            grid.group?.click {
+                e ->
+                val me = e as DOMMouseEvent
+                val c = grid.cell(me)
+                grid.cellTextCenter(c) {
+                    attribute("opacity", "0.6")
+                    stroke = ANamedColor("red")
+                    text("${c.row}:${c.col}")
+                }
+                grid.group?.dirty = true
+            }
         }
 
         div.div("worker") {

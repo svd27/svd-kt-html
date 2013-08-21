@@ -22,7 +22,7 @@ native trait SVGLocatable {
 }
 
 native trait SVGSVGElement : SVGElement {
-
+    fun createSVGPoint() : SVGPoint
 }
 
 native trait SVGRect {
@@ -40,7 +40,7 @@ native trait SVGMatrix {
     native var f: Double
 
     fun multiply(m: SVGMatrix): SVGMatrix
-    fun inverse(m: SVGMatrix): SVGMatrix
+    fun inverse(): SVGMatrix
     fun translate(x: Double, y: Double): SVGMatrix
     fun scale(s: Double): SVGMatrix
     fun scaleNonUniform(sx: Double, sy: Double): SVGMatrix

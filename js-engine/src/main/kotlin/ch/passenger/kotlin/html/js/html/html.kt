@@ -22,6 +22,8 @@ import js.dom.core.Attr
 import js.dom.core.Element
 import js.dom.core.TypeInfo
 import java.util.HashSet
+import ch.passenger.kotlin.html.js.model.Model
+import ch.passenger.kotlin.html.js.model.Observer
 
 /**
  * Created with IntelliJ IDEA.
@@ -453,6 +455,11 @@ class TableRow(id : String? = null) : Tag("tr", id) {
 
 class Div(id : String? = null) : FlowContainer("div", id)
 class Span(id : String? = null) : FlowContainer("span", id)
+class Label(id : String? = null) : FlowContainer("label", id) {
+    fun labels(ref:String) {
+        attributes.att("for", ref)
+    }
+}
 
 class TableCell(id : String? = null) : FlowContainer("td", id)
 
@@ -584,24 +591,83 @@ class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
     fun value(l : String) {
         attributes.att("value", l)
     }
-    
 
-/*
-    protected override fun postRefreshHook() {
-        if(node!=null) {
-            val on = node as HTMLOptionElement
-            on.label = attributes?.att("label")?.value?:"---"
+}
+
+enum class InputTypes {
+    number text date datetime button checkbox
+}
+
+abstract class NumberConverter<T:Number> : Converter<Number> {
+    override fun convert2string(t: Number): String {
+        return "$t"
+    }
+    fun crtNumber(s:String) :Double{
+        val mw = window as MyWindow
+        return mw.parseFloat(s)
+    }
+}
+
+open class IntConverter : NumberConverter<Int>() {
+    override fun convert2target(s: String): Number {
+        return crtNumber(s).toInt()
+    }
+}
+
+open class DoubleConverter : NumberConverter<Double>() {
+    override fun convert2target(s: String): Number {
+        return crtNumber(s).toDouble()
+    }
+}
+
+abstract class Input<T>(kind:InputTypes,val model:Model<T>,val conv:Converter<T>, id:String?=null) : Tag("input", id),EventManager {
+    {
+        attributes.att("type", kind.name())
+        model.addObserver(object : AbstractObserver<T>() {
+
+            override fun added(t: T) {
+                value(t)
+                dirty = true
+            }
+            override fun removed(t: T) {
+                value(null)
+                dirty = true
+            }
+            override fun deleted(t: T) {
+                removed(t)
+            }
+            override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
+                value(nv as T)
+                dirty = true
+            }
+        })
+
+        change {
+            model.t = value()
         }
     }
-*/
+
+    private fun value(v:T?) {
+        if(v!=null)
+        attributes.att("value", conv.convert2string(v))
+        else attributes.att("value", "")
+    }
+
+    private fun value() : T? {
+        val vs = attributes.att("value")
+        if(vs!=null)  return conv.convert2target(vs.value)
+        return null
+    }
 }
+
+class InputNumber<T:Number>(model:Model<T>, conv:Converter<T>, id:String?=null) : Input<T>(InputTypes.number, model, conv, id)
 
 trait EventListener {
     fun handleEvent(e:DOMEvent) : Any?
 }
 
 enum class EventTypes {
-    mouseenter mouseleave click change mouseover mouseout
+    mouseenter mouseleave click change mouseover mouseout mousemove
 }
 
 trait EventManager {
@@ -618,6 +684,18 @@ trait EventManager {
                     et.addEventListener(kind.name(), it, false)
                 }
             }
+        }
+    }
+
+    fun removeListener(kind:EventTypes, l: (e:DOMEvent)->Unit) {
+        if(listeners[kind]==null) {
+            return
+        }
+        val done : Boolean = listeners[kind]?.remove(l)?:false
+        console.log("removing listener $l result: $done")
+        if(node!=null) {
+            val et = node as EventTarget
+            et.removeEventListener(kind.name(), l)
         }
     }
 
@@ -646,6 +724,10 @@ trait EventManager {
     }
     fun mouseout(cb:(e:DOMEvent)->Unit) {
         getListeners(EventTypes.mouseout).add(cb)
+    }
+
+    fun mousemove(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.mousemove).add(cb)
     }
 
 }
