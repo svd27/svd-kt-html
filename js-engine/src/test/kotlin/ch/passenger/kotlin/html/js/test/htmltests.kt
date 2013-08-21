@@ -166,21 +166,24 @@ fun main(args: Array<String>) {
                 rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))
+                    val r = this
                     mouseenter {
                         console.log("enter")
-                        fill(ANamedColor("red"))
-                        dirty = true
+                        r.fill(ANamedColor("red"))
+                        r.dirty = true
                     }
 
 
                     mouseleave {
                         console.log("leave")
-                        fill(ANamedColor("magenta"))
+                        r.fill(ANamedColor("magenta"))
+                        r.dirty = true
                     }
 
                     click {
                         console.log("click")
-                        fill(ANamedColor("peach"))
+                        r.fill(ANamedColor("peach"))
+                        r.dirty = true
                     }
                 }
             }

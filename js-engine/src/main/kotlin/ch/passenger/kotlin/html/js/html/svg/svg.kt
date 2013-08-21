@@ -1,19 +1,29 @@
 package ch.passenger.kotlin.html.js.html.svg
 
-import ch.passenger.kotlin.html.js.html.HtmlElement
 import ch.passenger.kotlin.html.js.html.Tag
+import ch.passenger.kotlin.html.js.html.ROOT_PARENT
 import js.debug.console
 import js.dom.html.window
-import ch.passenger.kotlin.html.js.html.MyWindow
-import ch.passenger.kotlin.html.js.html.Callback
 import js.dom.core.Node
+import ch.passenger.kotlin.html.js.html.DOMEvent
 
 /**
  * Created by Duric on 18.08.13.
  */
+
+
+val nsSvg = "http://www.w3.org/2000/svg"
+
 class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
+
+
+    {
+        attributes.att("xmlns",nsSvg)
+        attributes.att("version","1.1")
+    }
+
 
     fun rect(x:Length,y:Length,w:Length,h:Length,id:String?=null,init:Rect.()->Unit) : Rect {
         val r = Rect(Position(x,y), Extension(w,h), id)
@@ -41,7 +51,30 @@ inline fun percent(v:Int) : Length = percent(v.toDouble())
 fun Number.px() : Length = Length(this.toDouble(), Measure.px)
 
 abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
+    public override fun createNode(): Node? {
+        if(hidden) return null
+        console.log("create svg $name in ${parent?.id()}: ${parent?.node?.nodeName}")
+        if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
+            val doc = window.document
+            node = doc.createElementNS(nsSvg,name)!!
 
+            attributes.refresh(node)
+            initListeners()
+            if(parent!=ROOT_PARENT) insertIntoParent()
+        }
+
+        return node
+    }
+
+
+    override fun mouseenter(cb: (DOMEvent) -> Unit) {
+        mouseover(cb)
+    }
+
+
+    override fun mouseleave(cb: (DOMEvent) -> Unit) {
+        mouseout(cb)
+    }
 }
 
 public enum class Measure {
@@ -184,6 +217,9 @@ StrokeAndFill("rect", id), Extended,Rounded {
         writeStroke()
         writeRounded()
     }
+
+
+
 }
 
 class ANamedColor( override val name: String ) : NamedColor {
