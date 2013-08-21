@@ -206,10 +206,9 @@ class Text(initial : String) : HtmlElement(null) {
 
 
     override fun doRefresh() {
-        if(node==null) return
-        detach()
-        createNode()
-        node?.nodeValue = content
+        if(parent!=null && parent?.node!=null) {
+            parent?.node?.textContent = content
+        }
     }
 }
 
@@ -602,7 +601,7 @@ trait EventListener {
 }
 
 enum class EventTypes {
-    mouseenter mouseleave click change
+    mouseenter mouseleave click change mouseover mouseout
 }
 
 trait EventManager {
@@ -615,6 +614,7 @@ trait EventManager {
             listeners.keySet().each {
                 kind ->
                 listeners[kind]?.each {
+                    console.log("$kind add listener")
                     et.addEventListener(kind.name(), it, false)
                 }
             }
@@ -640,6 +640,12 @@ trait EventManager {
     }
     fun change(cb:(e:DOMEvent)->Unit) {
         getListeners(EventTypes.change).add(cb)
+    }
+    fun mouseover(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.mouseover).add(cb)
+    }
+    fun mouseout(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.mouseout).add(cb)
     }
 
 }
