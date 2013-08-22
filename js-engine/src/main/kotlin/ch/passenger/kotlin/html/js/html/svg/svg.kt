@@ -178,12 +178,12 @@ trait SvgLocatable {
     var svgPT : SVGPoint?
 
     fun client2locale(x:Number,y:Number) : SVGPoint {
-        console.log("convert $x,$y")
+        //console.log("convert $x,$y")
         if(me.node==null) throw IllegalStateException()
         val loc = me.node!! as SVGLocatable
         val ctm = loc.getScreenCTM()
-        console.log("screen ctm for ", me.id(), " is", ctm)
-        console.log("inverse screen ctm for ", me.id(), " is", ctm.inverse())
+        //console.log("screen ctm for ", me.id(), " is", ctm)
+        //console.log("inverse screen ctm for ", me.id(), " is", ctm.inverse())
         var sp = svgPT
         if(sp ==null) {
             var svg : SVGSVGElement? = me.findParentSvg()?.node as SVGSVGElement
@@ -192,13 +192,11 @@ trait SvgLocatable {
         }
         svgPT = sp
         if(sp !=null) {
-            console.log("sp before transform ${sp?.x} ${sp?.y}")
             if(sp!=null && sp!!.x!=null)
                 sp!!.x = x.toDouble()
             if(sp!=null && sp!!.y!=null)
                 sp!!.y = y.toDouble()
             val res = sp?.matrixTransform(ctm.inverse())!!
-            console.log("sp after transform ${sp?.x} ${sp?.y}")
             return res
         }
         throw IllegalStateException()

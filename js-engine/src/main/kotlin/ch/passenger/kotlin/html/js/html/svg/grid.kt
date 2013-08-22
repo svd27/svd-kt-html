@@ -65,20 +65,21 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
         }
     }
 
-    val cells : MutableMap<Int,MutableMap<Int,Cell>> = HashMap()
+    val cells : Array<Array<Cell?>?> = Array<Array<Cell?>?>(rows) {null}
 
     fun cell(row:Int,col:Int) : Cell {
-        if(row>rows-1 || col>columns-1) throw IllegalStateException()
+        if(row>rows || col>columns) throw IllegalStateException()
 
-        if(cells.get(row)==null) cells.put(row, HashMap())
-        val cm = cells.get(row)!!
-        if(cm.get(col)==null) cm.put(col, Cell(row, col, this))
+        if(cells[row-1]==null) cells[row-1] = Array<Cell?>(9) {null}
 
-        return cm.get(col)!!
+        val cm = cells[row-1]!!
+        if(cm[col-1] ==null) cm[col-1] = Cell(row, col, this)
+
+        return cm[col-1]!!
     }
 
     fun cellTextCenter(c:Cell, init:SvgText.()->Unit) {
-        if(c.center!=null) c.center?.detach()
+        //if(c.center!=null) c.center?.detach()
         val dx = (c.col-1) * cw
         val dy = (c.row-1) * ch
 
@@ -91,20 +92,70 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
         }
     }
 
-    fun cellTextNE(row:Int, col:Int, s:String) {
 
-    }
-
-    fun cell(e : DOMMouseEvent) : Cell {
+    fun cell(e : DOMMouseEvent) : Cell? {
         val cp = group!!.client2locale(e.clientX, e.clientY)
+        if(cp.x<0 || cp.y<0) return null
         val col = cp.x/cw
         val row = cp.y/ch
 
-        return Cell(row.toInt(), col.toInt(), this)
+        if(row<0 || row>=rows) return null
+        if(col<0 || col>=columns) return null
+
+        return cell(row.toInt()+1, col.toInt()+1)
     }
 }
 
+enum class Subcells(val idx : Int) {
+    nw : Subcells(0)
+    n : Subcells(1)
+    ne : Subcells(2)
+    e : Subcells(3)
+    se  : Subcells(4)
+    s : Subcells(5)
+    sw : Subcells(6)
+    w : Subcells(7)
+    c  : Subcells(8)
+}
+
+fun<T> Array<T>.each(cb:(T)->Unit) {
+    for(e in this) cb(e)
+}
+
+fun<T> Array<T>.eachIdx(cb:(Int,T)->Unit) {
+    for(i in 0..(size-1)) cb(i, this[i])
+}
+
 class Cell(val row:Int,val col:Int, val grid:Grid) {
-    var center : SvgElement? = null
-    var ne : SvgElement? = null
+    val subcells : Array<SvgElement?> = Array<SvgElement?>(9) {null}
+    var coreValue : SvgElement? = null
+
+    fun ne(s:String) {
+        val ce = subcells[Subcells.ne.idx]
+        if(ce !=null) {
+            ce.detach()
+            subcells[Subcells.ne.idx] = null
+        }
+        val p = posCenter(-grid.cw.toDouble()/4, -grid.ch.toDouble()/4)
+        val g = grid
+        val svgText = g.parent.svgtext(p.x, p.y) {
+            addStyle("font-size", (g.fh.value / 4).px())
+            addStyle("text-anchor", "middle")
+            addStyle("dominant-baseline", "middle")
+        }
+        subcells[Subcells.ne.idx] =svgText
+        subcells[Subcells.ne.idx]?.dirty = true
+    }
+
+    fun value(s:String) {
+        subcells.each {
+            if(it!=null) it.detach()
+        }
+    }
+
+    fun posCenter(xoff:Double, yoff:Double) : Position {
+        return Position((xoff+(col-1)*grid.cw-grid.cw/2).px(), (yoff+(row-1)*grid.ch-grid.ch/2).px())
+    }
+
+    public fun toString() : String = "Cell($row,$col)"
 }

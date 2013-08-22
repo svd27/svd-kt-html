@@ -71,7 +71,25 @@ trait Dirty {
 }
 
 trait Model<T> : Observable<T> {
-    var t : T?
+    protected var _value : T?
+    public var value : T?
+       get() = _value
+       set(v) {
+           if(v!=_value) {
+               val ov = _value
+               _value=v
+               if(_value==null) {
+                   fireRemove(ov!!)
+                   fireDelete(ov)
+               } else if(ov==null) {
+                   fireAdd(_value!!)
+               } else {
+                   var source = _value
+                   if(_value==null ) source = ov
+                   fireUpdate(source!!, "this", ov, _value)
+               }
+           }
+       }
 
 }
 
@@ -82,20 +100,6 @@ class ValueHolder<T>(init:T?) {
     fun toString() : String = value?.toString()?:""
 }
 
-abstract class AbstractModel<T>(v:T?) : Model<T> {
-    val value : ValueHolder<T> = ValueHolder(v)
-    override var t : T?
-    get() = value.value
-    set(v:T?) {
-        val ov = value.value; value.value = v;
-        if(ov!=v) {
-            if(t!=null)
-              if(ov!=null) fireUpdate(t!!, "", ov, v)
-              else fireAdd(t!!)
-            else fireRemove(ov!!)
-        }
-    }
-}
 
 trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
     val items : C
@@ -108,13 +112,11 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
     }
 
     open fun add(v:T) {
-        items.add(v)
-        fireAdd(v)
+        if(items.add(v)) fireAdd(v)
     }
 
     open fun remove(v:T) {
-        items.remove(v)
-        fireRemove(v)
+        if(items.remove(v)) fireRemove(v)
     }
 
 

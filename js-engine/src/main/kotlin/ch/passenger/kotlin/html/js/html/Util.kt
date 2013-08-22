@@ -74,6 +74,14 @@ public native trait DOMMouseEvent : DOMEvent {
     public val relatedTarget : EventTarget?
 }
 
+public native trait DOMKeyEvent : DOMEvent {
+    public val altKey : Boolean
+    public val charCode : Long
+    public val ctrlKey : Boolean
+    public val keyCode : Long
+    public val char : String?
+    public val key : String?
+}
 
 
 public trait Callback {

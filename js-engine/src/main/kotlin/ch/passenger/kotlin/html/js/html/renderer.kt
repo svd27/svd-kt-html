@@ -9,7 +9,7 @@ import ch.passenger.kotlin.html.js.binding.each
  */
 class Renderer(protected val doc:Document) {
     fun render(e:HtmlElement) {
-        console.log("render $e:${e.id()} hidden: ${e.hidden} dirty: ${e.dirty}")
+        //console.log("render $e:${e.id()} hidden: ${e.hidden} dirty: ${e.dirty}")
         if(!e.hidden && e.dirty) {
             var node = e.node
             if(node ==null){
@@ -20,7 +20,9 @@ class Renderer(protected val doc:Document) {
             e.each {
                 render(it)
             }
-        } else console.log("no work")
+        } else {
+            //console.log("no work")
+        }
     }
 
     fun body(e:HtmlElement) {
@@ -29,9 +31,9 @@ class Renderer(protected val doc:Document) {
             body.removeChild(it)
         }
         val n = if(e.node==null) e.createNode() else e.node
-        console.log("body append: $n")
+        //console.log("body append: $n")
         if(n==null) return
-        console.log("append body ${n.nodeName}")
+        //console.log("append body ${n.nodeName}")
         body.appendChild(n)
         render(e)
     }

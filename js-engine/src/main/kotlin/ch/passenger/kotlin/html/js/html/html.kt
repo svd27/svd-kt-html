@@ -24,6 +24,9 @@ import js.dom.core.TypeInfo
 import java.util.HashSet
 import ch.passenger.kotlin.html.js.model.Model
 import ch.passenger.kotlin.html.js.model.Observer
+import ch.passenger.kotlin.html.js.html.util.Converter
+import ch.passenger.kotlin.html.js.html.util.BooleanConverter
+import js.dom.html.HTMLInputElement
 
 /**
  * Created with IntelliJ IDEA.
@@ -88,7 +91,7 @@ abstract class HtmlElement(aid : String?) : Dirty {
         doRefresh()
     }
 
-    protected fun addChild(e : HtmlElement) {
+    public fun addChild(e : HtmlElement) {
         e.parent = this
         console.log("adding: ", e)
         _children.add(e)
@@ -320,6 +323,14 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
             attributes.att("class", c)
         }
     }
+
+    fun addStyle(s:String) {
+        if(attributes.att("style")==null) {
+            attributes.att("style", s)
+        } else {
+            attributes.att("style", "${attributes.att("style")!!.value} $s")
+        }
+    }
 }
 
 
@@ -361,6 +372,19 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         addChild(s)
     }
 
+    fun label(lfor:String?=null, id:String?=null, init:Label.()->Unit) : Label {
+        val l = Label(id)
+        if(lfor!=null) l.labels(lfor)
+        l.init()
+        return l
+    }
+
+    fun checkbox(model:Model<Boolean>, id:String?=null, init:CheckBox.()->Unit) : CheckBox {
+        val cb = CheckBox(model, id)
+        cb.init()
+        addChild(cb)
+        return cb
+    }
 
     fun append(t : Table) {
         addChild(t)
@@ -463,10 +487,7 @@ class Label(id : String? = null) : FlowContainer("label", id) {
 
 class TableCell(id : String? = null) : FlowContainer("td", id)
 
-trait Converter<T> {
-    fun convert2string(t:T) : String
-    fun convert2target(s:String):T
-}
+
 
 class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val converter:Converter<T>?=null, id : String? = null) : Tag("select", id) {
     var listener : Callback? = null
@@ -598,27 +619,6 @@ enum class InputTypes {
     number text date datetime button checkbox
 }
 
-abstract class NumberConverter<T:Number> : Converter<Number> {
-    override fun convert2string(t: Number): String {
-        return "$t"
-    }
-    fun crtNumber(s:String) :Double{
-        val mw = window as MyWindow
-        return mw.parseFloat(s)
-    }
-}
-
-open class IntConverter : NumberConverter<Int>() {
-    override fun convert2target(s: String): Number {
-        return crtNumber(s).toInt()
-    }
-}
-
-open class DoubleConverter : NumberConverter<Double>() {
-    override fun convert2target(s: String): Number {
-        return crtNumber(s).toDouble()
-    }
-}
 
 abstract class Input<T>(kind:InputTypes,val model:Model<T>,val conv:Converter<T>, id:String?=null) : Tag("input", id),EventManager {
     {
@@ -643,20 +643,37 @@ abstract class Input<T>(kind:InputTypes,val model:Model<T>,val conv:Converter<T>
         })
 
         change {
-            model.t = value()
+            model.value = value()
         }
     }
 
-    private fun value(v:T?) {
+    protected open fun value(v:T?) {
         if(v!=null)
         attributes.att("value", conv.convert2string(v))
         else attributes.att("value", "")
     }
 
-    private fun value() : T? {
+    protected open fun value() : T? {
         val vs = attributes.att("value")
         if(vs!=null)  return conv.convert2target(vs.value)
         return null
+    }
+}
+
+
+class CheckBox(model:Model<Boolean>, id:String?=null) : Input<Boolean>(InputTypes.checkbox, model, BooleanConverter(), id) {
+
+    protected override fun value(): Boolean? {
+        if(node==null) null
+        val inp = node as HTMLInputElement
+        return inp.checked
+    }
+    protected override fun value(v: Boolean?) {
+        if(node==null) return
+        val inp = node as HTMLInputElement
+        if(v!=null)
+        inp.checked = v
+        else inp.checked = false
     }
 }
 
