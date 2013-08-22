@@ -165,7 +165,7 @@ fun initUI() {
                         show()
                     }
                 })
-                CoordInfoComponent(div(){}, coordInfoModel)
+                //CoordInfoComponent(div(){}, coordInfoModel)
             }
 
             center {
@@ -230,17 +230,18 @@ fun initUI() {
                         val me = e as DOMMouseEvent
                         val c = grid.cell(me)
                         if (c != null) {
-                            console.log("click button: ${e.button}")
-                            grid.cellTextCenter(c) {
-                                attribute("opacity", "0.6")
-                                stroke = ANamedColor("red")
-                                text("${c.row}:${c.col}")
-                            }
                             grid.group?.dirty = true
-                            if(e.button == 1.toShort()) {
-
+                            console.log("click button: ${e.button}")
+                            console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
+                            if(e.button == 0.toShort() && !e.ctrlKey) {
+                                console.log("center: $c")
+                                grid.cellTextCenter(c) {
+                                    attribute("opacity", "0.6")
+                                    stroke = ANamedColor("red")
+                                    text("${c.row}:${c.col}")
+                                }
                             } else {
-                                //c.ne("1")
+                                c.ne("1")
                             }
                         }
                     }

@@ -72,6 +72,9 @@ public native trait DOMMouseEvent : DOMEvent {
     public val button: Short
     public val buttons: Short
     public val relatedTarget : EventTarget?
+    public val shiftKey : Boolean
+    public val ctrlKey : Boolean
+    public val altKey : Boolean
 }
 
 public native trait DOMKeyEvent : DOMEvent {

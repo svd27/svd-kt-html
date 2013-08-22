@@ -67,7 +67,7 @@ abstract class HtmlElement(aid : String?) : Dirty {
         if(dirty) {
             var desc = "$this"
             if(this is Tag) desc = this.name
-            console.log("$desc ${this.id()} wants a refresh")
+            //console.log("$desc ${this.id()} wants a refresh")
             val SESSION = (window as MyWindow)!!.bosork!!
             SESSION.refresh(this)
         }
@@ -93,7 +93,7 @@ abstract class HtmlElement(aid : String?) : Dirty {
 
     public fun addChild(e : HtmlElement) {
         e.parent = this
-        console.log("adding: ", e)
+        //console.log("adding: ", e)
         _children.add(e)
     }
 
@@ -172,11 +172,24 @@ abstract class HtmlElement(aid : String?) : Dirty {
     }
 
     fun insertIntoParent() {
-        var sib = precedingSibling(this)
+        var idx = -1
+
+        parent?.children?.eachIdx {
+            i,me ->
+            if(me.id()==id())
+                idx = i
+        }
+        if(idx<0) throw IllegalStateException()
+
+        var sib:HtmlElement? = null
         var preceed = true
-        if(sib==null) {
-            preceed=false
-            sib = nextSibling(this)
+        if(idx==0) {
+            preceed = true
+            if(parent?.children?.size()?:0>1)
+                sib = parent?.children?.get(1)
+        } else {
+            preceed = false
+            sib = parent?.children?.get(idx-1)
         }
 
 
@@ -282,7 +295,7 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
     val attributes : AttributeList = AttributeList(HashMap())
 
     override fun doRefresh() {
-        console.log("refresh Tag $name ${id()}")
+        //console.log("refresh Tag $name ${id()}")
         preRefreshHook()
         dirty = false
         if(node!=null) attributes.refresh(node)

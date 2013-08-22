@@ -82,14 +82,16 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
         //if(c.center!=null) c.center?.detach()
         val dx = (c.col-1).toDouble() * cw
         val dy = (c.row-1).toDouble() * ch
-
+        c.clear()
         val that = this
-        group?.svgtext((dx+.5*that.cw).px(), (dy+.5*that.ch).px()) {
+        val svgText = group?.svgtext((dx + .5 * that.cw).px(), (dy + .5 * that.ch).px()) {
             addStyle("font-size", that.fh)
             addStyle("text-anchor", "middle")
             addStyle("dominant-baseline", "middle")
             init()
         }
+        c.coreValue = svgText
+        svgText?.dirty = true
     }
 
 
@@ -129,6 +131,11 @@ fun<T> Array<T>.eachIdx(cb:(Int,T)->Unit) {
 class Cell(val row:Int,val col:Int, val grid:Grid) {
     val subcells : Array<SvgElement?> = Array<SvgElement?>(9) {null}
     var coreValue : SvgElement? = null
+
+    fun clear() {
+        subcells.each { if(it!=null) it.detach() }
+        if(coreValue!=null) coreValue?.detach()
+    }
 
     fun ne(s:String) {
         val ce = subcells[Subcells.ne.idx]
