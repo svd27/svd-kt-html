@@ -78,18 +78,23 @@ trait Model<T> : Observable<T> {
            if(v!=_value) {
                val ov = _value
                _value=v
-               if(_value==null) {
-                   fireRemove(ov!!)
-                   fireDelete(ov)
-               } else if(ov==null) {
-                   fireAdd(_value!!)
-               } else {
-                   var source = _value
-                   if(_value==null ) source = ov
-                   fireUpdate(source!!, "this", ov, _value)
-               }
+               _value = checkValue(v, ov)
            }
        }
+
+    open protected fun checkValue(nv:T?, ov:T?) : T? {
+        if(_value==null) {
+            fireRemove(ov!!)
+            fireDelete(ov)
+        } else if(ov==null) {
+            fireAdd(_value!!)
+        } else {
+            var source = _value
+            if(_value==null ) source = ov
+            fireUpdate(source!!, "this", ov, _value)
+        }
+        return nv
+    }
 
 }
 

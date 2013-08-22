@@ -80,8 +80,8 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
 
     fun cellTextCenter(c:Cell, init:SvgText.()->Unit) {
         //if(c.center!=null) c.center?.detach()
-        val dx = (c.col-1) * cw
-        val dy = (c.row-1) * ch
+        val dx = (c.col-1).toDouble() * cw
+        val dy = (c.row-1).toDouble() * ch
 
         val that = this
         group?.svgtext((dx+.5*that.cw).px(), (dy+.5*that.ch).px()) {

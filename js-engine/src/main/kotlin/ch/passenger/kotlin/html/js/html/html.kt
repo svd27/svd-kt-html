@@ -360,10 +360,11 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         return d
     }
 
-    fun span(id:String?=null, init: Span.() -> Unit) {
+    fun span(id:String?=null, init: Span.() -> Unit) : Span {
         val s = Span()
         addChild(s)
         s.init()
+        return s
     }
     
     fun<T,C:MutableCollection<T>> select(model:SelectionModel<T,C>,conv:Converter<T>?=null, id:String?=null, init: Select<T,C>.() -> Unit) {
