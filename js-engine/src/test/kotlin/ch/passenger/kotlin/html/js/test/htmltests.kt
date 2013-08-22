@@ -167,7 +167,9 @@ fun initUI() {
             atts {
                 att("style", "width: 100%; height: 100%;")
             }
-            val svg = svg(100.px(), 100.px(), "enterrec") {
+            val svg = svg(500.px(), 500.px(), "enterrec") {
+                viewBox(0,0,500,500)
+                pARnone()
                 rect(px(10), px(10), px(90), px(90), "rect") {
                     fill(ANamedColor("magenta"))
                     stroke(ANamedColor("grey"))
@@ -193,7 +195,8 @@ fun initUI() {
                 }
             }
 
-            val grid = Grid(svg, 100, 100, 9, 9, "grid")
+            val grid = Grid(svg, 300, 300, 9, 9, "grid")
+            grid.outerWidth = 3.px()
             grid.paint { stroke(ANamedColor("black")) }
         }
 

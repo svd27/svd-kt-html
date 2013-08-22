@@ -1,0 +1,82 @@
+<component name="libraryTable">
+  <library name="org.eclipse.jetty:jetty-deploy:9.0.4.v20130625" type="repository">
+    <properties maven-id="org.eclipse.jetty:jetty-deploy:9.0.4.v20130625" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-deploy/jetty-deploy-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jmx/jetty-jmx-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-monitor/jetty-monitor-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-start/jetty-start-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlets/jetty-servlets-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jsp/jetty-jsp-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-plus/jetty-plus-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-client/jetty-client-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-continuation/jetty-continuation-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-proxy/jetty-proxy-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jaas/jetty-jaas-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-annotations/jetty-annotations-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-rewrite/jetty-rewrite-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-core/spdy-core-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-server/spdy-server-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-http-server/spdy-http-server-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-util/jetty-util-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-http/jetty-http-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-webapp/jetty-webapp-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-io/jetty-io-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-xml/jetty-xml-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlet/jetty-servlet-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-security/jetty-security-9.0.4.v20130625.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-server/jetty-server-9.0.4.v20130625.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-deploy/jetty-deploy-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jmx/jetty-jmx-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-monitor/jetty-monitor-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-start/jetty-start-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlets/jetty-servlets-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-plus/jetty-plus-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-client/jetty-client-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-continuation/jetty-continuation-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-proxy/jetty-proxy-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jaas/jetty-jaas-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-annotations/jetty-annotations-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-rewrite/jetty-rewrite-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-core/spdy-core-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-server/spdy-server-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-http-server/spdy-http-server-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-util/jetty-util-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-http/jetty-http-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-webapp/jetty-webapp-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-io/jetty-io-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-xml/jetty-xml-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlet/jetty-servlet-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-security/jetty-security-9.0.4.v20130625-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-server/jetty-server-9.0.4.v20130625-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-deploy/jetty-deploy-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jmx/jetty-jmx-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-monitor/jetty-monitor-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-start/jetty-start-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlets/jetty-servlets-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jsp/jetty-jsp-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-plus/jetty-plus-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-client/jetty-client-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-continuation/jetty-continuation-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-proxy/jetty-proxy-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-jaas/jetty-jaas-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-annotations/jetty-annotations-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-rewrite/jetty-rewrite-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-core/spdy-core-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-server/spdy-server-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty.spdy/9.0.4.v20130625/spdy-http-server/spdy-http-server-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-util/jetty-util-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-http/jetty-http-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-webapp/jetty-webapp-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-io/jetty-io-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-xml/jetty-xml-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-servlet/jetty-servlet-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-security/jetty-security-9.0.4.v20130625-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.jetty/9.0.4.v20130625/jetty-server/jetty-server-9.0.4.v20130625-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

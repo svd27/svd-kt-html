@@ -18,8 +18,8 @@
     <orderEntry type="library" scope="TEST" name="org.apache.httpcomponents:httpclient:4.2.5" level="project" />
     <orderEntry type="module" module-name="svd-kt-html" />
     <orderEntry type="library" name="net.engio:mbassador:1.1.7" level="project" />
-    <orderEntry type="library" name="org.slf4j:slf4j-jdk14:1.7.5" level="project" />
     <orderEntry type="library" name="javax.servlet:javax.servlet-api:3.1.0" level="project" />
+    <orderEntry type="library" name="org.slf4j:slf4j-api:1.7.5" level="project" />
   </component>
 </module>
 

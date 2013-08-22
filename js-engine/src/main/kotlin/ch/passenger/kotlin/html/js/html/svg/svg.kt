@@ -15,7 +15,7 @@ import java.util.StringBuilder
 
 val nsSvg = "http://www.w3.org/2000/svg"
 
-class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer {
+class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
 
@@ -31,8 +31,32 @@ class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Ext
     }
 }
 
+trait ViewBox {
+    val me : SvgElement
+
+    fun viewBox(x:Double,y:Double,w:Double,h:Double){
+        me.attribute("viewBox","$x $y $w $h")
+    }
+
+    fun viewBox(x:Int,y:Int,w:Int,h:Int){
+        me.attribute("viewBox","$x $y $w $h")
+    }
+
+    fun pARnone() {
+        me.attribute("preserveAspectRatio","none")
+    }
+
+    fun pARxMinYMin () {
+        me.attribute("preserveAspectRatio","xMinYMin")
+    }
+}
+
 trait ShapeContainer {
     val me : SvgElement
+
+    fun rect(x:Number,y:Number,w:Number,h:Number,id:String?=null,init:Rect.()->Unit) : Rect {
+        return rect(x.px(),y.px(),w.px(),h.px(),id,init)
+    }
 
     fun rect(x:Length,y:Length,w:Length,h:Length,id:String?=null,init:Rect.()->Unit) : Rect {
         val r = Rect(Position(x,y), Extension(w,h), id)
@@ -79,6 +103,14 @@ abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
 
     public fun addElement(e:SvgElement) {
         addChild(e)
+    }
+
+    public fun attribute(name:String,value:String) {
+        attributes.att(name,value)
+    }
+
+    public fun attribute(name:String) : String? {
+        return attributes.att(name)?.value
     }
 
     override fun mouseenter(cb: (DOMEvent) -> Unit) {
@@ -193,11 +225,14 @@ trait Rounded : Shape {
 
 trait Stroked : Shape {
     var stroke : Paint?
+    var stroke_width : Length?
 
     fun writeStroke() {
         console.log("write stroke: ${stroke?.value}")
         if(stroke!=null)
         me.attributes.att("stroke", stroke?.value?:"")
+        if(stroke_width!=null)
+            me.attributes.att("stroke-width", "${stroke_width?.value}"?:"")
     }
     fun stroke(p:Paint) = stroke = p
 
@@ -216,6 +251,7 @@ trait Filled : Shape {
 
 abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stroked,Filled {
     override var stroke: Paint? = null
+    override var stroke_width: Length? = null
     override var fill: Paint? = null
 }
 
