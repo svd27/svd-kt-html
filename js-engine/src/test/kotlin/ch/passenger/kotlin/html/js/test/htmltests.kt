@@ -35,6 +35,7 @@ import java.util.HashSet
 import ch.passenger.kotlin.html.js.html.util.Converter
 import js.dom.html.HTMLDivElement
 import ch.passenger.kotlin.html.js.html.util.IntConverter
+import ch.passenger.kotlin.html.js.model.SelectionModel
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -80,9 +81,7 @@ var currentCell: Model<Cell> = object : Model<Cell> {
     override var _value: Cell? = null
 }
 
-enum class EntryMode {
-    SET CANDIDATE DELETE
-}
+
 
 fun crteml(): MutableList<EntryMode> {
     val l = ArrayList<EntryMode>(EntryMode.values().size)
@@ -94,13 +93,32 @@ fun crteml(): MutableList<EntryMode> {
 
 val emlist : List<EntryMode> = crteml()
 var selEM : Select<EntryMode,MutableList<EntryMode>>?= null
-val entryMode: Converter<EntryMode> = object : Converter<EntryMode> {
-    override fun convert2string(t: EntryMode): String = t.name()
-    override fun convert2target(s: String): EntryMode = EntryMode.valueOf(s)
+
+enum class EntryMode {
+    SET CANDIDATE DELETE
+
+    fun ints() {
+        val l = ArrayList<Int>()
+        values().each {
+            l.add(it.ordinal())
+        }
+    }
 }
 
+class EntryModel() : AbstractSelectionModel<EntryMode>(crteml(), false) {
+    class object {
+        val converter : Converter<EntryMode> = object : Converter<EntryMode> {
+            override fun convert2string(t: EntryMode): String = t.name()
+            override fun convert2target(s: String): EntryMode = EntryMode.valueOf(s)
+        }
+    }
+}
+val modelEntry : EntryModel = EntryModel()
+
+val numbers : SelectionModel<Int,MutableList<Int>> = object : AbstractSelectionModel<Int>(1..9, false) { }
+
 //val entryValue : AbstractSelectionModel<Int> = object : AbstractSelectionModel<Int>(1..9,false) {}
-val selEV : Select<Int,MutableList<Int>>? = null
+var selEV : Select<Int,MutableList<Int>>? = null
 
 var theGrid: Grid? = null
 
@@ -209,7 +227,7 @@ fun initUI() {
                         if(it.charCode==118.toLong()) selEM?.select(EntryMode.SET)
                         if(currentCell.value != null) {
                             if(it.charCode > 48 && it.charCode <= 57) {
-                                when(selEM.selected()) {
+                                when(selEM?.selected()) {
                                     EntryMode.SET -> currentCell.value?.value(it.charCode-48)
                                     EntryMode.CANDIDATE -> currentCell?.value?.candidate(it.charCode-48)
                                     EntryMode.DELETE -> currentCell.value?.remove(it.charCode-48)
@@ -304,9 +322,22 @@ fun initUI() {
                 val cdd = div() {
 
                 }
-                selEM = select(crteml(), entryMode) {}
-                val r = 1..9
-                selEv = select(r,IntConverter()){}
+                selEM = select(modelEntry, EntryModel.converter) {}
+                val r : Range<Int> = 1..9
+                val cv = object : Converter<Int> {
+                    val ic = IntConverter()
+                    override fun convert2string(t: Int): String {
+                        throw UnsupportedOperationException()
+                    }
+                    override fun convert2target(s: String): Int {
+                        throw UnsupportedOperationException()
+                    }
+                }
+                val il = ArrayList<Int>()
+                for(i in 1..9) {
+                    il.add(i)
+                }
+                selEV = select(object:AbstractSelectionModel<Int>(il, false){},cv){}
                 mouseover { currentCell.value = null }
                 CellDisplay(cdd, currentCell)
                 val opd = div() {
