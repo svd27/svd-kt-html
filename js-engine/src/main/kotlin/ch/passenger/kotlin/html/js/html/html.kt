@@ -36,54 +36,54 @@ import js.dom.html.HTMLInputElement
  * To change this template use File | Settings | File Templates.
  */
 
-fun session() : Session{
+fun session(): Session {
     val mw = window as MyWindow
     return mw.bosork!!
 }
 
-open class Attribute(val name:String, val value:String) {
-    public fun render() : String {
+open class Attribute(val name: String, val value: String) {
+    public fun render(): String {
         return "${name} = \"${value}\""
     }
 }
 
-public val ROOT_PARENT : HtmlElement = Text("")
+public val ROOT_PARENT: HtmlElement = Text("")
 
-abstract class HtmlElement(aid : String?) : Dirty {
-    var parent : HtmlElement? = null
-    var node : Node? = null
-    var hidden : Boolean = false
-    set(v) {
-       if(v!=hidden) {
-           $hidden=v
-           dirty = true
-           if(hidden) detach() else createNode()
-       }
-    }
+abstract class HtmlElement(aid: String?) : Dirty {
+    var parent: HtmlElement? = null
+    var node: Node? = null
+    var hidden: Boolean = false
+        set(v) {
+            if(v != hidden) {
+                $hidden = v
+                dirty = true
+                if(hidden) detach() else createNode()
+            }
+        }
 
     public override var dirty: Boolean = true
-    set(v) {
-        $dirty = v
-        if(dirty) {
-            var desc = "$this"
-            if(this is Tag) desc = this.name
-            //console.log("$desc ${this.id()} wants a refresh")
-            val SESSION = (window as MyWindow)!!.bosork!!
-            SESSION.refresh(this)
+        set(v) {
+            $dirty = v
+            if(dirty) {
+                var desc = "$this"
+                if(this is Tag) desc = this.name
+                //console.log("$desc ${this.id()} wants a refresh")
+                val SESSION = (window as MyWindow)!!.bosork!!
+                SESSION.refresh(this)
+            }
         }
-    }
-    private val _children : MutableList<HtmlElement> = ArrayList<HtmlElement>()
-    protected val children : List<HtmlElement>
-    get() = _children
+    private val _children: MutableList<HtmlElement> = ArrayList<HtmlElement>()
+    protected val children: List<HtmlElement>
+        get() = _children
 
-    public val tid : String = forceId(aid)
-    public abstract fun createNode() : Node?
+    public val tid: String = forceId(aid)
+    public abstract fun createNode(): Node?
 
-    public fun each(cb: (el:HtmlElement) -> Unit) {
+    public fun each(cb: (el: HtmlElement) -> Unit) {
         children.each { cb(it) }
     }
 
-    public fun id() : String = tid
+    public fun id(): String = tid
 
     abstract fun doRefresh()
     fun refresh() {
@@ -91,15 +91,15 @@ abstract class HtmlElement(aid : String?) : Dirty {
         doRefresh()
     }
 
-    public fun addChild(e : HtmlElement) {
+    public fun addChild(e: HtmlElement) {
         e.parent = this
         //console.log("adding: ", e)
         _children.add(e)
     }
 
-    fun find(id:String) : HtmlElement? {
-        var result : HtmlElement? = null
-        if(id==id()) return this
+    fun find(id: String): HtmlElement? {
+        var result: HtmlElement? = null
+        if(id == id()) return this
         each {
             result = it.find(id)
         }
@@ -108,43 +108,44 @@ abstract class HtmlElement(aid : String?) : Dirty {
     }
 
 
-    public fun precedingSibling(e:HtmlElement) : HtmlElement? {
-       val idx = indexOf(e)
-        if(idx==0) return null
-        if(idx>0) return children[idx-1]
-        var res : HtmlElement? = null
+    public fun precedingSibling(e: HtmlElement): HtmlElement? {
+        val idx = indexOf(e)
+        if(idx == 0) return null
+        if(idx > 0) return children[idx - 1]
+        var res: HtmlElement? = null
         each {
             val s = it.precedingSibling(e)
-            if(s!=null) res = s
+            if(s != null) res = s
         }
 
         return res
     }
 
-    public fun nextSibling(e:HtmlElement) : HtmlElement? {
+    public fun nextSibling(e: HtmlElement): HtmlElement? {
         val idx = indexOf(e)
-        if(idx==0) return if(children.size()>1) children[1] else null
-        if(idx>0) return if(children.size()>idx+1) children[idx+1] else null
-        var res : HtmlElement? = null
+        if(idx == 0) return if(children.size() > 1) children[1] else null
+        if(idx > 0) return if(children.size() > idx + 1) children[idx + 1] else null
+        var res: HtmlElement? = null
         each {
             val s = it.nextSibling(e)
-            if(s!=null) res = s
+            if(s != null) res = s
         }
 
         return res
     }
 
-    fun indexOf(e:HtmlElement) : Int {
+    fun indexOf(e: HtmlElement): Int {
         var idx = -1
         children.eachIdx {
-            (i,c) -> if(c.id()==e.id()) idx = i
+            (i, c) ->
+            if(c.id() == e.id()) idx = i
         }
         return idx
     }
 
     fun detach() {
-        if (node!=null) {
-            if(parent!=null && parent?.node!=null) {
+        if (node != null) {
+            if(parent != null && parent?.node != null) {
                 parent?.node?.removeChild(node!!)
             }
             node = null
@@ -152,16 +153,16 @@ abstract class HtmlElement(aid : String?) : Dirty {
         }
     }
 
-    public fun clear(refresh:Boolean=false) {
+    public fun clear(refresh: Boolean = false) {
         val cl = ArrayList<HtmlElement>()
         cl.addAll(children)
         cl.each { remove(it) }
         if(refresh) dirty = true
     }
 
-    protected fun remove(c:HtmlElement) {
+    protected fun remove(c: HtmlElement) {
         val idx = indexOf(c)
-        if(idx >=0) {
+        if(idx >= 0) {
             c.clear()
             c.detach()
 
@@ -175,30 +176,30 @@ abstract class HtmlElement(aid : String?) : Dirty {
         var idx = -1
 
         parent?.children?.eachIdx {
-            i,me ->
-            if(me.id()==id())
+            i, me ->
+            if(me.id() == id())
                 idx = i
         }
-        if(idx<0) throw IllegalStateException()
+        if(idx < 0) throw IllegalStateException()
 
-        var sib:HtmlElement? = null
+        var sib: HtmlElement? = null
         var preceed = true
-        if(idx==0) {
+        if(idx == 0) {
             preceed = true
-            if(parent?.children?.size()?:0>1)
+            if(parent?.children?.size()?:0 > 1)
                 sib = parent?.children?.get(1)
         } else {
             preceed = false
-            sib = parent?.children?.get(idx-1)
+            sib = parent?.children?.get(idx - 1)
         }
 
 
-        if(sib!=null && sib?.node!=null) {
+        if(sib != null && sib?.node != null) {
             if(preceed) {
-                parent?.node?.insertBefore(node!!,sib?.node!!)
+                parent?.node?.insertBefore(node!!, sib?.node!!)
             } else {
-                if(sib?.node?.nextSibling!=null) {
-                    parent?.node?.insertBefore(node!!,sib?.node!!.nextSibling!!)
+                if(sib?.node?.nextSibling != null) {
+                    parent?.node?.insertBefore(node!!, sib?.node!!.nextSibling!!)
                 } else {
                     parent?.node?.appendChild(node!!)
                 }
@@ -209,22 +210,26 @@ abstract class HtmlElement(aid : String?) : Dirty {
     }
 }
 
-class Text(initial : String) : HtmlElement(null) {
-    var content : String = initial
-    set(s) {if(content!=s) {$content=s; dirty = true}}
+class Text(initial: String) : HtmlElement(null) {
+    var content: String = initial
+        set(s) {
+            if(content != s) {
+                $content = s; dirty = true
+            }
+        }
 
-    public override fun createNode() : Node?{
+    public override fun createNode(): Node? {
         if(hidden) return null
-        if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
+        if(parent != null && (parent?.node != null || parent == ROOT_PARENT)) {
             node = window.document.createTextNode(content)!!
-            if(parent!=ROOT_PARENT) insertIntoParent()
+            if(parent != ROOT_PARENT) insertIntoParent()
         }
         return node
     }
 
 
     override fun doRefresh() {
-        if(parent!=null && parent?.node!=null) {
+        if(parent != null && parent?.node != null) {
             parent?.node?.textContent = content
         }
     }
@@ -232,8 +237,8 @@ class Text(initial : String) : HtmlElement(null) {
 
 
 
-class AttributeList(private val list : MutableMap<String,Attribute>) {
-    fun att(name : String, value : String) {
+class AttributeList(private val list: MutableMap<String, Attribute>) {
+    fun att(name: String, value: String) {
         list.put(name, Attribute(name, value))
     }
 
@@ -241,38 +246,38 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
         return list.values()
     }
 
-    fun att(name : String) : Attribute? {
+    fun att(name: String): Attribute? {
         return list.get(name)
     }
 
-    fun contains(name : String) : Boolean {
+    fun contains(name: String): Boolean {
         return list.containsKey(name)
     }
 
-    fun remove(name:String) {
+    fun remove(name: String) {
         list.remove(name)
     }
 
-    fun refresh(n:Node?) {
-        if(n==null) return
+    fun refresh(n: Node?) {
+        if(n == null) return
         val l = n.attributes.length.toInt()
-        for(i in 0..(l-1)) {
+        for(i in 0..(l - 1)) {
             val na = n.attributes.item(i) as Attr
-            if(na!=null && !list.containsKey(na.name)) {
+            if(na != null && !list.containsKey(na.name)) {
                 console.log("lost att ${na.name}")
                 n.attributes.removeNamedItem(na.name)
-            } else if(na!=null) {
+            } else if(na != null) {
                 val a = na as DOMAttribute
                 val v = list[na.nodeName]
-                console.log("modify att ${a.name}: ${a.value} -> $v")
-                if(v!=null)
-                a.value = v.value
+                console.log("modify att ${a.name}: ${a.value} -> ", v?.value)
+                if(v != null)
+                    a.value = v.value
                 else n.attributes.removeNamedItem(a.name)
             }
         }
 
         list.values().each {
-            if(n.attributes.getNamedItem(it.name)==null) {
+            if(n.attributes.getNamedItem(it.name) == null) {
                 console.log("gained att ${it.name}: ${it.value}")
                 val a = window.document.createAttribute(it.name)!! as DOMAttribute
                 a.value = it.value
@@ -282,23 +287,23 @@ class AttributeList(private val list : MutableMap<String,Attribute>) {
     }
 }
 
-fun forceId(aid : String?) : String {
-    if(aid==null || aid.trim().length()==0) {
+fun forceId(aid: String?): String {
+    if(aid == null || aid.trim().length() == 0) {
         val SESSION = (window as MyWindow)!!.bosork
-        if(SESSION==null) return "id"
+        if(SESSION == null) return "id"
         return SESSION.genId()
     } else return aid
 }
 
-abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), EventManager {
+abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), EventManager {
     protected override val listeners: MutableMap<EventTypes, MutableSet<(DOMEvent) -> Unit>> = HashMap()
-    val attributes : AttributeList = AttributeList(HashMap())
+    val attributes: AttributeList = AttributeList(HashMap())
 
     override fun doRefresh() {
         //console.log("refresh Tag $name ${id()}")
         preRefreshHook()
         dirty = false
-        if(node!=null) attributes.refresh(node)
+        if(node != null) attributes.refresh(node)
         postRefreshHook()
     }
 
@@ -306,11 +311,11 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
     public override fun createNode(): Node? {
         if(hidden) return null
         console.log("create Tag $name in ${parent?.id()}: ${parent?.node?.nodeName}")
-        if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
+        if(parent != null && (parent?.node != null || parent == ROOT_PARENT)) {
             node = window.document.createElement(name)
             attributes.refresh(node)
             initListeners()
-            if(parent!=ROOT_PARENT) insertIntoParent()
+            if(parent != ROOT_PARENT) insertIntoParent()
         }
         return node
     }
@@ -323,11 +328,11 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
     }
 
 
-    fun atts(init : AttributeList.() -> Unit) {
+    fun atts(init: AttributeList.() -> Unit) {
         attributes.init()
     }
 
-    fun addClass(c : String) {
+    fun addClass(c: String) {
         if(attributes.contains("class")) {
             val ca = attributes.att("class")
             val prefix = ca?.value?:""
@@ -337,8 +342,8 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
         }
     }
 
-    fun addStyle(s:String) {
-        if(attributes.att("style")==null) {
+    fun addStyle(s: String) {
+        if(attributes.att("style") == null) {
             attributes.att("style", s)
         } else {
             attributes.att("style", "${attributes.att("style")!!.value} $s")
@@ -348,80 +353,80 @@ abstract class Tag(val name : String, val aid : String?) : HtmlElement(aid), Eve
 
 
 
-abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
+abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
 
-    fun text(s:String) {
+    fun text(s: String) {
         addChild(Text(s))
     }
 
-    fun table(id : String? = null, init: Table.() -> Unit) {
+    fun table(id: String? = null, init: Table.() -> Unit) {
         val table = Table("", id)
         addChild(table)
         table.init()
     }
 
-    fun a(href : String, id:String?=null, init : Link.() -> Unit) {
+    fun a(href: String, id: String? = null, init: Link.() -> Unit) {
         val a = Link(href)
         a.init()
         addChild(a)
     }
 
-    fun div(id:String?=null, init: Div.() -> Unit) : Div {
+    fun div(id: String? = null, init: Div.() -> Unit): Div {
         val d = Div(id)
         d.init()
         addChild(d)
         return d
     }
 
-    fun span(id:String?=null, init: Span.() -> Unit) : Span {
+    fun span(id: String? = null, init: Span.() -> Unit): Span {
         val s = Span()
         addChild(s)
         s.init()
         return s
     }
-    
-    fun<T,C:MutableCollection<T>> select(model:SelectionModel<T,C>,conv:Converter<T>?=null, id:String?=null, init: Select<T,C>.() -> Unit): Select<T, C> {
+
+    fun<T, C : MutableCollection<T>> select(model: SelectionModel<T, C>, conv: Converter<T>? = null, id: String? = null, init: Select<T, C>.() -> Unit): Select<T, C> {
         val s = Select(model, conv, id)
         s.init()
         addChild(s)
         return s
     }
 
-    fun label(lfor:String?=null, id:String?=null, init:Label.()->Unit) : Label {
+    fun label(lfor: String? = null, id: String? = null, init: Label.()->Unit): Label {
         val l = Label(id)
-        if(lfor!=null) l.labels(lfor)
+        if(lfor != null) l.labels(lfor)
         l.init()
         return l
     }
 
-    fun checkbox(model:Model<Boolean>, id:String?=null, init:CheckBox.()->Unit) : CheckBox {
+    fun checkbox(model: Model<Boolean>, id: String? = null, init: CheckBox.()->Unit): CheckBox {
         val cb = CheckBox(model, id)
         cb.init()
         addChild(cb)
         return cb
     }
 
-    fun append(t : Table) {
+    fun append(t: Table) {
         addChild(t)
     }
 
-    fun appendFlow(c : FlowContainer) {
+    fun appendFlow(c: FlowContainer) {
         addChild(c)
     }
 
-    fun svg(w:Length,h:Length,id:String?=null, init:SVG.()->Unit) : SVG {
-        val svg = SVG(Extension(w,h),id)
+    fun svg(w: Length, h: Length, id: String? = null, init: SVG.()->Unit): SVG {
+        val svg = SVG(Extension(w, h), id)
         svg.init()
         addChild(svg)
         return svg
     }
 }
 
-class Link(val href : String) : FlowContainer("a") {
+class Link(val href: String) : FlowContainer("a") {
     {
         atts { att("href", href) }
     }
-    fun action(cb : Callback) {
+    fun action(cb: Callback) {
         val SESSION = (window as MyWindow)!!.bosork!!
         val aid = SESSION.actionHolder.add(cb)
         addClass("action")
@@ -432,26 +437,26 @@ class Link(val href : String) : FlowContainer("a") {
 
 }
 
-class Table(public var title: String, id : String? = null) : Tag("table", id) {
-    private var caption : Caption? = null
-    private var body : TBody? = null
-    private var head : THead? = null
+class Table(public var title: String, id: String? = null) : Tag("table", id) {
+    private var caption: Caption? = null
+    private var body: TBody? = null
+    private var head: THead? = null
 
-    fun caption(init : Caption.() -> Unit): Unit {
+    fun caption(init: Caption.() -> Unit): Unit {
         var c = Caption()
         c.init()
         caption = c
         addChild(c)
     }
 
-    fun body(init : TBody.() -> Unit): Unit {
+    fun body(init: TBody.() -> Unit): Unit {
         val b = TBody()
         b.init()
         body = b
         addChild(b)
     }
 
-    fun head(init : THead.() -> Unit): Unit {
+    fun head(init: THead.() -> Unit): Unit {
         val h = THead()
         h.init()
         head = h
@@ -461,17 +466,17 @@ class Table(public var title: String, id : String? = null) : Tag("table", id) {
 
 }
 
-class TBody(id : String? = null) : Tag("tbody", id) {
+class TBody(id: String? = null) : Tag("tbody", id) {
 
-    fun tr(init : TableRow.() -> Unit): Unit {
+    fun tr(init: TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
         addChild(row)
     }
 }
 
-class THead(id : String? = null) : Tag("thead", id) {
-    fun tr(init : TableRow.() -> Unit): Unit {
+class THead(id: String? = null) : Tag("thead", id) {
+    fun tr(init: TableRow.() -> Unit): Unit {
         val row = TableRow()
         row.init()
         addChild(row)
@@ -483,8 +488,8 @@ class Caption : FlowContainer("Caption") {
 
 }
 
-class TableRow(id : String? = null) : Tag("tr", id) {
-    fun td(init : TableCell.() -> Unit) {
+class TableRow(id: String? = null) : Tag("tr", id) {
+    fun td(init: TableCell.() -> Unit) {
         val c = TableCell()
         c.init()
         addChild(c)
@@ -492,20 +497,20 @@ class TableRow(id : String? = null) : Tag("tr", id) {
 }
 
 
-class Div(id : String? = null) : FlowContainer("div", id)
-class Span(id : String? = null) : FlowContainer("span", id)
-class Label(id : String? = null) : FlowContainer("label", id) {
-    fun labels(ref:String) {
+class Div(id: String? = null) : FlowContainer("div", id)
+class Span(id: String? = null) : FlowContainer("span", id)
+class Label(id: String? = null) : FlowContainer("label", id) {
+    fun labels(ref: String) {
         attributes.att("for", ref)
     }
 }
 
-class TableCell(id : String? = null) : FlowContainer("td", id)
+class TableCell(id: String? = null) : FlowContainer("td", id)
 
 
 
-class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val converter:Converter<T>?=null, id : String? = null) : Tag("select", id) {
-    var listener : Callback? = null
+class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val converter: Converter<T>? = null, id: String? = null) : Tag("select", id) {
+    var listener: Callback? = null
 
     {
         if(model.multi) attributes.att("multiple", "true")
@@ -514,34 +519,52 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         val obs = object : AbstractObserver<T>() {
             override fun added(t: T) {
                 console.log("adding option: ${t.toString()}")
-                if(find(t)==null) {
+                if(find(t) == null) {
                     addOption(t)
                     console.log("added option: ${t.toString()}")
                 }
             }
             override fun loaded(t: T) {
-                val o = find(t)
-                if(o!=null) {
-                    if(!o.selected()) {
-                        console.log("selecting $o")
-                        o.selected(true)
-                        dirty = true
+                if (model.multi) {
+                    val o = find(t)
+                    if(o != null) {
+                        if(!o.selected()) {
+                            console.log("selecting $o")
+                            o.selected(true)
+                            o.dirty = true
+                        }
+                    }
+                } else {
+                    each {
+                        if(it is Option<*>) {
+                            val o = it as Option<T>
+                            if(o.value==t && !o.selected()) {
+                                o.selected(true)
+                                o.dirty = true
+                            } else if(o.selected()) {
+                                o.selected(false)
+                                o.dirty = true
+                            }
+                        }
                     }
                 }
+                dirty = true
             }
             override fun unloaded(t: T) {
                 val o = find(t)
-                if(o!=null) {
+                if(o != null) {
                     if(o.selected()) {
                         console.log("deselecting $o")
                         o.selected(false)
                         dirty = true
                     }
                 }
+
+
             }
             override fun removed(t: T) {
                 val o = find(t)
-                if(o!=null) {
+                if(o != null) {
                     remove(o)
                     dirty = true
                 }
@@ -554,7 +577,7 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
             }
         }
         console.log("adding observer to $model")
-        model.items.each {(t:T) ->
+        model.items.each {(t: T) ->
             addOption(t)
         }
 
@@ -564,36 +587,36 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         }
     }
 
-    fun select(t:T) {
+    fun select(t: T) {
         model.select(t)
     }
 
-    fun selected() : T? {
-        var sel : T? = null
+    fun selected(): T? {
+        var sel: T? = null
         each {
             if(it is Option<*> && it.selected()) sel = it.value as T?
         }
         return  sel
     }
 
-    fun addOption(t:T) {
+    fun addOption(t: T) {
         val cnv = converter
-        option(t){label(if(cnv==null) value.toString() else cnv.convert2string(value))}
+        option(t) { label(if(cnv == null) value.toString() else cnv.convert2string(value)) }
     }
 
-    fun find(t:T) : Option<T>? {
-        var found : Option<T>? = null
+    fun find(t: T): Option<T>? {
+        var found: Option<T>? = null
         each {
-            if(it is Option<*> && t==it.value) {
+            if(it is Option<*> && t == it.value) {
                 found = it as Option<T>
             }
         }
         return found
     }
 
-    fun option(t:T, id:String?=null, init : Option<T>.() -> Unit) {
+    fun option(t: T, id: String? = null, init: Option<T>.() -> Unit) {
         console.log("create option: $t")
-        val o : Option<T> = Option<T>(t, id)
+        val o: Option<T> = Option<T>(t, id)
         o.init()
         addChild(o)
     }
@@ -602,9 +625,9 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         each {
             val o = it as Option<T>
             val n = o.node
-            if(n!=null) {
+            if(n != null) {
                 val on = n as HTMLOptionElement
-                if(on.selected!=o.selected()) {
+                if(on.selected != o.selected()) {
                     if(on.selected) {
                         model.select(o.value)
                     } else {
@@ -618,28 +641,32 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
 
 }
 
-class Option<T>(val value:T, id : String? = null) : Tag("option", id) {
-    var text : Text? = null
-    fun disabled(fl : Boolean) {
+class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
+    var text: Text? = null
+    fun disabled(fl: Boolean) {
         attributes.att("disabled", "${fl}")
     }
-    fun selected(fl : Boolean) {
-        if(fl)
-        attributes.att("selected", "selected")
-        else attributes.remove("selected")
+    fun selected(fl: Boolean) {
+        if(node!=null) {
+            val on = node as HTMLOptionElement
+            if(on.selected!=fl) on.selected = fl
+        }
     }
 
-    fun selected() : Boolean {
-        return attributes.contains("selected")
+    fun selected(): Boolean {
+        if(node!=null) {
+            val on = node as HTMLOptionElement
+            return on.selected
+        }
+        return false
     }
 
-    fun label(l : String) {
+    fun label(l: String) {
         attributes.att("label", l)
     }
-    fun value(l : String) {
+    fun value(l: String) {
         attributes.att("value", l)
     }
-
 }
 
 enum class InputTypes {
@@ -647,7 +674,7 @@ enum class InputTypes {
 }
 
 
-abstract class Input<T>(kind:InputTypes,val model:Model<T>,val conv:Converter<T>, id:String?=null) : Tag("input", id),EventManager {
+abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Converter<T>, id: String? = null) : Tag("input", id), EventManager {
     {
         attributes.att("type", kind.name())
         model.addObserver(object : AbstractObserver<T>() {
@@ -674,40 +701,40 @@ abstract class Input<T>(kind:InputTypes,val model:Model<T>,val conv:Converter<T>
         }
     }
 
-    protected open fun value(v:T?) {
-        if(v!=null)
-        attributes.att("value", conv.convert2string(v))
+    protected open fun value(v: T?) {
+        if(v != null)
+            attributes.att("value", conv.convert2string(v))
         else attributes.att("value", "")
     }
 
-    protected open fun value() : T? {
+    protected open fun value(): T? {
         val vs = attributes.att("value")
-        if(vs!=null)  return conv.convert2target(vs.value)
+        if(vs != null)  return conv.convert2target(vs.value)
         return null
     }
 }
 
 
-class CheckBox(model:Model<Boolean>, id:String?=null) : Input<Boolean>(InputTypes.checkbox, model, BooleanConverter(), id) {
+class CheckBox(model: Model<Boolean>, id: String? = null) : Input<Boolean>(InputTypes.checkbox, model, BooleanConverter(), id) {
 
     protected override fun value(): Boolean? {
-        if(node==null) null
+        if(node == null) null
         val inp = node as HTMLInputElement
         return inp.checked
     }
     protected override fun value(v: Boolean?) {
-        if(node==null) return
+        if(node == null) return
         val inp = node as HTMLInputElement
-        if(v!=null)
-        inp.checked = v
+        if(v != null)
+            inp.checked = v
         else inp.checked = false
     }
 }
 
-class InputNumber<T:Number>(model:Model<T>, conv:Converter<T>, id:String?=null) : Input<T>(InputTypes.number, model, conv, id)
+class InputNumber<T : Number>(model: Model<T>, conv: Converter<T>, id: String? = null) : Input<T>(InputTypes.number, model, conv, id)
 
 trait EventListener {
-    fun handleEvent(e:DOMEvent) : Any?
+    fun handleEvent(e: DOMEvent): Any?
 }
 
 enum class EventTypes {
@@ -715,11 +742,11 @@ enum class EventTypes {
 }
 
 trait EventManager {
-    protected val listeners : MutableMap<EventTypes,MutableSet<(e:DOMEvent)->Unit>>
-    protected val node : Node?
+    protected val listeners: MutableMap<EventTypes, MutableSet<(e: DOMEvent)->Unit>>
+    protected val node: Node?
 
     fun initListeners() {
-        if(node!=null) {
+        if(node != null) {
             val et = node as EventTarget
             listeners.keySet().each {
                 kind ->
@@ -731,58 +758,58 @@ trait EventManager {
         }
     }
 
-    fun removeListener(kind:EventTypes, l: (e:DOMEvent)->Unit) {
-        if(listeners[kind]==null) {
+    fun removeListener(kind: EventTypes, l: (e: DOMEvent)->Unit) {
+        if(listeners[kind] == null) {
             return
         }
-        val done : Boolean = listeners[kind]?.remove(l)?:false
+        val done: Boolean = listeners[kind]?.remove(l)?:false
         console.log("removing listener $l result: $done")
-        if(node!=null) {
+        if(node != null) {
             val et = node as EventTarget
             et.removeEventListener(kind.name(), l)
         }
     }
 
-    fun getListeners(kind:EventTypes) : MutableSet<(e:DOMEvent)->Unit>{
-        if(listeners[kind]==null) {
-            listeners.put(kind,HashSet())
+    fun getListeners(kind: EventTypes): MutableSet<(e: DOMEvent)->Unit> {
+        if(listeners[kind] == null) {
+            listeners.put(kind, HashSet())
         }
 
         return listeners[kind]!!
     }
 
-    fun mouseenter(cb:(e:DOMEvent)->Unit) {
+    fun mouseenter(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mouseenter).add(cb)
     }
-    fun mouseleave(cb:(e:DOMEvent)->Unit) {
+    fun mouseleave(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mouseleave).add(cb)
     }
-    fun click(cb:(e:DOMEvent)->Unit) {
+    fun click(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.click).add(cb)
     }
-    fun change(cb:(e:DOMEvent)->Unit) {
+    fun change(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.change).add(cb)
     }
-    fun mouseover(cb:(e:DOMEvent)->Unit) {
+    fun mouseover(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mouseover).add(cb)
     }
-    fun mouseout(cb:(e:DOMEvent)->Unit) {
+    fun mouseout(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mouseout).add(cb)
     }
 
-    fun mousemove(cb:(e:DOMEvent)->Unit) {
+    fun mousemove(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mousemove).add(cb)
     }
 
-    fun keypress(cb:(e:DOMEvent)->Unit) {
+    fun keypress(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.keypress).add(cb)
     }
 
-    fun keydown(cb:(e:DOMEvent)->Unit) {
+    fun keydown(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.keydown).add(cb)
     }
 
-    fun keyupx(cb:(e:DOMEvent)->Unit) {
+    fun keyupx(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.keyup).add(cb)
     }
 

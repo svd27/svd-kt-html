@@ -115,7 +115,13 @@ class EntryModel() : AbstractSelectionModel<EntryMode>(crteml(), false) {
 }
 val modelEntry : EntryModel = EntryModel()
 
-val numbers : SelectionModel<Int,MutableList<Int>> = object : AbstractSelectionModel<Int>(1..9, false) { }
+fun createNumbers() : MutableList<Int> {
+    val l = ArrayList<Int>(9)
+    for(i in 1..9) l.add(i)
+    return l
+}
+
+val numbers : SelectionModel<Int,MutableList<Int>> = object : AbstractSelectionModel<Int>(createNumbers(), false) { }
 
 //val entryValue : AbstractSelectionModel<Int> = object : AbstractSelectionModel<Int>(1..9,false) {}
 var selEV : Select<Int,MutableList<Int>>? = null
@@ -221,60 +227,32 @@ fun initUI() {
                         val ev = it as DOMKeyEvent
 
                         //val c = (0+ev.charCode).toChar()
-                        console.log("pressed ", it, " ")
-                        if(it.charCode==120.toLong()) selEM?.select(EntryMode.DELETE)
-                        if(it.charCode==99.toLong()) selEM?.select(EntryMode.CANDIDATE)
-                        if(it.charCode==118.toLong()) selEM?.select(EntryMode.SET)
+
+                        val cc = it.charCode as Int
+                        console.log("pressed ", it, " ", cc)
+                        if(cc ==120) modelEntry.select(EntryMode.DELETE)
+                        if(cc ==99) modelEntry.select(EntryMode.CANDIDATE)
+                        if(cc ==118) modelEntry.select(EntryMode.SET)
+                        console.log("${modelEntry.selections}")
                         if(currentCell.value != null) {
-                            if(it.charCode > 48 && it.charCode <= 57) {
-                                when(selEM?.selected()) {
-                                    EntryMode.SET -> currentCell.value?.value(it.charCode-48)
-                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(it.charCode-48)
-                                    EntryMode.DELETE -> currentCell.value?.remove(it.charCode-48)
+                            if(cc > 48 && cc <= 57) {
+                                val num = cc - 48
+                                console.log("selecting $num")
+                                numbers.select(num)
+
+                                when(modelEntry.firstSelected()) {
+                                    EntryMode.SET -> currentCell.value?.value(num)
+                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
+                                    EntryMode.DELETE -> currentCell.value?.remove(num)
                                 }
+
                             }
                         }
                     }, false)
-                    mouseover {
-                        val me = that.node as HTMLDivElement
-                        console.log("focus")
-                        me.focus()
-
-
-                    }
-                    mouseout {
-                        val me = that.node as HTMLDivElement
-                        me.blur()
-                    }
 
                     val svg = svg(500.px(), 500.px(), "enterrec") {
                         viewBox(0, 0, 500, 500)
                         pARnone()
-                        /*
-                                                rect(px(10), px(10), px(90), px(90), "rect") {
-                                                    fill(ANamedColor("magenta"))
-                                                    stroke(ANamedColor("grey"))
-                                                    val r = this
-                                                    mouseenter {
-                                                        console.log("enter")
-                                                        r.fill(ANamedColor("red"))
-                                                        r.dirty = true
-                                                    }
-
-
-                                                    mouseleave {
-                                                        console.log("leave")
-                                                        r.fill(ANamedColor("magenta"))
-                                                        r.dirty = true
-                                                    }
-
-                                                    click {
-                                                        console.log("click")
-                                                        r.fill(ANamedColor("peach"))
-                                                        r.dirty = true
-                                                    }
-                                                }
-                        */
                     }
 
                     val grid = Grid(svg, 500, 500, 9, 9, "grid")
@@ -308,10 +286,15 @@ fun initUI() {
                             grid.group?.dirty = true
                             console.log("click button: ${e.button}")
                             console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
-                            if(e.button == 0.toShort() && !e.ctrlKey) {
-                                c.value(selEV?.selected()?:1)
-                            } else {
-                                c.candidate(selEV?.selected()?:1)
+                            val num = numbers.firstSelected()
+                            console.log("click num ", num, " mode: ", modelEntry.firstSelected())
+
+                            if (num!=null) {
+                                when(modelEntry.firstSelected()) {
+                                    EntryMode.SET -> currentCell.value?.value(num)
+                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
+                                    EntryMode.DELETE -> currentCell.value?.remove(num)
+                                }
                             }
                         }
                     }
@@ -323,21 +306,20 @@ fun initUI() {
 
                 }
                 selEM = select(modelEntry, EntryModel.converter) {}
-                val r : Range<Int> = 1..9
+                modelEntry.select(EntryMode.SET)
+
                 val cv = object : Converter<Int> {
                     val ic = IntConverter()
                     override fun convert2string(t: Int): String {
-                        throw UnsupportedOperationException()
+                        return ic.convert2string(t)
                     }
                     override fun convert2target(s: String): Int {
-                        throw UnsupportedOperationException()
+                        ic.convert2target(s)
                     }
                 }
-                val il = ArrayList<Int>()
-                for(i in 1..9) {
-                    il.add(i)
-                }
-                selEV = select(object:AbstractSelectionModel<Int>(il, false){},cv){}
+
+                selEV = select(numbers,cv){}
+                numbers.select(5)
                 mouseover { currentCell.value = null }
                 CellDisplay(cdd, currentCell)
                 val opd = div() {

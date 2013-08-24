@@ -2,15 +2,21 @@
   <library name="com.google.inject:guice:3.0" type="repository">
     <properties maven-id="com.google.inject:guice:3.0" />
     <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/google/inject/guice/3.0/guice-3.0.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/javax/inject/javax.inject/1/javax.inject-1.jar!/" />
-      <root url="jar://$MAVEN_REPOSITORY$/aopalliance/aopalliance/1.0/aopalliance-1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/com.google.inject/3.0/guice/guice-3.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javax.inject/1/javax.inject/javax.inject-1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/aopalliance/1.0/aopalliance/aopalliance-1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.sonatype.sisu.inject/2.2.1-v20090111/cglib/cglib-2.2.1-v20090111.jar!/" />
     </CLASSES>
     <JAVADOC>
-      <root url="jar://$MAVEN_REPOSITORY$/com/google/inject/guice/3.0/guice-3.0-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/com.google.inject/3.0/guice/guice-3.0-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javax.inject/1/javax.inject/javax.inject-1-javadoc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.sonatype.sisu.inject/2.2.1-v20090111/cglib/cglib-2.2.1-v20090111-javadoc.jar!/" />
     </JAVADOC>
     <SOURCES>
-      <root url="jar://$MAVEN_REPOSITORY$/com/google/inject/guice/3.0/guice-3.0-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/com.google.inject/3.0/guice/guice-3.0-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javax.inject/1/javax.inject/javax.inject-1-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/aopalliance/1.0/aopalliance/aopalliance-1.0-sources.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/org.sonatype.sisu.inject/2.2.1-v20090111/cglib/cglib-2.2.1-v20090111-sources.jar!/" />
     </SOURCES>
   </library>
 </component>

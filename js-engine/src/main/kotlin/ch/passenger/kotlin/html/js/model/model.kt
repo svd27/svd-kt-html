@@ -111,8 +111,11 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
 
     protected fun init() {
         items.each {
-            if(it is String) ""
-            else if(it is Observable<*>) it.addObserver(this)
+            try {
+                if(it is Observable<*>) it.addObserver(this)
+            } catch(e: Exception) {
+                console.log("$it really didnt like me and wont let me observe", e)
+            }
         }
     }
 
@@ -168,7 +171,7 @@ trait SelectionModel<T,C:MutableCollection<T>> : CollectionModel<T,C> {
     }
 
     fun firstSelected() : T? {
-        if(selections.size()>0)  selections.iterator().next()
+        if(selections.size()>0)  return selections.iterator().next()
         return null
     }
 }

@@ -2,6 +2,7 @@ package ch.passenger.kotlin.html.js.html.svg
 
 import ch.passenger.kotlin.html.js.html.DOMMouseEvent
 import java.util.HashMap
+import ch.passenger.kotlin.html.js.html.HtmlElement
 
 /**
  * Created by sdju on 20.08.13.
@@ -137,32 +138,58 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
     val subcells : Array<SvgElement?> = Array<SvgElement?>(9) {null}
     var coreValue : SvgElement? = null
     var value : Number? = null
+    val cw : Int = grid.cw
+    val ch : Int = grid.ch
+    val nfh : Length = grid.fh
+    val sfh : Length = (nfh.value*.35).px()
+    val cell : Group = grid.group!!.group("c$row$col") {}
+    val origin : Position = Position(((col-1)*cw).px(), ((row-1)*ch).px())
+    {
+        val that = this
+        cell.rect(origin.x.value, origin.y.value, that.cw, that.ch) {}
+    }
+
+
 
     fun remove(v:Number) {
         if(value!=null && value==v) {
             coreValue?.detach()
             value = null
+
+        } else {
+            val sub = subcells[v.toInt()]
+            if(sub !=null) {
+                sub.detach()
+                subcells[v.toInt()] = null
+            }
         }
+        cell.dirty = true
+    }
+
+    fun clearSubs(refresh:Boolean=false) {
+        subcells.each { if(it!=null) it.detach() }
+        subcells.eachIdx { (i,v) -> subcells[i] = null }
+        if(refresh) cell.dirty = true
     }
 
     fun clear() {
-        subcells.each { if(it!=null) it.detach() }
+        clearSubs()
         if(coreValue!=null) coreValue?.detach()
+        coreValue = null
         value = null
+        cell.dirty = true
     }
 
 
     fun value(v:Number) {
         value = v
-        subcells.each {
-            if(it!=null) it.detach()
-        }
-
+        val fh = nfh
+        clearSubs()
 
         val p = posCenter(0.0,0.0)
-        val g = grid
-        val svgText = g.parent.svgtext(p.x, p.y) {
-            addStyle("font-size", (g.fh.value).px())
+
+        val svgText = cell.svgtext(p.x, p.y) {
+            addStyle("font-size", (fh.value).px())
             addStyle("text-anchor", "middle")
             addStyle("dominant-baseline", "middle")
             text("$v")
@@ -178,6 +205,7 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
         var dy = 0.toDouble()
         val cw = grid.cw.toDouble()
         val ch = grid.ch.toDouble()
+        val fh = sfh
         when(v) {
             1 -> {dx = -cw/4; dy=-ch/4;}
             2 -> {dx = 0.0; dy = -ch/4}
@@ -192,14 +220,15 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
         }
 
         val p = posCenter(dx,dy)
-        val g = grid
-        val svgText = g.parent.svgtext(p.x, p.y) {
-            addStyle("font-size", (g.fh.value*.3).px())
+
+        val svgText = cell.svgtext(p.x, p.y) {
+            addStyle("font-size", fh)
             addStyle("text-anchor", "middle")
             addStyle("dominant-baseline", "middle")
             text("$v")
         }
         subcells[v.toInt()] = svgText
+        cell.dirty = true
     }
 
     fun posCenter(xoff:Double, yoff:Double) : Position {
