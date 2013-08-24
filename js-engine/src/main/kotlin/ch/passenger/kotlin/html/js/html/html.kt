@@ -78,6 +78,7 @@ abstract class HtmlElement(aid: String?) : Dirty {
 
     public val tid: String = forceId(aid)
     public abstract fun createNode(): Node?
+    public open fun postChildrenRendered() {}
 
     public fun each(cb: (el: HtmlElement) -> Unit) {
         children.each { cb(it) }
@@ -535,18 +536,22 @@ class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val c
                         }
                     }
                 } else {
+                    var so : Option<*>? =null
                     each {
                         if(it is Option<*>) {
                             val o = it as Option<T>
                             if(o.value==t && !o.selected()) {
                                 o.selected(true)
                                 o.dirty = true
+                                so = o
                             } else if(o.selected()) {
                                 o.selected(false)
                                 o.dirty = true
                             }
                         }
                     }
+                    so?.selected(true)
+                    so?.dirty = true
                 }
                 dirty = true
             }
@@ -587,6 +592,20 @@ class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val c
         }
     }
 
+
+    public override fun postChildrenRendered() {
+        each {
+            val o = it as Option<T>
+            if(o.node!=null) {
+                val sn = o.node as HTMLOptionElement
+                if(o.selected() != sn.selected) {
+                    o.refresh()
+                }
+            } else {
+                console.log(o, " has no node!")
+            }
+        }
+    }
     fun select(t: T) {
         model.select(t)
     }
@@ -622,19 +641,28 @@ class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val c
     }
 
     private fun onSelect(event: DOMEvent) {
+        console.log("onSelect: ", event)
+        val sels = ArrayList<Option<T>>()
         each {
             val o = it as Option<T>
             val n = o.node
             if(n != null) {
                 val on = n as HTMLOptionElement
+                if(on.selected) {
+                    sels.add(o)
+                } else {
+                    model.deselect(o.value)
+                }
                 if(on.selected != o.selected()) {
-                    if(on.selected) {
-                        model.select(o.value)
-                    } else {
-                        model.deselect(o.value)
-                    }
+                    console.log(o.value, " node!=option node: ", on.selected, " option ", o.selected())
+                    o.selected(o.selected())
+                    o.dirty = true
                 }
             }
+        }
+        sels.each {
+            console.log("telling model to select ", it.value)
+            model.select(it.value)
         }
     }
 
@@ -651,6 +679,8 @@ class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
             val on = node as HTMLOptionElement
             if(on.selected!=fl) on.selected = fl
         }
+        if(fl) attributes.att("selected", "selected")
+        else attributes.remove("selected")
     }
 
     fun selected(): Boolean {
@@ -658,7 +688,7 @@ class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
             val on = node as HTMLOptionElement
             return on.selected
         }
-        return false
+        return attributes.att("selected")!=null
     }
 
     fun label(l: String) {
@@ -751,7 +781,7 @@ trait EventManager {
             listeners.keySet().each {
                 kind ->
                 listeners[kind]?.each {
-                    console.log("$kind add listener")
+                    console.log("$kind add listener to ", node)
                     et.addEventListener(kind.name(), it, false)
                 }
             }

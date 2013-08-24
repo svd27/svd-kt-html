@@ -240,12 +240,14 @@ fun initUI() {
                                 console.log("selecting $num")
                                 numbers.select(num)
 
+                                console.log("key manip ", num, " in ", currentCell?.value?.row, ",", currentCell?.value?.col,
+                                        " mode ", modelEntry.firstSelected())
                                 when(modelEntry.firstSelected()) {
                                     EntryMode.SET -> currentCell.value?.value(num)
                                     EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
                                     EntryMode.DELETE -> currentCell.value?.remove(num)
                                 }
-
+                                theGrid?.group?.dirty = true
                             }
                         }
                     }, false)
@@ -256,6 +258,7 @@ fun initUI() {
                     }
 
                     val grid = Grid(svg, 500, 500, 9, 9, "grid")
+                    theGrid = grid
 
                     grid.outerWidth = 3.px()
                     grid.legend = false

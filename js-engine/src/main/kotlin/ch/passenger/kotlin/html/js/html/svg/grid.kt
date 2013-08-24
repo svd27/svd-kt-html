@@ -143,10 +143,12 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
     val nfh : Length = grid.fh
     val sfh : Length = (nfh.value*.35).px()
     val cell : Group = grid.group!!.group("c$row$col") {}
-    val origin : Position = Position(((col-1)*cw).px(), ((row-1)*ch).px())
+    val origin : Position = Position(((col-1)*cw).px(), ((row-1)*ch).px());
     {
         val that = this
-        cell.rect(origin.x.value, origin.y.value, that.cw, that.ch) {}
+        cell.rect(origin.x.value, origin.y.value, that.cw, that.ch) {
+            stroke(TransparentPaint()); noFill()
+        }
     }
 
 
@@ -185,6 +187,7 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
         value = v
         val fh = nfh
         clearSubs()
+        if(coreValue!=null) coreValue?.detach()
 
         val p = posCenter(0.0,0.0)
 
@@ -199,6 +202,7 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
     }
 
     fun candidate(v:Number) {
+        if(subcells[v.toInt()]!=null) return
         coreValue?.detach()
 
         var dx = 0.toDouble()

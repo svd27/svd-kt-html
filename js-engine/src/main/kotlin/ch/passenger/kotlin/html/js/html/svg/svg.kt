@@ -382,7 +382,8 @@ StrokeAndFill("rect", id), Extended,Rounded {
 
 trait Transformed : SvgLocatable {
     override val me: SvgElement
-    val transform : StringBuilder
+    var transform : String
+
 
     fun writeTransform() {
         me.attribute("transform", transform.toString())
@@ -406,7 +407,16 @@ class Group(id:String?) : SvgElement("g", id), ShapeContainer, Transformed,Style
     }
 }
 
+class Line(var x1:Length, var y1:Length, var x2:Length, var y2:Length,id:String?=null) : SvgElement("line",id), Stroked {
+    protected override fun writeSvgContent() {
 
+    }
+    override var stroke: Paint? = null
+    override var stroke_width: Length? = null
+    override val me: SvgElement = this
+    override val transform: StringBuilder =
+    override var svgPT: SVGPoint? = null
+}
 
 class Path(id:String?) : StrokeAndFill("path", id) {
     private var buffer: StringBuilder = StringBuilder()
