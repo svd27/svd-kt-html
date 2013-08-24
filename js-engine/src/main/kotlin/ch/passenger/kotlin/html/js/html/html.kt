@@ -380,10 +380,11 @@ abstract class FlowContainer(s :String, id : String? = null) : Tag(s, id) {
         return s
     }
     
-    fun<T,C:MutableCollection<T>> select(model:SelectionModel<T,C>,conv:Converter<T>?=null, id:String?=null, init: Select<T,C>.() -> Unit) {
+    fun<T,C:MutableCollection<T>> select(model:SelectionModel<T,C>,conv:Converter<T>?=null, id:String?=null, init: Select<T,C>.() -> Unit): Select<T, C> {
         val s = Select(model, conv, id)
         s.init()
         addChild(s)
+        return s
     }
 
     fun label(lfor:String?=null, id:String?=null, init:Label.()->Unit) : Label {
@@ -563,6 +564,18 @@ class Select<T,C:MutableCollection<T>>(val model:SelectionModel<T,C>, val conver
         }
     }
 
+    fun select(t:T) {
+        model.select(t)
+    }
+
+    fun selected() : T? {
+        var sel : T? = null
+        each {
+            if(it is Option<*> && it.selected()) sel = it.value as T?
+        }
+        return  sel
+    }
+
     fun addOption(t:T) {
         val cnv = converter
         option(t){label(if(cnv==null) value.toString() else cnv.convert2string(value))}
@@ -698,7 +711,7 @@ trait EventListener {
 }
 
 enum class EventTypes {
-    mouseenter mouseleave click change mouseover mouseout mousemove
+    mouseenter mouseleave click change mouseover mouseout mousemove keypress keydown keyup
 }
 
 trait EventManager {
@@ -760,5 +773,18 @@ trait EventManager {
     fun mousemove(cb:(e:DOMEvent)->Unit) {
         getListeners(EventTypes.mousemove).add(cb)
     }
+
+    fun keypress(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.keypress).add(cb)
+    }
+
+    fun keydown(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.keydown).add(cb)
+    }
+
+    fun keyupx(cb:(e:DOMEvent)->Unit) {
+        getListeners(EventTypes.keyup).add(cb)
+    }
+
 
 }

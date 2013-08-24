@@ -33,6 +33,8 @@ import ch.passenger.kotlin.html.js.model.Model
 import ch.passenger.kotlin.html.js.model.Observer
 import java.util.HashSet
 import ch.passenger.kotlin.html.js.html.util.Converter
+import js.dom.html.HTMLDivElement
+import ch.passenger.kotlin.html.js.html.util.IntConverter
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -77,6 +79,28 @@ var currentCell: Model<Cell> = object : Model<Cell> {
     protected override val observers: MutableSet<Observer<Cell>> = HashSet()
     override var _value: Cell? = null
 }
+
+enum class EntryMode {
+    SET CANDIDATE DELETE
+}
+
+fun crteml(): MutableList<EntryMode> {
+    val l = ArrayList<EntryMode>(EntryMode.values().size)
+    EntryMode.values().each {
+        l.add(it)
+    }
+    return l
+}
+
+val emlist : List<EntryMode> = crteml()
+var selEM : Select<EntryMode,MutableList<EntryMode>>?= null
+val entryMode: Converter<EntryMode> = object : Converter<EntryMode> {
+    override fun convert2string(t: EntryMode): String = t.name()
+    override fun convert2target(s: String): EntryMode = EntryMode.valueOf(s)
+}
+
+//val entryValue : AbstractSelectionModel<Int> = object : AbstractSelectionModel<Int>(1..9,false) {}
+val selEV : Select<Int,MutableList<Int>>? = null
 
 var theGrid: Grid? = null
 
@@ -170,9 +194,41 @@ fun initUI() {
 
             center {
                 div("svg") {
+                    val that = this
                     atts {
                         //att("style", "width: 100%; height: 100%;")
                     }
+                    val w = window as EventTarget
+                    w.addEventListener("keypress", {
+                        val ev = it as DOMKeyEvent
+
+                        //val c = (0+ev.charCode).toChar()
+                        console.log("pressed ", it, " ")
+                        if(it.charCode==120.toLong()) selEM?.select(EntryMode.DELETE)
+                        if(it.charCode==99.toLong()) selEM?.select(EntryMode.CANDIDATE)
+                        if(it.charCode==118.toLong()) selEM?.select(EntryMode.SET)
+                        if(currentCell.value != null) {
+                            if(it.charCode > 48 && it.charCode <= 57) {
+                                when(selEM.selected()) {
+                                    EntryMode.SET -> currentCell.value?.value(it.charCode-48)
+                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(it.charCode-48)
+                                    EntryMode.DELETE -> currentCell.value?.remove(it.charCode-48)
+                                }
+                            }
+                        }
+                    }, false)
+                    mouseover {
+                        val me = that.node as HTMLDivElement
+                        console.log("focus")
+                        me.focus()
+
+
+                    }
+                    mouseout {
+                        val me = that.node as HTMLDivElement
+                        me.blur()
+                    }
+
                     val svg = svg(500.px(), 500.px(), "enterrec") {
                         viewBox(0, 0, 500, 500)
                         pARnone()
@@ -203,11 +259,12 @@ fun initUI() {
                         */
                     }
 
-                    val grid = Grid(svg, 300, 300, 9, 9, "grid")
+                    val grid = Grid(svg, 500, 500, 9, 9, "grid")
 
                     grid.outerWidth = 3.px()
                     grid.legend = false
                     grid.paint()
+
 
                     grid.group?.mousemove {
                         e ->
@@ -217,11 +274,11 @@ fun initUI() {
                         val svgp = grid.group?.client2locale(me.clientX, me.clientY)
                         //console.log("wx: ${svgp?.x} wy: ${svgp?.y}")
                         val cp = grid.cell(me)
-                        if(cp != null) console.log("update current: $cp")
+                        //if(cp != null) console.log("update current: $cp")
                         currentCell.value = cp
                         //console.log("${cp.row},${cp.col}")
 
-                        coordInfoModel.value = CoordInfo(me.screenX, me.screenY, me.clientX, me.clientY, svgp!!.x, svgp!!.y)
+                        //coordInfoModel.value = CoordInfo(me.screenX, me.screenY, me.clientX, me.clientY, svgp!!.x, svgp!!.y)
 
                     }
 
@@ -234,14 +291,9 @@ fun initUI() {
                             console.log("click button: ${e.button}")
                             console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
                             if(e.button == 0.toShort() && !e.ctrlKey) {
-                                console.log("center: $c")
-                                grid.cellTextCenter(c) {
-                                    attribute("opacity", "0.6")
-                                    stroke = ANamedColor("red")
-                                    text("${c.row}:${c.col}")
-                                }
+                                c.value(selEV?.selected()?:1)
                             } else {
-                                c.ne("1")
+                                c.candidate(selEV?.selected()?:1)
                             }
                         }
                     }
@@ -252,6 +304,10 @@ fun initUI() {
                 val cdd = div() {
 
                 }
+                selEM = select(crteml(), entryMode) {}
+                val r = 1..9
+                selEv = select(r,IntConverter()){}
+                mouseover { currentCell.value = null }
                 CellDisplay(cdd, currentCell)
                 val opd = div() {
                     val model = object : Model<Boolean> {
@@ -263,16 +319,16 @@ fun initUI() {
                     }
                     model.addObserver(object:AbstractObserver<Boolean>(){
                         override fun added(t: Boolean) {
-                            theGrid?.group?.dirty = true
+                            theGrid?.paint()
                         }
                         override fun deleted(t: Boolean) {
-                            theGrid?.group?.dirty = true
+                            theGrid?.paint()
                         }
                         override fun updated(t: Boolean, prop: String, old: Any?, nv: Any?) {
-                            theGrid?.group?.dirty = true
+                            theGrid?.paint()
                         }
                         override fun removed(t: Boolean) {
-                            theGrid?.group?.dirty = true
+                            theGrid?.paint()
                         }
                     })
                     label("chkLegend") {
@@ -335,20 +391,20 @@ class CellDisplay(val parent: FlowContainer, val model: Model<Cell>) : AbstractO
         render()
     }
     override fun updated(t: Cell, prop: String, old: Any?, nv: Any?) {
-        console.log("CellDisplay update $t")
+        //        console.log("CellDisplay update $t")
         render()
     }
 }
 
-native fun Number.toFixed(n:Int):Number = js.noImpl
+native fun Number.toFixed(n: Int): Number = js.noImpl
 
-class CoordInfoComponent(private val parent:FlowContainer, private val model:CoordInfoModel) : AbstractObserver<CoordInfo>() {
-    var screenX : Span? = null
-    var screenY : Span? = null
-    var clientX : Span? = null
-    var clientY : Span? = null
-    var svgX : Span? = null
-    var svgY : Span? = null
+class CoordInfoComponent(private val parent: FlowContainer, private val model: CoordInfoModel) : AbstractObserver<CoordInfo>() {
+    var screenX: Span? = null
+    var screenY: Span? = null
+    var clientX: Span? = null
+    var clientY: Span? = null
+    var svgX: Span? = null
+    var svgY: Span? = null
 
     {
         model.addObserver(this)
@@ -359,35 +415,35 @@ class CoordInfoComponent(private val parent:FlowContainer, private val model:Coo
                 div {
                     text("screen")
                     that.screenX = span {
-                        if(m.value?.screenX!=null)
-                        text("x(${m.value?.screenX?.toFixed(2)})")
+                        if(m.value?.screenX != null)
+                            text("x(${m.value?.screenX?.toFixed(2)})")
                     }
                     that.screenY = span {
-                        if(m.value?.screenY!=null)
-                        text("y(${m.value?.screenY?.toFixed(2)})")
+                        if(m.value?.screenY != null)
+                            text("y(${m.value?.screenY?.toFixed(2)})")
                     }
                 }
                 div{
                     text("client")
                     that.clientX = span {
-                        if(m.value?.clientX!=null)
-                        text("x(${m.value?.clientX?.toFixed(2)})")
+                        if(m.value?.clientX != null)
+                            text("x(${m.value?.clientX?.toFixed(2)})")
                     }
                     that.clientY = span {
-                        if(m.value?.clientY!=null)
-                        text("y(${m.value?.clientY?.toFixed(2)})")
+                        if(m.value?.clientY != null)
+                            text("y(${m.value?.clientY?.toFixed(2)})")
                     }
                 }
                 div {
                     text("svg")
                     that.svgX = span {
-                        if(m.value?.svgX!=null)
-                        text("x(${m.value?.svgX?.toFixed(2)})")
+                        if(m.value?.svgX != null)
+                            text("x(${m.value?.svgX?.toFixed(2)})")
                     }
 
                     that.svgY = span {
-                        if(m.value?.svgY!=null)
-                        text("y(${m.value?.svgY?.toFixed(2)})")
+                        if(m.value?.svgY != null)
+                            text("y(${m.value?.svgY?.toFixed(2)})")
                     }
                 }
             }
@@ -452,10 +508,10 @@ class CoordInfoModel() : Model<CoordInfo> {
 
 
     protected override fun checkValue(nv: CoordInfo?, ov: CoordInfo?): CoordInfo? {
-        if(ov==null) {
+        if(ov == null) {
             fireAdd(nv!!)
         }
-        if(nv==null) {
+        if(nv == null) {
             fireRemove(ov!!)
             fireDelete(ov!!)
         }
@@ -463,27 +519,27 @@ class CoordInfoModel() : Model<CoordInfo> {
         val oc = ov!!
         val nc = nv!!
 
-        if(oc.screenX!=nc.screenX) {
+        if(oc.screenX != nc.screenX) {
             fireUpdate(nc, "screenX", oc.screenX, nc.screenX)
         }
 
-        if(oc.screenY!=nc.screenY) {
+        if(oc.screenY != nc.screenY) {
             fireUpdate(nc, "screenY", oc.screenY, nc.screenY)
         }
 
-        if(oc.clientX!=nc.clientX) {
+        if(oc.clientX != nc.clientX) {
             fireUpdate(nc, "clientX", oc.clientX, nc.clientX)
         }
 
-        if(oc.clientY!=nc.clientY) {
+        if(oc.clientY != nc.clientY) {
             fireUpdate(nc, "clientY", oc.clientY, nc.clientY)
         }
 
-        if(oc.svgX!=nc.svgX) {
+        if(oc.svgX != nc.svgX) {
             fireUpdate(nc, "svgX", oc.svgX, nc.svgX)
         }
 
-        if(oc.svgY!=nc.svgY) {
+        if(oc.svgY != nc.svgY) {
             fireUpdate(nc, "svgY", oc.svgY, nc.svgY)
         }
 
@@ -491,4 +547,4 @@ class CoordInfoModel() : Model<CoordInfo> {
     }
 }
 
-class CoordInfo(var screenX:Number, var screenY:Number, var clientX:Number, var clientY:Number, var svgX:Number, var svgY:Number)
+class CoordInfo(var screenX: Number, var screenY: Number, var clientX: Number, var clientY: Number, var svgX: Number, var svgY: Number)

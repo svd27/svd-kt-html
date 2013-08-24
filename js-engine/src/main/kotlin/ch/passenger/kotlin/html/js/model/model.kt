@@ -166,6 +166,11 @@ trait SelectionModel<T,C:MutableCollection<T>> : CollectionModel<T,C> {
         _selections.add(sel)
         fireLoad(sel)
     }
+
+    fun firstSelected() : T? {
+        if(selections.size()>0)  selections.iterator().next()
+        return null
+    }
 }
 
 class DefaultObservable<T>() : Observable<T> {

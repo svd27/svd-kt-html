@@ -20,6 +20,10 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
 
     fun paint() {
         val that = this@Grid
+        if(group!=null) {
+            group?.detach()
+        }
+
         group = parent.group(id) {
             rect(0, 0, that.w, that.h) {
                 stroke = that.outerLines
@@ -63,6 +67,7 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
                 }
             }
         }
+        group?.dirty=true
     }
 
     val cells : Array<Array<Cell?>?> = Array<Array<Cell?>?>(rows) {null}
@@ -131,37 +136,74 @@ fun<T> Array<T>.eachIdx(cb:(Int,T)->Unit) {
 class Cell(val row:Int,val col:Int, val grid:Grid) {
     val subcells : Array<SvgElement?> = Array<SvgElement?>(9) {null}
     var coreValue : SvgElement? = null
+    var value : Number? = null
+
+    fun remove(v:Number) {
+        if(value!=null && value==v) {
+            coreValue?.detach()
+            value = null
+        }
+    }
 
     fun clear() {
         subcells.each { if(it!=null) it.detach() }
         if(coreValue!=null) coreValue?.detach()
+        value = null
     }
 
-    fun ne(s:String) {
-        val ce = subcells[Subcells.ne.idx]
-        if(ce !=null) {
-            ce.detach()
-            subcells[Subcells.ne.idx] = null
-        }
-        val p = posCenter(-grid.cw.toDouble()/4, -grid.ch.toDouble()/4)
-        val g = grid
-        val svgText = g.parent.svgtext(p.x, p.y) {
-            addStyle("font-size", (g.fh.value / 4).px())
-            addStyle("text-anchor", "middle")
-            addStyle("dominant-baseline", "middle")
-        }
-        subcells[Subcells.ne.idx] =svgText
-        subcells[Subcells.ne.idx]?.dirty = true
-    }
 
-    fun value(s:String) {
+    fun value(v:Number) {
+        value = v
         subcells.each {
             if(it!=null) it.detach()
         }
+
+
+        val p = posCenter(0.0,0.0)
+        val g = grid
+        val svgText = g.parent.svgtext(p.x, p.y) {
+            addStyle("font-size", (g.fh.value).px())
+            addStyle("text-anchor", "middle")
+            addStyle("dominant-baseline", "middle")
+            text("$v")
+        }
+        coreValue = svgText
+        coreValue?.dirty = true
+    }
+
+    fun candidate(v:Number) {
+        coreValue?.detach()
+
+        var dx = 0.toDouble()
+        var dy = 0.toDouble()
+        val cw = grid.cw.toDouble()
+        val ch = grid.ch.toDouble()
+        when(v) {
+            1 -> {dx = -cw/4; dy=-ch/4;}
+            2 -> {dx = 0.0; dy = -ch/4}
+            3 -> {dx = cw/4; dy = -ch/4}
+            4 -> {dx = cw/4; dy = 0.0}
+            5 -> {dx = cw/4; dy = ch/4}
+            6 -> {dx = 0.0; dy = ch/4}
+            7 -> {dx = -cw/4; dy = ch/4}
+            8 -> {dx = -cw/4; dy = 0.0}
+            9 -> {dx = 0.0; dy = 0.0}
+            else -> {dx = 0.0; dy = 0.0}
+        }
+
+        val p = posCenter(dx,dy)
+        val g = grid
+        val svgText = g.parent.svgtext(p.x, p.y) {
+            addStyle("font-size", (g.fh.value*.3).px())
+            addStyle("text-anchor", "middle")
+            addStyle("dominant-baseline", "middle")
+            text("$v")
+        }
+        subcells[v.toInt()] = svgText
     }
 
     fun posCenter(xoff:Double, yoff:Double) : Position {
-        return Position((xoff+(col-1)*grid.cw-grid.cw/2).px(), (yoff+(row-1)*grid.ch-grid.ch/2).px())
+        return Position((xoff+(col)*grid.cw-grid.cw/2).px(), (yoff+(row)*grid.ch-grid.ch/2).px())
     }
 
     public fun toString() : String = "Cell($row,$col)"

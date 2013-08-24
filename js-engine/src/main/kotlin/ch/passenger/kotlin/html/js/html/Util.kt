@@ -42,6 +42,8 @@ public fun JQuery.value(): Any? = this.`val`()
 public fun JQuery.value(v: String?): JQuery = this.`val`(v)
 public native fun JQuery.mouseenter(cb: (event: DOMEvent) -> Unit): Unit = js.noImpl
 public native fun JQuery.mouseleave(cb: (event: DOMEvent) -> Unit): Unit = js.noImpl
+public native fun HTMLElement.focus() : Unit = js.noImpl
+public native fun HTMLElement.blur() : Unit = js.noImpl
 
 native trait DOMAttribute {
     public native val name: String
