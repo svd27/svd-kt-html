@@ -19,6 +19,17 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
     val fh : Length = (cw*.7).px()
     val fhs :Length = (fh.value/3).px()
 
+
+    fun rotate(a:Number) {
+        group?.rotate(a, w/2, h/2)
+        group?.dirty = true
+    }
+
+    fun normTransform() {
+        group?.clearTransforms()
+        group?.dirty = true
+    }
+
     fun paint() {
         val that = this@Grid
         if(group!=null) {
@@ -31,28 +42,25 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
                 stroke_width = that.outerWidth
                 noFill()
             }
-            path() {
-                stroke(that.innerLines)
-                stroke_width = that.innerWidth
-                val dx = that.w/that.rows
-                val dy = that.h/that.columns
-
-                M(dx,0)
-                for(i in 1..that.columns-1) {
-                    l(0,that.h)
-                    m(dx,-that.h)
+            for(i in 1..(that.rows-1)) {
+                val x1 = (i * that.cw).px()
+                val y1 = 0.px()
+                line(x1, y1, x1, that.h.px()) {
+                    stroke = that.innerLines
+                    if(i%3==0) stroke_width = that.outerWidth
                 }
-
-                M(0,dy)
-                for(i in 1..that.rows-1) {
-                    l(that.w,0)
-                    m(-that.w,dy)
+            }
+            for(i in 1..(that.columns-1)) {
+                val x1 = 0.px()
+                val y1 = (i * that.cw).px()
+                line(x1, y1, that.w.px(), y1) {
+                    stroke = that.innerLines
+                    if(i%3==0) stroke_width = that.outerWidth
                 }
-                done()
             }
             if(that.legend) {
                 val fh = (that.cw*.7).px()
-                for(i in 1..that.rows) {
+                for(i in 1..(that.rows)) {
                     val dx = (i-1) * that.cw
                     for(j in 1..that.columns) {
                         val dy = (j-1) * that.ch

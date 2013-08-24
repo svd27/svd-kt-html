@@ -9,6 +9,11 @@ import ch.passenger.kotlin.html.js.html.DOMEvent
 import java.util.StringBuilder
 import ch.passenger.kotlin.html.js.html.Text
 import java.util.HashMap
+import ch.passenger.kotlin.html.js.html.each
+import java.util.ArrayList
+import ch.passenger.kotlin.html.js.html.EventTarget
+import ch.passenger.kotlin.html.js.html.EventManager
+import ch.passenger.kotlin.html.js.html.EventTypes
 
 /**
  * Created by Duric on 18.08.13.
@@ -20,10 +25,10 @@ val nsSvg = "http://www.w3.org/2000/svg"
 class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox,Styled {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
-    override val transform: StringBuilder = StringBuilder()
     override var svgPT: SVGPoint? = null
     override val styles: MutableMap<String, String> = HashMap();
 
+    override val transforms: MutableList<Transform> = ArrayList();
     {
         attributes.att("xmlns",nsSvg)
         attributes.att("version","1.1")
@@ -99,6 +104,13 @@ trait ShapeContainer {
         t.init()
         me.addElement(t)
         return t
+    }
+
+    fun line(x1:Length, y1:Length, x2:Length, y2:Length,id:String?=null,init:Line.()->Unit): Line {
+        val l = Line(x1,y1,x2,y2,id)
+        l.init()
+        me.addElement(l)
+        return l
     }
 }
 
@@ -331,6 +343,8 @@ trait Stroked : Shape {
             me.attributes.att("stroke-width", "${stroke_width?.value}${stroke_width?.measure?.name()}"?:"")
     }
     fun stroke(p:Paint) = stroke = p
+    fun black() : Paint = ANamedColor("black")
+    fun transparent() : Paint = TransparentPaint()
 
 }
 
@@ -351,9 +365,8 @@ abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stro
     override var stroke_width: Length? = null
     override var fill: Paint? = null
     override var svgPT: SVGPoint? = null
-    override val transform: StringBuilder = StringBuilder()
     override val styles: MutableMap<String, String> = HashMap()
-
+    override val transforms: MutableList<Transform> = ArrayList()
     override val me: SvgElement = this
 
 
@@ -382,23 +395,97 @@ StrokeAndFill("rect", id), Extended,Rounded {
 
 trait Transformed : SvgLocatable {
     override val me: SvgElement
-    var transform : String
+    val transforms : MutableList<Transform>
 
 
     fun writeTransform() {
-        me.attribute("transform", transform.toString())
+        if(transforms.size()==0) me.attributes.remove("transform")
+        else {
+            val sb = StringBuilder()
+            transforms.each {
+                sb.append("${it.kind}(${it.value})")
+                sb.append(" ")
+            }
+            me.attributes.att("transform", sb.toString())
+        }
     }
 
-    fun matrix(a:Number,b:Number,c:Number,d:Number,e:Number,f:Number) {
-        transform.append("matrix($a $b $c $d $e $f)")
+    fun clearTransforms() {
+        transforms.clear()
     }
+
+
+    fun matrix(a:Number,b:Number,c:Number,d:Number,e:Number,f:Number) {
+        transforms.add(TrMatrix(a,b,c,d,e,f))
+    }
+
+    fun translate(x:Number,y:Number) {
+        transforms.add(TrTranslate(x,y))
+    }
+
+    fun rotate(a:Number,x:Number,y:Number) {
+        transforms.add(TrRotate(a,x,y))
+    }
+
+    fun scale(x:Number,y:Number) {
+        transforms.add(TrScale(x,y))
+    }
+
+    fun<T:Transform> animate(from:T, to:T, init:AnimateTransform<T>.()->Unit): AnimateTransform<T> {
+        val a = AnimateTransform(from, to, 1.sec())
+        a.init()
+        me.addElement(a)
+        return a
+    }
+
 }
+
+class Duration(val length:Number, val unit:String) {
+    public fun toString() : String = "$length$unit"
+}
+
+fun Number.sec() : Duration  = Duration(this, "s")
+fun Number.ms() : Duration  = Duration(this, "ms")
+
+class AnimateTransform<T:Transform>(var from:T, var to:T, var dur:Duration, var start:Duration=0.sec(), id:String?=null)
+: SvgElement("animateTransform", id), EventManager {
+    var repeatCount : Number = -1
+
+
+    protected override fun writeSvgContent() {
+        attribute("attributeName", "transform")
+        attribute("attributeType", "XML")
+        attribute("type", from.kind)
+        attribute("from", from.value)
+        attribute("to", to.value)
+        if(dur.length.toInt() > 0)
+        attribute("dur", "$dur")
+        if(start.length.toInt() > 0)
+            attribute("start", "$start")
+        if(repeatCount.toInt() < 0)
+            attribute("repeatCount", "indefinite")
+        else attribute("repeatCount", "$repeatCount")
+    }
+
+    fun begin(cb:(DOMEvent)->Unit) = add(EventTypes.begin, cb)
+    fun end(cb:(DOMEvent)->Unit) = add(EventTypes.end, cb)
+}
+
+abstract class Transform(val value:String, val kind:String)
+
+class TrMatrix(val a:Number,val b:Number,val c:Number,val d:Number,val e:Number,val f:Number)
+: Transform("$a $b $c $d $e $f", "matrix")
+class TrScale(val x:Number, val y:Number) : Transform("$x $y", "scale")
+class TrTranslate(val x:Number, val y:Number) : Transform("$x $y", "translate")
+class TrRotate(val angle:Number, val x:Number, val y:Number) : Transform("$angle $x $y", "rotate")
+class TrSkewX(val x:Number) : Transform("$x", "skewX")
+class TrSkewY(val y:Number) : Transform("$y", "skewY")
+
 
 class Group(id:String?) : SvgElement("g", id), ShapeContainer, Transformed,Styled {
     override val me: SvgElement = this
     override val styles: MutableMap<String, String> = HashMap()
-    override val transform: StringBuilder = StringBuilder()
-
+    override val transforms: MutableList<Transform> = ArrayList()
     override var svgPT: SVGPoint? = null
 
 
@@ -409,12 +496,20 @@ class Group(id:String?) : SvgElement("g", id), ShapeContainer, Transformed,Style
 
 class Line(var x1:Length, var y1:Length, var x2:Length, var y2:Length,id:String?=null) : SvgElement("line",id), Stroked {
     protected override fun writeSvgContent() {
+        writeLength("x1", x1)
+        writeLength("y1", y1)
+        writeLength("x2", x2)
+        writeLength("y2", y2)
 
+        writeStroke()
+        writeTransform()
     }
     override var stroke: Paint? = null
     override var stroke_width: Length? = null
     override val me: SvgElement = this
-    override val transform: StringBuilder =
+
+
+    override val transforms: MutableList<Transform> = ArrayList()
     override var svgPT: SVGPoint? = null
 }
 

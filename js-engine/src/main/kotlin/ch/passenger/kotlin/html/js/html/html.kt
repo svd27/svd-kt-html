@@ -768,7 +768,7 @@ trait EventListener {
 }
 
 enum class EventTypes {
-    mouseenter mouseleave click change mouseover mouseout mousemove keypress keydown keyup
+    mouseenter mouseleave click change mouseover mouseout mousemove keypress keydown keyup end begin
 }
 
 trait EventManager {
@@ -808,6 +808,7 @@ trait EventManager {
         return listeners[kind]!!
     }
 
+    fun add(kind:EventTypes,cb: (e: DOMEvent)->Unit) = getListeners(kind).add(cb)
     fun mouseenter(cb: (e: DOMEvent)->Unit) {
         getListeners(EventTypes.mouseenter).add(cb)
     }

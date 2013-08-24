@@ -36,6 +36,9 @@ import ch.passenger.kotlin.html.js.html.util.Converter
 import js.dom.html.HTMLDivElement
 import ch.passenger.kotlin.html.js.html.util.IntConverter
 import ch.passenger.kotlin.html.js.model.SelectionModel
+import ch.passenger.kotlin.html.js.html.svg.TrRotate
+import ch.passenger.kotlin.html.js.html.svg.sec
+import ch.passenger.kotlin.html.js.html.svg.TrTranslate
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -82,7 +85,6 @@ var currentCell: Model<Cell> = object : Model<Cell> {
 }
 
 
-
 fun crteml(): MutableList<EntryMode> {
     val l = ArrayList<EntryMode>(EntryMode.values().size)
     EntryMode.values().each {
@@ -91,8 +93,8 @@ fun crteml(): MutableList<EntryMode> {
     return l
 }
 
-val emlist : List<EntryMode> = crteml()
-var selEM : Select<EntryMode,MutableList<EntryMode>>?= null
+val emlist: List<EntryMode> = crteml()
+var selEM: Select<EntryMode, MutableList<EntryMode>>? = null
 
 enum class EntryMode {
     SET CANDIDATE DELETE
@@ -107,24 +109,25 @@ enum class EntryMode {
 
 class EntryModel() : AbstractSelectionModel<EntryMode>(crteml(), false) {
     class object {
-        val converter : Converter<EntryMode> = object : Converter<EntryMode> {
+        val converter: Converter<EntryMode> = object : Converter<EntryMode> {
             override fun convert2string(t: EntryMode): String = t.name()
             override fun convert2target(s: String): EntryMode = EntryMode.valueOf(s)
         }
     }
 }
-val modelEntry : EntryModel = EntryModel()
+val modelEntry: EntryModel = EntryModel()
 
-fun createNumbers() : MutableList<Int> {
+fun createNumbers(): MutableList<Int> {
     val l = ArrayList<Int>(9)
     for(i in 1..9) l.add(i)
     return l
 }
 
-val numbers : SelectionModel<Int,MutableList<Int>> = object : AbstractSelectionModel<Int>(createNumbers(), false) { }
+val numbers: SelectionModel<Int, MutableList<Int>> = object : AbstractSelectionModel<Int>(createNumbers(), false) {
+}
 
 //val entryValue : AbstractSelectionModel<Int> = object : AbstractSelectionModel<Int>(1..9,false) {}
-var selEV : Select<Int,MutableList<Int>>? = null
+var selEV: Select<Int, MutableList<Int>>? = null
 
 var theGrid: Grid? = null
 
@@ -137,6 +140,29 @@ fun initUI() {
         }
         val coordInfoModel = CoordInfoModel()
         val div = BorderLayout("content") {
+            east {
+                svg(100.px(), 100.px()) {
+                    line(0.px(), 0.px(), 100.px(), 100.px()) {
+                        stroke = black()
+                        animate(TrRotate(0, 50, 50),TrRotate(360, 50, 50)) {
+                            dur = 5.sec()
+                            repeatCount = 3
+                        }
+                        animate(TrTranslate(0, 0), TrTranslate(50, 0)) {
+                            dur = 5.sec()
+                            repeatCount = 3
+                            begin {
+                                console.log("translate started")
+                            }
+                            end {
+                               console.log("im done")
+                               //parent?.detach()
+                            }
+                        }
+
+                    }
+                }
+            }
             north {
                 div() {
                     console.log("model size: ${stringModel.items.size()}")
@@ -230,16 +256,15 @@ fun initUI() {
 
                         val cc = it.charCode as Int
                         console.log("pressed ", it, " ", cc)
-                        if(cc ==120) modelEntry.select(EntryMode.DELETE)
-                        if(cc ==99) modelEntry.select(EntryMode.CANDIDATE)
-                        if(cc ==118) modelEntry.select(EntryMode.SET)
+                        if(cc == 120) modelEntry.select(EntryMode.DELETE)
+                        if(cc == 99) modelEntry.select(EntryMode.CANDIDATE)
+                        if(cc == 118) modelEntry.select(EntryMode.SET)
                         console.log("${modelEntry.selections}")
-                        if(currentCell.value != null) {
-                            if(cc > 48 && cc <= 57) {
-                                val num = cc - 48
-                                console.log("selecting $num")
-                                numbers.select(num)
-
+                        if(cc > 48 && cc <= 57) {
+                            val num = cc - 48
+                            console.log("selecting $num")
+                            numbers.select(num)
+                            if(currentCell.value != null) {
                                 console.log("key manip ", num, " in ", currentCell?.value?.row, ",", currentCell?.value?.col,
                                         " mode ", modelEntry.firstSelected())
                                 when(modelEntry.firstSelected()) {
@@ -284,22 +309,25 @@ fun initUI() {
                     grid.group?.click {
                         e ->
                         val me = e as DOMMouseEvent
-                        val c = grid.cell(me)
-                        if (c != null) {
-                            grid.group?.dirty = true
-                            console.log("click button: ${e.button}")
-                            console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
-                            val num = numbers.firstSelected()
-                            console.log("click num ", num, " mode: ", modelEntry.firstSelected())
+                        if (!me.ctrlKey && !me.shiftKey) {
+                            val c = grid.cell(me)
+                            if (c != null) {
+                                grid.group?.dirty = true
+                                console.log("click button: ${e.button}")
+                                console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
+                                val num = numbers.firstSelected()
+                                console.log("click num ", num, " mode: ", modelEntry.firstSelected())
 
-                            if (num!=null) {
-                                when(modelEntry.firstSelected()) {
-                                    EntryMode.SET -> currentCell.value?.value(num)
-                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
-                                    EntryMode.DELETE -> currentCell.value?.remove(num)
+                                if (num != null) {
+                                    when(modelEntry.firstSelected()) {
+                                        EntryMode.SET -> currentCell.value?.value(num)
+                                        EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
+                                        EntryMode.DELETE -> currentCell.value?.remove(num)
+                                    }
                                 }
                             }
-                        }
+                        } else if(me.ctrlKey) grid?.rotate(30)
+                        else if(me.shiftKey) grid?.normTransform()
                     }
                     theGrid = grid
                 }
@@ -308,7 +336,7 @@ fun initUI() {
                 val cdd = div() {
 
                 }
-                selEM = select(modelEntry, EntryModel.converter) {}
+                selEM = select(modelEntry, EntryModel.converter) { }
                 modelEntry.select(EntryMode.SET)
 
                 val cv = object : Converter<Int> {
@@ -321,7 +349,7 @@ fun initUI() {
                     }
                 }
 
-                selEV = select(numbers,cv){}
+                selEV = select(numbers, cv) { }
                 numbers.select(5)
                 mouseover { currentCell.value = null }
                 CellDisplay(cdd, currentCell)
