@@ -27,6 +27,7 @@ import ch.passenger.kotlin.html.js.model.Observer
 import ch.passenger.kotlin.html.js.html.util.Converter
 import ch.passenger.kotlin.html.js.html.util.BooleanConverter
 import js.dom.html.HTMLInputElement
+import ch.passenger.kotlin.html.js.css.*
 
 /**
  * Created with IntelliJ IDEA.
@@ -146,8 +147,13 @@ abstract class HtmlElement(aid: String?) : Dirty {
 
     fun detach() {
         if (node != null) {
-            if(parent != null && parent?.node != null) {
-                parent?.node?.removeChild(node!!)
+            if(parent!=null) {
+                val p = parent!!
+                if(p.node!=null) {
+                    val n = p.node!!
+                    console.log("removing ", n)
+                    n!!.removeChild(node!!)
+                }
             }
             node = null
             each { it.detach() }
@@ -230,8 +236,9 @@ class Text(initial: String) : HtmlElement(null) {
 
 
     override fun doRefresh() {
-        if(parent != null && parent?.node != null) {
-            parent?.node?.textContent = content
+        if(parent!=null) {
+           val p = parent!!
+           if(p.node!=null) p.node!!.textContent = content
         }
     }
 }
@@ -265,12 +272,12 @@ class AttributeList(private val list: MutableMap<String, Attribute>) {
         for(i in 0..(l - 1)) {
             val na = n.attributes.item(i) as Attr
             if(na != null && !list.containsKey(na.name)) {
-                console.log("lost att ${na.name}")
+                //console.log("lost att ${na.name}")
                 n.attributes.removeNamedItem(na.name)
             } else if(na != null) {
                 val a = na as DOMAttribute
                 val v = list[na.nodeName]
-                console.log("modify att ${a.name}: ${a.value} -> ", v?.value)
+                //console.log("modify att ${a.name}: ${a.value} -> ", v?.value)
                 if(v != null)
                     a.value = v.value
                 else n.attributes.removeNamedItem(a.name)
@@ -279,7 +286,7 @@ class AttributeList(private val list: MutableMap<String, Attribute>) {
 
         list.values().each {
             if(n.attributes.getNamedItem(it.name) == null) {
-                console.log("gained att ${it.name}: ${it.value}")
+                //console.log("gained att ${it.name}: ${it.value}")
                 val a = window.document.createAttribute(it.name)!! as DOMAttribute
                 a.value = it.value
                 n.attributes.setNamedItem(a as Attr)
@@ -299,12 +306,24 @@ fun forceId(aid: String?): String {
 abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), EventManager {
     protected override val listeners: MutableMap<EventTypes, MutableSet<(DOMEvent) -> Unit>> = HashMap()
     val attributes: AttributeList = AttributeList(HashMap())
+    val styles : MutableMap<String,CSSProperty<*>> = HashMap()
 
     override fun doRefresh() {
         //console.log("refresh Tag $name ${id()}")
         preRefreshHook()
         dirty = false
-        if(node != null) attributes.refresh(node)
+        if(node != null) {
+            if (styles.size()>0) {
+                val sb = StringBuilder()
+                styles.values().each {
+                    sb.append(it.write())
+                    sb.append(" ")
+                }
+                if(sb.toString().length()>0)
+                  attributes.att("style", sb.toString())
+            }
+            attributes.refresh(node)
+        }
         postRefreshHook()
     }
 
@@ -343,12 +362,14 @@ abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), Event
         }
     }
 
-    fun addStyle(s: String) {
-        if(attributes.att("style") == null) {
-            attributes.att("style", s)
-        } else {
-            attributes.att("style", "${attributes.att("style")!!.value} $s")
-        }
+    fun addStyle(s: String, vararg v:String) :CSSStringProperty {
+        return styles.put(s, CSSStringProperty(s, v)) as CSSStringProperty
+    }
+    fun addStyle(s: String, vararg v:Length):CSSLengthProperty {
+        return styles.put(s, CSSLengthProperty(s, v)) as CSSLengthProperty
+    }
+    fun addStyle(v:CSSProperty<*>): CSSProperty<*>? {
+        return styles.put(v.name, v)
     }
 }
 
@@ -366,10 +387,11 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         table.init()
     }
 
-    fun a(href: String, id: String? = null, init: Link.() -> Unit) {
+    fun a(href: String, id: String? = null, init: Link.() -> Unit) : Link {
         val a = Link(href)
         a.init()
         addChild(a)
+        return a
     }
 
     fun div(id: String? = null, init: Div.() -> Unit): Div {
@@ -421,21 +443,17 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         addChild(svg)
         return svg
     }
+
+    fun border(id:String?=null,init:BorderLayout.()->Unit) : BorderLayout {
+        val b = BorderLayout(id, init)
+        return b
+    }
 }
 
 class Link(val href: String) : FlowContainer("a") {
     {
-        atts { att("href", href) }
+        attributes.att("href", href)
     }
-    fun action(cb: Callback) {
-        val SESSION = (window as MyWindow)!!.bosork!!
-        val aid = SESSION.actionHolder.add(cb)
-        addClass("action")
-        atts {
-            att("data-action", "${aid}")
-        }
-    }
-
 }
 
 class Table(public var title: String, id: String? = null) : Tag("table", id) {
@@ -670,7 +688,7 @@ class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val c
 }
 
 class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
-    var text: Text? = null
+    var text: Text = Text("")
     fun disabled(fl: Boolean) {
         attributes.att("disabled", "${fl}")
     }
@@ -693,6 +711,9 @@ class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
 
     fun label(l: String) {
         attributes.att("label", l)
+        text.detach()
+        text = Text(l)
+        addChild(text)
     }
     fun value(l: String) {
         attributes.att("value", l)

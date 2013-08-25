@@ -22,11 +22,10 @@ import ch.passenger.kotlin.html.js.html.EventTypes
 
 val nsSvg = "http://www.w3.org/2000/svg"
 
-class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox,Styled {
+class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
     override var svgPT: SVGPoint? = null
-    override val styles: MutableMap<String, String> = HashMap();
 
     override val transforms: MutableList<Transform> = ArrayList();
     {
@@ -73,6 +72,13 @@ trait ViewBox {
 
 trait ShapeContainer {
     val me : SvgElement
+
+    fun circle(cx:Number, cy:Number, r:Number, id:String?, init:Circle.()->Unit): Circle {
+        val c = Circle(cx.px(), cy.px(), r.px(), id)
+        c.init()
+        me.addChild(c)
+        return c
+    }
 
     fun rect(x:Number,y:Number,w:Number,h:Number,id:String?=null,init:Rect.()->Unit) : Rect {
         return rect(x.px(),y.px(),w.px(),h.px(),id,init)
@@ -241,27 +247,6 @@ trait RGBColor : Color {
 
 
 
-trait Styled {
-    val me : SvgElement
-    val styles : MutableMap<String,String>
-
-    fun addStyle(property:String, value:String) {
-        styles.put(property,value)
-    }
-
-    fun addStyle(property:String, value:Length) {
-        styles.put(property,"${value.value}${value.measure.name()}")
-    }
-
-    fun writeStyle() {
-        val sb = StringBuilder()
-        for(k in styles.keySet()){
-            sb.append("$k: ${styles.get(k)}; ")
-        }
-        me.attribute("style", sb.toString())
-    }
-}
-
 trait Shape : Transformed {
     override val me : SvgElement
 
@@ -334,6 +319,8 @@ trait Rounded : Shape {
 trait Stroked : Shape {
     var stroke : Paint?
     var stroke_width : Length?
+    var opacity : Double?
+    var stroke_opacity : Double?
 
     fun writeStroke() {
         console.log("write stroke: ${stroke?.value}")
@@ -341,41 +328,50 @@ trait Stroked : Shape {
         me.attributes.att("stroke", stroke?.value?:"")
         if(stroke_width!=null)
             me.attributes.att("stroke-width", "${stroke_width?.value}${stroke_width?.measure?.name()}"?:"")
+        if(opacity!=null)
+            me.attribute("opacity", "$opacity")
+        if(stroke_opacity!=null)
+            me.attribute("stroke-opacity", "$stroke_opacity")
     }
     fun stroke(p:Paint) = stroke = p
     fun black() : Paint = ANamedColor("black")
     fun transparent() : Paint = TransparentPaint()
+    fun red() : Paint = ANamedColor("red")
+    fun orange() : Paint = ANamedColor("orange")
 
 }
 
 trait Filled : Shape {
     var  fill : Paint?
+    var fill_opacity : Double?
     fun writeFill() {
         console.log("write fill: ${fill?.value}")
         if(fill!=null)
             me.attributes.att("fill", fill?.value?:"")
+        if(fill_opacity!=null)
+            me.attribute("fill-opacity", "$fill_opacity")
     }
     fun fill(p:Paint) = fill = p
     fun noFill() = fill = TransparentPaint()
 }
 
 
-abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stroked,Filled,Styled {
+abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stroked,Filled {
     override var stroke: Paint? = null
     override var stroke_width: Length? = null
     override var fill: Paint? = null
     override var svgPT: SVGPoint? = null
-    override val styles: MutableMap<String, String> = HashMap()
     override val transforms: MutableList<Transform> = ArrayList()
     override val me: SvgElement = this
-
+    override var opacity: Double? = null
+    override var stroke_opacity: Double? = null
+    override var fill_opacity: Double? = null
 
     protected override final fun writeSvgContent() {
         writeTransform()
         writeFill()
         writeStroke()
         writeStrokeFill()
-        writeStyle()
     }
 
     abstract fun writeStrokeFill()
@@ -482,15 +478,22 @@ class TrSkewX(val x:Number) : Transform("$x", "skewX")
 class TrSkewY(val y:Number) : Transform("$y", "skewY")
 
 
-class Group(id:String?) : SvgElement("g", id), ShapeContainer, Transformed,Styled {
+class Group(id:String?) : SvgElement("g", id), ShapeContainer, Transformed {
     override val me: SvgElement = this
-    override val styles: MutableMap<String, String> = HashMap()
     override val transforms: MutableList<Transform> = ArrayList()
     override var svgPT: SVGPoint? = null
 
 
     protected override fun writeSvgContent() {
         writeTransform()
+    }
+}
+
+class Circle(val cx:Length, val cy:Length, val r:Length, id:String?) : StrokeAndFill("circle", id) {
+    override fun writeStrokeFill() {
+        writeLength("cx", cx)
+        writeLength("cy", cy)
+        writeLength("r", r)
     }
 }
 
@@ -506,6 +509,8 @@ class Line(var x1:Length, var y1:Length, var x2:Length, var y2:Length,id:String?
     }
     override var stroke: Paint? = null
     override var stroke_width: Length? = null
+    override var opacity: Double? = null
+    override var stroke_opacity: Double? = null
     override val me: SvgElement = this
 
 

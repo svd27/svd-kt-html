@@ -131,6 +131,8 @@ var selEV: Select<Int, MutableList<Int>>? = null
 
 var theGrid: Grid? = null
 
+var popUp : Div? = null
+
 fun initUI() {
     jq {
         val mw = (window as MyWindow)!!
@@ -139,6 +141,7 @@ fun initUI() {
         val complexModel = object : AbstractSelectionModel<A>(listOf(A("s", 1.toDouble()), A("v", 2.toDouble()), A("d", 3.toDouble())), true) {
         }
         val coordInfoModel = CoordInfoModel()
+        val parent = Div("root")
         val div = BorderLayout("content") {
             east {
                 svg(100.px(), 100.px()) {
@@ -265,14 +268,19 @@ fun initUI() {
                             console.log("selecting $num")
                             numbers.select(num)
                             if(currentCell.value != null) {
+                                var can:Boolean = modelEntry.firstSelected()!=EntryMode.SET?:true
+                                if(!can) can = theGrid?.validate(num, currentCell.value!!)?:true
+                                else theGrid?.validate(num, currentCell.value!!)?:true
                                 console.log("key manip ", num, " in ", currentCell?.value?.row, ",", currentCell?.value?.col,
-                                        " mode ", modelEntry.firstSelected())
-                                when(modelEntry.firstSelected()) {
-                                    EntryMode.SET -> currentCell.value?.value(num)
-                                    EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
-                                    EntryMode.DELETE -> currentCell.value?.remove(num)
+                                        " mode ", modelEntry.firstSelected(), " can ", can)
+                                if (can) {
+                                    when(modelEntry.firstSelected()) {
+                                        EntryMode.SET -> currentCell.value?.value(num)
+                                        EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
+                                        EntryMode.DELETE -> currentCell.value?.remove(num)
+                                    }
+                                    theGrid?.group?.dirty = true
                                 }
-                                theGrid?.group?.dirty = true
                             }
                         }
                     }, false)
@@ -316,13 +324,24 @@ fun initUI() {
                                 console.log("click button: ${e.button}")
                                 console.log("click alt: ${e.altKey}  ctrl ${e.ctrlKey} shift ${e.shiftKey}")
                                 val num = numbers.firstSelected()
-                                console.log("click num ", num, " mode: ", modelEntry.firstSelected())
 
-                                if (num != null) {
+
+
+                                var valid =  true
+                                val em = modelEntry.firstSelected()!!
+                                if(theGrid!=null && num != null && em==EntryMode.SET) {
+                                    val ag = theGrid!!
+                                    valid = ag.validate(num!!, c)
+                                } else if(theGrid!=null && num != null && em==EntryMode.CANDIDATE) {
+                                    val ag = theGrid!!
+                                    ag.validate(num!!, c)
+                                }
+                                console.log("click num ", num, " mode: ", modelEntry.firstSelected(), "valid ", valid)
+                                if (num != null && valid) {
                                     when(modelEntry.firstSelected()) {
-                                        EntryMode.SET -> currentCell.value?.value(num)
-                                        EntryMode.CANDIDATE -> currentCell?.value?.candidate(num)
-                                        EntryMode.DELETE -> currentCell.value?.remove(num)
+                                        EntryMode.SET -> c.value(num)
+                                        EntryMode.CANDIDATE -> c.candidate(num)
+                                        EntryMode.DELETE -> c.remove(num)
                                     }
                                 }
                             }
@@ -380,7 +399,38 @@ fun initUI() {
                     }
                     checkbox(model, "chkLegend") { }
                 }
+                a("#") {
+                    text("pop")
+                    click {
+                        it.preventDefault()
+                        popUp?.addStyle("display", "visible")
+                        popUp?.dirty=true
+                    }
+                }
             }
+        }
+        popUp = parent.div {
+            addStyle("position","fixed")
+            addStyle("display", "none")
+            border {
+                north {
+                    text("popup")
+                }
+                center {
+
+                }
+                south {
+                    a("#") {
+                        text("Close")
+                        click {
+                            it.preventDefault()
+                            popUp?.addStyle("display", "none")
+                        }
+                    }
+                }
+            }
+
+
         }
 
         /*
@@ -403,10 +453,10 @@ fun initUI() {
                     w.postMessage("start")
                 }
         */
-
+        parent.addChild(div)
 
         val SESSION = (window as MyWindow)!!.bosork!!
-        SESSION.root = div
+        SESSION.root = parent
     }
 }
 
@@ -417,13 +467,16 @@ class CellDisplay(val parent: FlowContainer, val model: Model<Cell>) : AbstractO
     }
 
     fun render() {
-        div.clear()
-        if(model.value == null) {
-            div.text("-,-")
-        } else {
-            div.text("${model.value?.row},${model.value?.col}")
+        if(model.value == null && div.node!=null) {
+            val n = div.node
+            if(n!=null) n.textContent = "-,-"
+            //div.text("-,-")
+        } else if(div.node!=null) {
+            val n = div.node
+            if(n!=null) n.textContent = "${model.value?.row},${model.value?.col}"
+            //div.text("${model.value?.row},${model.value?.col}")
         }
-        div.dirty = true
+        //div.dirty = true
     }
 
     override fun added(t: Cell) {

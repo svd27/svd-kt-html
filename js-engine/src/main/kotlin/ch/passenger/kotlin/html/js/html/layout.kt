@@ -12,14 +12,22 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
     var middle : Div? = null;
 
     {
-        addStyle("display: flex; display: -webkit-flex; flex-flow: column; -webkit-flex-flow: column;")
+        addStyle("display", "flex", "-webkit-flex")
+        addStyle("flex-flow", "column")
+        addStyle("-webkit-flex-flow", "column")
         this.init()
     }
 
     fun createMiddle() : Div {
         if(middle!=null) return middle!!
         middle = div {
-            addStyle("display: -webkit-flex; display: flex; flex-flow: row; -webkit-flex-flow: row; -webkit-order: 2; order: 2; flex-grow: 3; -webkit-flex-grow: 3;")
+            addStyle("display", "-webkit-flex",  "flex")
+            addStyle("flex-flow", "row")
+            addStyle("-webkit-flex-flow", "row")
+            addStyle("-webkit-order", "2")
+            addStyle("order", "2")
+            addStyle("-webkit-flex-grow", "3")
+            addStyle("flex-grow", "3")
         }
 
         return  middle!!
@@ -30,8 +38,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         if(middle==null) createMiddle()
 
         val c = middle?.div() {
-            addStyle("order: 2; flex-grow: 4;")
-            addStyle("-webkit-order: 2; -webkit-flex-grow: 4;")
+            addStyle("order","2")
+            addStyle("flex-grow", "4")
+            addStyle("-webkit-order", "2")
+            addStyle("-webkit-flex-grow", "4")
             init()
         }
         center = c
@@ -42,8 +52,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         if(north!=null) north?.detach()
 
         val c = div {
-            addStyle("order: 1; flex-grow: 1;")
-            addStyle("-webkit-order: 1; -webkit-flex-grow: 1;")
+            addStyle("order", "1")
+            addStyle("flex-grow", "1")
+            addStyle("-webkit-order", "1")
+            addStyle("-webkit-flex-grow", "1")
             init()
         }
         north = c
@@ -56,8 +68,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         if(middle==null) createMiddle()
 
         val c = middle?.div() {
-            addStyle("order: 1; flex-grow: 1;")
-            addStyle("-webkit-order: 1; -webkit-flex-grow: 1;")
+            addStyle("order", "1")
+            addStyle("flex-grow", "1")
+            addStyle("-webkit-order", "1")
+            addStyle("-webkit-flex-grow", "1")
             init()
         }
         west = c
@@ -70,8 +84,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         if(middle==null) createMiddle()
 
         val c = middle?.div() {
-            addStyle("order: 3; flex-grow: 1;")
-            addStyle("-webkit-order: 3; -webkit-flex-grow: 1;")
+            addStyle("order", "3")
+            addStyle("flex-grow", "1")
+            addStyle("-webkit-order", "3")
+            addStyle("-webkit-flex-grow", "1")
             init()
         }
         east = c
@@ -82,8 +98,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         if(south!=null) south?.detach()
 
         val c = div {
-            addStyle("order: 3; flex-grow: 1;")
-            addStyle("-webkit-order: 3; -webkit-flex-grow: 1;")
+            addStyle("order", "3")
+            addStyle("flex-grow", "1")
+            addStyle("-webkit-order", "3")
+            addStyle("-webkit-flex-grow", "1")
             init()
         }
         south = c

@@ -3,6 +3,8 @@ package ch.passenger.kotlin.html.js.html.svg
 import ch.passenger.kotlin.html.js.html.DOMMouseEvent
 import java.util.HashMap
 import ch.passenger.kotlin.html.js.html.HtmlElement
+import js.dom.html.window
+import js.debug.console
 
 /**
  * Created by sdju on 20.08.13.
@@ -19,6 +21,59 @@ class Grid(val parent:ShapeContainer, val w:Int, val h:Int, val rows:Int, val co
     val fh : Length = (cw*.7).px()
     val fhs :Length = (fh.value/3).px()
 
+
+    fun validate(value:Int, c:Cell) : Boolean {
+        val sgr = (c.row-1) / 3
+        val sgc = (c.col-1) / 3
+        var valid = true
+        console.log(c, " $c validating subcell ($sgr,$sgc)")
+        for(row in (sgr*3)..(sgr*3+2)) {
+            for(col in (sgc*3)..(sgc*3+2)) {
+                val oc = cell(row+1,col+1)
+                if(oc.row!=c.row || oc.col!=c.col) {
+                    if(oc.value!=null && oc.value==value) {
+                        console.log("problem in $oc ", oc)
+                        oc.problem(c, value)
+                        valid = false
+
+                    } else
+                    if(oc.hasCandidate(value)) {
+                        oc.problem(c, value)
+                    }
+                }
+            }
+        }
+        for(i in 1..columns) {
+            val oc = cell(c.row,i)
+            if(oc.row!=c.row || oc.col!=c.col) {
+                if(oc.value!=null && oc.value==value) {
+                    console.log("problem in $oc ", oc)
+                    oc.problem(c, value)
+                    valid = false
+
+                } else
+                    if(oc.hasCandidate(value)) {
+                        oc.problem(c, value)
+                    }
+            }
+        }
+
+        for(i in 1..rows) {
+            val oc = cell(i,c.col)
+            if(oc.row!=c.row || oc.col!=c.col) {
+                if(oc.value!=null && oc.value==value) {
+                    console.log("problem in $oc ", oc)
+                    oc.problem(c, value)
+                    valid = false
+
+                } else
+                    if(oc.hasCandidate(value)) {
+                        oc.problem(c, value)
+                    }
+            }
+        }
+        return valid
+    }
 
     fun rotate(a:Number) {
         group?.rotate(a, w/2, h/2)
@@ -143,8 +198,8 @@ fun<T> Array<T>.eachIdx(cb:(Int,T)->Unit) {
 }
 
 class Cell(val row:Int,val col:Int, val grid:Grid) {
-    val subcells : Array<SvgElement?> = Array<SvgElement?>(9) {null}
-    var coreValue : SvgElement? = null
+    val subcells : Array<SvgText?> = Array<SvgText?>(9) {null}
+    var coreValue : SvgText? = null
     var value : Number? = null
     val cw : Int = grid.cw
     val ch : Int = grid.ch
@@ -159,7 +214,48 @@ class Cell(val row:Int,val col:Int, val grid:Grid) {
         }
     }
 
+    fun hasCandidate(c:Int) :Boolean {
+        return subcells[c]!=null
+    }
 
+    fun problem(oc:Cell, v:Int) {
+        if(value==v) {
+            val c = cell.circle(origin.x.value+cw/2, origin.y.value+ch/2, nfh.value, null) {
+                noFill()
+                stroke = orange()
+                opacity = .8
+                animate(TrScale(.5, .5), TrScale(1, 1)) {
+                    dur = 1.sec()
+                    repeatCount = -1
+                }
+            }
+            coreValue?.stroke = coreValue?.red()
+            coreValue?.fill = coreValue?.red()
+            coreValue?.dirty=true
+            if(hasCandidate(v)) {
+                val cc = subcells[v]!!
+                cc.stroke = cc.red()
+                cc.fill = cc.red()
+                cc.dirty=true
+            }
+            c.dirty = true
+            val cb = {()->
+                console.log("done problem ", c);
+                c.detach();
+                coreValue?.stroke = coreValue?.black()
+                coreValue?.fill = coreValue?.black()
+                coreValue?.dirty=true
+                if(hasCandidate(v)) {
+                    val cc = subcells[v]!!
+                    cc.stroke = cc.black()
+                    cc.fill = cc.black()
+                    cc.dirty=true
+                }
+
+            }
+            window.setTimeout(cb, 3000)
+        }
+    }
 
     fun remove(v:Number) {
         if(value!=null && value==v) {
