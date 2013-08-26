@@ -30,6 +30,7 @@ import js.dom.html.HTMLInputElement
 import ch.passenger.kotlin.html.js.css.*
 import ch.passenger.kotlin.html.js.model.Observable
 import ch.passenger.kotlin.html.js.model.AbstractSelectionModel
+import ch.passenger.kotlin.html.js.logger.Logger
 
 /**
  * Created with IntelliJ IDEA.
@@ -770,6 +771,7 @@ enum class InputTypes {
 
 
 abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Converter<T>, id: String? = null) : Tag("input", id), EventManager {
+    protected val log: Logger = Logger.logger("html.input");
     {
         attributes.att("type", kind.name())
         model.addObserver(object : AbstractObserver<T>() {
@@ -792,22 +794,25 @@ abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Convert
         })
 
         change {
+            log.debug("received new value: ", model.value, " -> ", _value())
             model.value = _value()
         }
+        if(model.value!=null)
+        attributes.att("value", conv.convert2string(model.value!!))
     }
 
     public fun value() : T? = model.value
     public fun value(t:T?) : Unit = model.value = t
 
     protected open fun _value(v: T?) {
-        if(v != null)
-            attributes.att("value", conv.convert2string(v))
-        else attributes.att("value", "")
+        val n = node as HTMLInputElement
+        if(n!=null)
+            n.value = if(v!=null) conv.convert2string(v) else ""
     }
 
     protected open fun _value(): T? {
-        val vs = attributes.att("value")
-        if(vs != null)  return conv.convert2target(vs.value)
+        val n = node as HTMLInputElement
+        if(n!=null) return conv.convert2target(n.value)
         return null
     }
 }
