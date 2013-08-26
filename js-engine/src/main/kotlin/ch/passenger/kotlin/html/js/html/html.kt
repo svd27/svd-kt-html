@@ -28,6 +28,8 @@ import ch.passenger.kotlin.html.js.html.util.Converter
 import ch.passenger.kotlin.html.js.html.util.BooleanConverter
 import js.dom.html.HTMLInputElement
 import ch.passenger.kotlin.html.js.css.*
+import ch.passenger.kotlin.html.js.model.Observable
+import ch.passenger.kotlin.html.js.model.AbstractSelectionModel
 
 /**
  * Created with IntelliJ IDEA.
@@ -145,7 +147,7 @@ abstract class HtmlElement(aid: String?) : Dirty {
         return idx
     }
 
-    fun detach() {
+    open fun detach() {
         if (node != null) {
             if(parent!=null) {
                 val p = parent!!
@@ -239,6 +241,14 @@ class Text(initial: String) : HtmlElement(null) {
         if(parent!=null) {
            val p = parent!!
            if(p.node!=null) p.node!!.textContent = content
+        }
+    }
+
+
+    override fun detach() {
+        if(parent!=null) {
+            val p = parent!!
+            if(p.node!=null) p.node!!.textContent = ""
         }
     }
 }
@@ -363,19 +373,26 @@ abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), Event
     }
 
     fun addStyle(s: String, vararg v:String) :CSSStringProperty {
-        return styles.put(s, CSSStringProperty(s, v)) as CSSStringProperty
+        styles.put(s, CSSStringProperty(s, v))
+        val res = styles.get(s)
+        return res as CSSStringProperty
     }
     fun addStyle(s: String, vararg v:Length):CSSLengthProperty {
-        return styles.put(s, CSSLengthProperty(s, v)) as CSSLengthProperty
+        styles.put(s, CSSLengthProperty(s, v))
+        val res = styles.get(s)
+        return res as CSSLengthProperty
     }
     fun addStyle(v:CSSProperty<*>): CSSProperty<*>? {
-        return styles.put(v.name, v)
+        styles.put(v.name, v)
+        return styles.get(v)
     }
+    fun styles() : Collection<CSSProperty<*>> = styles.values()
 }
 
 
 
 abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
+    fun HtmlElement.plus() = this@FlowContainer.addChild(this)
 
     fun text(s: String) {
         addChild(Text(s))
@@ -408,7 +425,8 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         return s
     }
 
-    fun<T, C : MutableCollection<T>> select(model: SelectionModel<T, C>, conv: Converter<T>? = null, id: String? = null, init: Select<T, C>.() -> Unit): Select<T, C> {
+    fun<T> select(model: SelectionModel<T>, conv: Converter<T>? = null, id: String? = null, init: Select<T>.() -> Unit):
+            Select<T> {
         val s = Select(model, conv, id)
         s.init()
         addChild(s)
@@ -446,13 +464,41 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
 
     fun border(id:String?=null,init:BorderLayout.()->Unit) : BorderLayout {
         val b = BorderLayout(id, init)
+        addChild(b)
         return b
     }
+
+    fun inputText(initial:String, id:String?=null, init:InputText.()->Unit) : InputText {
+        val m = object : Model<String> {
+            protected override var _value: String? = initial
+            protected override val observers: MutableSet<Observer<String>> = HashSet()
+        }
+        val inp = InputText(m, StringConverter(), id)
+        inp.init()
+        return inp
+    }
+
+    fun inputText(m:Model<String>, id:String?=null, init:InputText.()->Unit) : InputText {
+        val inp = InputText(m, StringConverter(), id)
+        inp.init()
+        return inp
+    }
+
+
+    fun textArea(m:Model<String> = DefaultStringModel(), id:String?=null, init:TextArea.()->Unit) : TextArea {
+        val ta = TextArea(m, id)
+        ta.init()
+        addChild(ta)
+        return ta
+    }
+
 }
 
-class Link(val href: String) : FlowContainer("a") {
+class Link(val text:String="", val href: String="#") : FlowContainer("a") {
     {
         attributes.att("href", href)
+        if(text.trim().length()>0)
+        text(text)
     }
 }
 
@@ -528,7 +574,7 @@ class TableCell(id: String? = null) : FlowContainer("td", id)
 
 
 
-class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val converter: Converter<T>? = null, id: String? = null) : Tag("select", id) {
+class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = null, id: String? = null) : Tag("select", id) {
     var listener: Callback? = null
 
     {
@@ -683,8 +729,6 @@ class Select<T, C : MutableCollection<T>>(val model: SelectionModel<T, C>, val c
             model.select(it.value)
         }
     }
-
-
 }
 
 class Option<T>(val value: T, id: String? = null) : Tag("option", id) {
@@ -731,54 +775,109 @@ abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Convert
         model.addObserver(object : AbstractObserver<T>() {
 
             override fun added(t: T) {
-                value(t)
+                _value(t)
                 dirty = true
             }
             override fun removed(t: T) {
-                value(null)
+                _value(null)
                 dirty = true
             }
             override fun deleted(t: T) {
                 removed(t)
             }
             override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
-                value(nv as T)
+                _value(nv as T)
                 dirty = true
             }
         })
 
         change {
-            model.value = value()
+            model.value = _value()
         }
     }
 
-    protected open fun value(v: T?) {
+    public fun value() : T? = model.value
+    public fun value(t:T?) : Unit = model.value = t
+
+    protected open fun _value(v: T?) {
         if(v != null)
             attributes.att("value", conv.convert2string(v))
         else attributes.att("value", "")
     }
 
-    protected open fun value(): T? {
+    protected open fun _value(): T? {
         val vs = attributes.att("value")
         if(vs != null)  return conv.convert2target(vs.value)
         return null
     }
 }
 
+class StringConverter() : Converter<String> {
+
+    override fun convert2string(t: String): String {
+        return t
+    }
+    override fun convert2target(s: String): String {
+        return s
+    }
+}
+
+class DefaultStringModel : Model<String> {
+    protected override val observers: MutableSet<Observer<String>> = HashSet()
+    protected override var _value: String? = null
+}
+
+class InputText(m:Model<String> = DefaultStringModel(), conv:Converter<String> = StringConverter(), id:String?=null) :
+Input<String>(InputTypes.text, m, conv, id)
+
+class TextArea(val model:Model<String> = DefaultStringModel(), id:String?=null) : Tag("textarea", id){
+    var rows : Int = 5
+    set(v) {
+        $rows = v
+        attributes.att("rows", "$v")
+    }
+
+    var cols : Int = 5
+        set(v) {
+            $cols = v
+            attributes.att("cols", "$v")
+        }
+    var readonly : Boolean = false
+        set(v) {
+            $readonly = v
+            if(v)
+            attributes.att("readOnly", "$v")
+            else attributes.remove("readOnly")
+        }
+
+
+    public fun value() : String? = model.value
+    public fun value(t:String?) : Unit = model.value = t
+}
 
 class CheckBox(model: Model<Boolean>, id: String? = null) : Input<Boolean>(InputTypes.checkbox, model, BooleanConverter(), id) {
 
-    protected override fun value(): Boolean? {
+    protected override fun _value(): Boolean? {
         if(node == null) null
         val inp = node as HTMLInputElement
         return inp.checked
     }
-    protected override fun value(v: Boolean?) {
+    protected override fun _value(v: Boolean?) {
         if(node == null) return
         val inp = node as HTMLInputElement
         if(v != null)
             inp.checked = v
         else inp.checked = false
+    }
+
+    {
+        model.addObserver(object:AbstractObserver<Boolean>() {
+            override fun updated(t: Boolean, prop: String, old: Any?, nv: Any?) {
+                if(t==value()) return
+                value(t)
+                dirty = true
+            }
+        })
     }
 }
 

@@ -82,11 +82,13 @@ class Logger private (val tag:String, private var appenders:MutableList<Appender
     public fun log(level:String, vararg content:Any?) {
         var payload : String? = null
         appenders.each {
-            if(it.noop && it.levels.contains(level)) {
+            if(!it.noop && (it.allLevels || it.levels.contains(level))) {
                 if (payload==null) {
                     val sb = StringBuilder()
                     content.each {
+                        if(it!=null)
                         sb.append(it)
+                        else sb.append("null")
                     }
                     payload = sb.toString()
                 }
@@ -164,5 +166,8 @@ class Logger private (val tag:String, private var appenders:MutableList<Appender
         fun appenders() : Set<String> = appenders.keySet()
         fun appender(name:String) : Appender? = appenders.get(name)
         fun loggers() : Collection<Logger> = TAGS.values()
+        fun appenders(tag:String) : Collection<Appender> {
+            return TAGS.get(tag)?.appenders?:ArrayList<Appender>()
+        }
     }
 }

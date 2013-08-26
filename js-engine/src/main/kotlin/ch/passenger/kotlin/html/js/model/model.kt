@@ -96,6 +96,15 @@ trait Model<T> : Observable<T> {
         return nv
     }
 
+    /**
+     * tells the model that new content may be available
+     * it is up to the model to react to this or not
+     * default implementation does nothing
+     */
+    open public fun refresh() {
+
+    }
+
 }
 
 
@@ -117,6 +126,15 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
                 console.log("$it really didnt like me and wont let me observe", e)
             }
         }
+    }
+
+    /**
+     * tells the model that new content may be available
+     * it is up to the model to react to this or not
+     * default implementation does nothing
+     */
+    open public fun refresh() {
+
     }
 
     open fun add(v:T) {
@@ -150,7 +168,7 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
     }
 }
 
-trait SelectionModel<T,C:MutableCollection<T>> : CollectionModel<T,C> {
+trait SelectionModel<T> : CollectionModel<T,MutableList<T>> {
     val _selections : MutableSet<T>
     val selections : Set<T>
        get() = _selections
@@ -180,11 +198,12 @@ class DefaultObservable<T>() : Observable<T> {
     override val observers: MutableSet<Observer<T>> = HashSet()
 }
 
-abstract class AbstractSelectionModel<T>(val values : Iterable<T>, override val multi:Boolean) : SelectionModel<T,MutableList<T>>,
+abstract class AbstractSelectionModel<T>(val values : Iterable<T>, override val multi:Boolean) : SelectionModel<T>,
         Observable<T>  {
+    override val items: MutableList<T> = ArrayList()
     override val observers: MutableSet<Observer<T>> = HashSet()
-    override val _selections: MutableSet<T> = HashSet()
-    override val items: MutableList<T> = ArrayList();
+    override val _selections: MutableSet<T> = HashSet();
+
 
     {
         values.each {
@@ -194,6 +213,35 @@ abstract class AbstractSelectionModel<T>(val values : Iterable<T>, override val 
     }
 }
 
-class StringSelectionModel(values : Iterable<String>, multi:Boolean) : AbstractSelectionModel<String>(values, multi) {
+open class SelectionObservableAdapter<T>(val observable:Observable<T>, initial:Iterable<T>, multi:Boolean=false) : AbstractSelectionModel<T>(initial, multi) {
+    {
+        observable.addObserver(object:Observer<T> {
 
+            override fun added(t: T) {
+                add(t)
+            }
+            override fun loaded(t: T) {
+
+            }
+            override fun unloaded(t: T) {
+
+            }
+            override fun removed(t: T) {
+                remove(t)
+            }
+            override fun deleted(t: T) {
+
+            }
+            override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
+                fireUpdate(t, prop, old, nv)
+            }
+        })
+    }
+}
+
+class SelectionModelAdapter<T,C:MutableCollection<T>>(val cm:CollectionModel<T,C>, multi:Boolean=false) :
+SelectionObservableAdapter<T>(cm, cm.items, multi)
+
+class StringSelectionModel(values : Iterable<String>, multi:Boolean) : AbstractSelectionModel<String>(values, multi) {
+    override val items: MutableList<String> = ArrayList()
 }

@@ -39,6 +39,8 @@ import ch.passenger.kotlin.html.js.model.SelectionModel
 import ch.passenger.kotlin.html.js.html.svg.TrRotate
 import ch.passenger.kotlin.html.js.html.svg.sec
 import ch.passenger.kotlin.html.js.html.svg.TrTranslate
+import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.logger.LogManager
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -59,11 +61,25 @@ class AConverter : Converter<A> {
 
 public native fun document.addEventListener(kind: String, cb: (e: DOMEvent)->Any?, f: Boolean): Unit = js.noImpl
 
+public val log : Logger = Logger.logger("bosork-tests")
+
 fun dump(n: Node) {
     console.log("Dump ${n.localName}:${n?.attributes?.getNamedItem("id")?.nodeValue}")
     n.childNodes.each {
         dump(it)
     }
+}
+
+var noiseStarted : Double = -1.0
+var noiseLink : Link? = null
+
+fun logNoise() {
+    val d = Date()
+    log.debug("debugging lotsa noise at ", d)
+    log.info("informing you, that you may be warned", d, " really i mean it!")
+    log.warn("you had it coming...")
+    log.error("now you did it! an error at exactly ${Date()}")
+    log.fatal("ive had enough, fatally annoyed with you, ", Date())
 }
 
 
@@ -94,7 +110,7 @@ fun crteml(): MutableList<EntryMode> {
 }
 
 val emlist: List<EntryMode> = crteml()
-var selEM: Select<EntryMode, MutableList<EntryMode>>? = null
+var selEM: Select<EntryMode>? = null
 
 enum class EntryMode {
     SET CANDIDATE DELETE
@@ -123,11 +139,11 @@ fun createNumbers(): MutableList<Int> {
     return l
 }
 
-val numbers: SelectionModel<Int, MutableList<Int>> = object : AbstractSelectionModel<Int>(createNumbers(), false) {
+val numbers: SelectionModel<Int> = object : AbstractSelectionModel<Int>(createNumbers(), false) {
 }
 
 //val entryValue : AbstractSelectionModel<Int> = object : AbstractSelectionModel<Int>(1..9,false) {}
-var selEV: Select<Int, MutableList<Int>>? = null
+var selEV: Select<Int>? = null
 
 var theGrid: Grid? = null
 
@@ -399,12 +415,33 @@ fun initUI() {
                     }
                     checkbox(model, "chkLegend") { }
                 }
-                a("#") {
-                    text("pop")
+                a("pop") {
                     click {
                         it.preventDefault()
                         popUp?.addStyle("display", "visible")
                         popUp?.dirty=true
+                    }
+                }
+                noiseLink = a("start logging") {
+                    click {
+                        if(noiseStarted<0) {
+                            noiseStarted = window.setInterval({logNoise()}, 1000)?:-1.0
+                            noiseLink?.clear()
+                            noiseLink?.text("Stop IT!")
+                        } else {
+                            log.debug("stopping noise ", noiseStarted)
+                            window.clearInterval(noiseStarted)
+                            noiseStarted = -1.0
+                            noiseLink?.clear()
+                            noiseLink?.text("start logging")
+                        }
+                        noiseLink?.dirty = true
+
+                    }
+                }
+                a("shout log") {
+                    click {
+                        logNoise()
                     }
                 }
             }
@@ -412,20 +449,11 @@ fun initUI() {
         popUp = parent.div {
             addStyle("position","fixed")
             addStyle("display", "none")
-            border {
-                north {
-                    text("popup")
-                }
-                center {
-
-                }
-                south {
-                    a("#") {
-                        text("Close")
-                        click {
-                            it.preventDefault()
-                            popUp?.addStyle("display", "none")
-                        }
+            div {
+                addChild(LogManager())
+                a("Close") {
+                    click {
+                        popUp?.addStyle("display", "none")
                     }
                 }
             }

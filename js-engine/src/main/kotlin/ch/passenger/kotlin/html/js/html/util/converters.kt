@@ -11,6 +11,7 @@ trait Converter<T> {
     fun convert2target(s:String):T
 }
 
+
 abstract class NumberConverter<T:Number> : Converter<Number> {
     override fun convert2string(t: Number): String {
         return "$t"
