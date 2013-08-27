@@ -96,11 +96,17 @@ abstract class HtmlElement(aid: String?) : Dirty {
         doRefresh()
     }
 
-    public fun addChild(e: HtmlElement) {
+    public open fun addChild(e: HtmlElement) {
+        doAddChild(e)
+    }
+
+    protected fun doAddChild(e:HtmlElement) {
         e.parent = this
         //console.log("adding: ", e)
         _children.add(e)
     }
+
+
 
     fun find(id: String): HtmlElement? {
         var result: HtmlElement? = null
@@ -366,30 +372,46 @@ abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), Event
         attributes.init()
     }
 
+    private val classes : MutableSet<String> = HashSet()
+
     fun addClass(c: String) {
-        if(attributes.contains("class")) {
-            val ca = attributes.att("class")
-            val prefix = ca?.value?:""
-            attributes.att("class", "$prefix $c")
-        } else {
-            attributes.att("class", c)
+        classes.add(c)
+        val sb = StringBuilder()
+        classes.each {
+            sb.append(it)
+                sb.append(' ')
         }
+        if(sb.toString().length()>0)
+        attributes.att("class", sb.toString())
     }
+
+    fun removeClass(c: String) {
+        classes.remove(c)
+        val sb = StringBuilder()
+        classes.each { sb.append(it)
+                sb.append(' ') }
+        if(sb.toString().length()>0)
+            attributes.att("class", sb.toString())
+    }
+
 
     fun addStyle(s: String, vararg v:String) :CSSStringProperty {
         styles.put(s, CSSStringProperty(s, v))
         val res = styles.get(s)
         return res as CSSStringProperty
     }
+
     fun addStyle(s: String, vararg v:Length):CSSLengthProperty {
         styles.put(s, CSSLengthProperty(s, v))
         val res = styles.get(s)
         return res as CSSLengthProperty
     }
+
     fun addStyle(v:CSSProperty<*>): CSSProperty<*>? {
         styles.put(v.name, v)
         return styles.get(v)
     }
+
     fun styles() : Collection<CSSProperty<*>> = styles.values()
 }
 
@@ -408,7 +430,7 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         table.init()
     }
 
-    fun a(href: String, id: String? = null, init: Link.() -> Unit) : Link {
+    fun a(text:String="", href: String="#", id: String? = null, init: Link.() -> Unit) : Link {
         val a = Link(href)
         a.init()
         addChild(a)

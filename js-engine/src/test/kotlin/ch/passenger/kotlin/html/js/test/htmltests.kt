@@ -41,6 +41,7 @@ import ch.passenger.kotlin.html.js.html.svg.sec
 import ch.passenger.kotlin.html.js.html.svg.TrTranslate
 import ch.passenger.kotlin.html.js.logger.Logger
 import ch.passenger.kotlin.html.js.logger.LogManager
+import ch.passenger.kotlin.html.js.html.components.ViewContainer
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -70,7 +71,7 @@ fun dump(n: Node) {
     }
 }
 
-var noiseStarted : Double = -1.0
+var noiseStarted : Long = -1 as Long
 var noiseLink : Link? = null
 
 fun logNoise() {
@@ -181,6 +182,43 @@ fun initUI() {
 
                     }
                 }
+
+                val vc = ViewContainer()
+                vc.div("a") {
+                    text("A")
+                }
+                vc.div("b") {
+                    text("B")
+                }
+                vc.div("c") {
+                    text("C")
+                }
+                +vc
+                log.debug("vc.sel ${vc.view()}")
+                div {
+                    a("a") {
+                        click {
+                            log.debug("a select view -> ", vc.view())
+                            vc.view("a")
+                            log.debug("a select view -> ", vc.view())
+                        }
+                    }
+                }
+                div {
+                    a("b") {
+                        log.debug("b select view -> ", vc.view())
+                        click { vc.view("b") }
+                        log.debug("b select view -> ", vc.view())
+                    }
+                }
+                div {
+                    a("c") {
+                        log.debug("c select view -> ", vc.view())
+                        click { vc.view("c") }
+                        log.debug("c select view -> ", vc.view())
+                    }
+                }
+
             }
             north {
                 div() {
@@ -425,13 +463,13 @@ fun initUI() {
                 noiseLink = a("start logging") {
                     click {
                         if(noiseStarted<0) {
-                            noiseStarted = window.setInterval({logNoise()}, 1000)?:-1.0
+                            noiseStarted = window.setInterval({logNoise()}, 1000.0)?:-1 as Long
                             noiseLink?.clear()
                             noiseLink?.text("Stop IT!")
                         } else {
                             log.debug("stopping noise ", noiseStarted)
                             window.clearInterval(noiseStarted)
-                            noiseStarted = -1.0
+                            noiseStarted = -1 as Long
                             noiseLink?.clear()
                             noiseLink?.text("start logging")
                         }
