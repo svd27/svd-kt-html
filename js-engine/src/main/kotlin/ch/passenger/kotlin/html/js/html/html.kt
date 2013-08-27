@@ -344,6 +344,9 @@ abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), Event
         console.log("create Tag $name in ${parent?.id()}: ${parent?.node?.nodeName}")
         if(parent != null && (parent?.node != null || parent == ROOT_PARENT)) {
             node = window.document.createElement(name)
+            if(id().trim().length()>0) {
+                attributes.att("id", id())
+            }
             attributes.refresh(node)
             initListeners()
             if(parent != ROOT_PARENT) insertIntoParent()
@@ -438,6 +441,7 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         val l = Label(id)
         if(lfor != null) l.labels(lfor)
         l.init()
+        addChild(l)
         return l
     }
 
@@ -577,6 +581,7 @@ class TableCell(id: String? = null) : FlowContainer("td", id)
 
 class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = null, id: String? = null) : Tag("select", id) {
     var listener: Callback? = null
+    private val log = Logger.logger("select");
 
     {
         if(model.multi) attributes.att("multiple", "true")
@@ -584,9 +589,10 @@ class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = nul
         console.log("---select init called---")
         val obs = object : AbstractObserver<T>() {
             override fun added(t: T) {
+                log.debug("adding option: ", t)
                 console.log("adding option: ${t.toString()}")
                 if(find(t) == null) {
-                    addOption(t)
+                    addOption(t).dirty = true
                     console.log("added option: ${t.toString()}")
                 }
             }
@@ -683,9 +689,9 @@ class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = nul
         return  sel
     }
 
-    fun addOption(t: T) {
+    fun addOption(t: T) : Option<T> {
         val cnv = converter
-        option(t) { label(if(cnv == null) value.toString() else cnv.convert2string(value)) }
+        return option(t) { label(if(cnv == null) value.toString() else cnv.convert2string(value)) }
     }
 
     fun find(t: T): Option<T>? {
@@ -698,11 +704,12 @@ class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = nul
         return found
     }
 
-    fun option(t: T, id: String? = null, init: Option<T>.() -> Unit) {
+    fun option(t: T, id: String? = null, init: Option<T>.() -> Unit) : Option<T> {
         console.log("create option: $t")
         val o: Option<T> = Option<T>(t, id)
         o.init()
         addChild(o)
+        return o
     }
 
     private fun onSelect(event: DOMEvent) {
@@ -788,7 +795,7 @@ abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Convert
                 removed(t)
             }
             override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
-                _value(nv as T)
+                _value(nv as T?)
                 dirty = true
             }
         })

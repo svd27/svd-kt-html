@@ -80,12 +80,13 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
     }
     val chkAllLevels: CheckBox = CheckBox(allLevelsModel)
     val levelsModel: SelectionModel<String> = object: AbstractSelectionModel<String>(currentLevels(), true) {
+        private val that = this@LogManager;
         {
             appenders.model.addObserver(object:AbstractObserver<String>() {
 
                 override fun loaded(t: String) {
                     items.clear()
-                    items.addAll(currentLevels())
+                    items.addAll(that.currentLevels())
                 }
                 override fun unloaded(t: String) {
                     items.clear()
@@ -96,7 +97,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
 
         public override fun refresh() {
             items.clear()
-            items.addAll(currentLevels())
+            items.addAll(that.currentLevels())
         }
     }
 

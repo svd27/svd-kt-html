@@ -4,10 +4,13 @@ import js.debug.console
 import java.util.HashSet
 import java.util.ArrayList
 import ch.passenger.kotlin.html.js.html.each
+import ch.passenger.kotlin.html.js.logger.Logger
 
 /**
  * Created by sdju on 16.08.13.
  */
+
+val log : Logger = Logger.logger("model")
 
 public trait Observer<T> {
     fun added(t:T)
@@ -123,7 +126,7 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
             try {
                 if(it is Observable<*>) it.addObserver(this)
             } catch(e: Exception) {
-                console.log("$it really didnt like me and wont let me observe", e)
+                log.debug("$it really didnt like me and wont let me observe", e)
             }
         }
     }
@@ -138,10 +141,14 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
     }
 
     open fun add(v:T) {
-        if(items.add(v)) fireAdd(v)
+        val l = items.size()
+        items.add(v)
+        log.debug("adding  $v size ${l} -> ${items.size()}")
+        if(l!=items.size()) fireAdd(v)
     }
 
     open fun remove(v:T) {
+        log.debug("remove ", v)
         if(items.remove(v)) fireRemove(v)
     }
 
@@ -160,10 +167,12 @@ trait CollectionModel<T,C:MutableCollection<T>> : Observable<T>,Observer<T> {
         deleted(t)
     }
     override fun deleted(t: T) {
+        log.debug("deleted ", t)
         items.remove(t)
         fireRemove(t)
     }
     override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
+        log.debug("update ", t, " $prop: $old->$nv")
         fireUpdate(t, prop, old, nv)
     }
 }
@@ -175,6 +184,7 @@ trait SelectionModel<T> : CollectionModel<T,MutableList<T>> {
     val multi : Boolean
 
     fun deselect(sel:T) {
+        log.debug("deselect: ", sel)
         if(selections.contains(sel)) {
             _selections.remove(sel)
             fireUnLoad(sel)
@@ -182,6 +192,7 @@ trait SelectionModel<T> : CollectionModel<T,MutableList<T>> {
     }
 
     fun select(sel:T) {
+        log.debug("select: ", sel)
         if(selections.contains(sel)) return;
         if(!multi) _selections.clear()
         _selections.add(sel)
@@ -214,10 +225,12 @@ abstract class AbstractSelectionModel<T>(val values : Iterable<T>, override val 
 }
 
 open class SelectionObservableAdapter<T>(val observable:Observable<T>, initial:Iterable<T>, multi:Boolean=false) : AbstractSelectionModel<T>(initial, multi) {
+    val log :Logger = Logger.logger("SelectionObservableAdapter");
     {
         observable.addObserver(object:Observer<T> {
 
             override fun added(t: T) {
+                log.debug("added ", t)
                 add(t)
             }
             override fun loaded(t: T) {
@@ -227,15 +240,20 @@ open class SelectionObservableAdapter<T>(val observable:Observable<T>, initial:I
 
             }
             override fun removed(t: T) {
+                log.debug("remvoed ", t)
                 remove(t)
             }
             override fun deleted(t: T) {
 
             }
             override fun updated(t: T, prop: String, old: Any?, nv: Any?) {
+                log.debug("updated ", t, " $prop: $old->$nv")
                 fireUpdate(t, prop, old, nv)
             }
         })
+    }
+    class object {
+
     }
 }
 

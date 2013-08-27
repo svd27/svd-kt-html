@@ -63,12 +63,12 @@ class BasicGuiceTest {
 
         assert(echo().getInstance<AService>()!! is AService) {"getInstance did not return AService"}
         assert(echo().getInstance<AService>()!! is AEcho) {"getInstance did not return AEcho"}
-        assertEquals(1, echo().getInstance<AService>()!!.serve(1))
+        assertEquals(1, echo().getInstance<AService>()!!.serve(1), "")
 
         assert(double().getInstance<AService>()!! is AService) {"getInstance did not return AService"}
         assert(double().getInstance<AService>()!! is ADouble) {"getInstance did not return AEcho"}
-        assertEquals(2, double().getInstance<AService>()!!.serve(1))
-        assertEquals(4, double().getInstance<AService>()!!.serve(2))
+        assertEquals(2, double().getInstance<AService>()!!.serve(1), "")
+        assertEquals(4, double().getInstance<AService>()!!.serve(2), "")
     }
 
 
@@ -82,6 +82,6 @@ class BasicGuiceTest {
         }
         val service = Guice.createInjector(module)!!.getInstance(javaClass<AService>())
         print(service)
-        assertNotNull(service)
+        assertNotNull(service, "")
     }
 }

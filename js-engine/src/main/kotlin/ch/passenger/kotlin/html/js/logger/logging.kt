@@ -8,6 +8,7 @@ import java.util.HashMap
 import java.util.HashSet
 import ch.passenger.kotlin.html.js.model.Observable
 import ch.passenger.kotlin.html.js.model.Observer
+import ch.passenger.kotlin.html.js.binding.Date
 
 /**
  * Created by Duric on 25.08.13.
@@ -28,7 +29,8 @@ abstract class Appender(val noop:Boolean=false) : Observable<LogEntry> {
 
     fun write(level:String, tag:String, content:String) {
         //TODO: add formatters
-        write("$level$tag: $content\n")
+        val date = Date(Date.now())
+        write("$level::$tag::${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}:: $content\n")
         if(observers.size()>0) {
             fireAdd(LogEntry(tag, level, content))
         }
@@ -107,7 +109,7 @@ class Logger private (val tag:String, private var appenders:MutableList<Appender
     class object {
         val DEFAULT : Appender=ConsoleAppender()
         private val TAGS : MutableMap<String,Logger> = HashMap()
-        private val appenders : MutableMap<String,Appender> = HashMap()
+        private val appenders : MutableMap<String,Appender> = HashMap<String,Appender>()
         public val observeLoggers : Observable<Logger> = object : Observable<Logger> {
             protected override val observers: MutableSet<Observer<Logger>> = HashSet()
         }
@@ -163,7 +165,12 @@ class Logger private (val tag:String, private var appenders:MutableList<Appender
             logger.appenders.clear()
         }
 
-        fun appenders() : Set<String> = appenders.keySet()
+        fun appenders() : Set<String> {
+            if(!appenders.containsKey("DEFAULT")) {
+                appenders.put("DEFAULT", DEFAULT)
+            }
+            return appenders.keySet()
+        }
         fun appender(name:String) : Appender? = appenders.get(name)
         fun loggers() : Collection<Logger> = TAGS.values()
         fun appenders(tag:String) : Collection<Appender> {
