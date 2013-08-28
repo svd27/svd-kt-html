@@ -22,7 +22,7 @@ import ch.passenger.kotlin.html.js.html.EventTypes
 
 val nsSvg = "http://www.w3.org/2000/svg"
 
-class SVG(override val extend:Extension,id:String?) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox {
+class SVG(override val extend:Extension,id:String?=null) : SvgElement("svg", id), Extended,ShapeContainer,ViewBox {
     override val me: SvgElement = this
     override val position: Position = Position(px(0),px(0));
     override var svgPT: SVGPoint? = null
@@ -133,14 +133,16 @@ inline fun percent(v:Int) : Length = percent(v.toDouble())
 fun Number.px() : Length = Length(this.toDouble(), Measure.px)
 fun Number.percent() : Length = Length(this.toDouble(), Measure.percent)
 
-abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
+abstract class SvgElement(name:String,id:String?=null) : Tag(name, id) {
     public override fun createNode(): Node? {
         if(hidden) return null
         console.log("create svg $name in ${parent?.id()}: ${parent?.node?.nodeName}")
         if(parent!=null && (parent?.node!=null||parent==ROOT_PARENT)) {
             val doc = window.document
             node = doc.createElementNS(nsSvg,name)!!
-
+            if(id().trim().length()>0) {
+                attributes.att("id", id())
+            }
             attributes.refresh(node)
             initListeners()
             if(parent!=ROOT_PARENT) insertIntoParent()
@@ -363,7 +365,7 @@ trait Filled : Shape {
 }
 
 
-abstract class StrokeAndFill(name:String,id:String?) : SvgElement(name, id),Stroked,Filled {
+abstract class StrokeAndFill(name:String,id:String?=null) : SvgElement(name, id),Stroked,Filled {
     override var stroke: Paint? = null
     override var stroke_width: Length? = null
     override var fill: Paint? = null

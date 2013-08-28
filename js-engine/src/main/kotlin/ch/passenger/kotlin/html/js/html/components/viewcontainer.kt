@@ -14,15 +14,17 @@ import ch.passenger.kotlin.html.js.logger.Logger
  */
 
 open class ViewContainer(id:String?=null, protected var selected : String? = null) : Tag("div", id) {
+    val log = Logger.logger("ViewContainer")
     override public fun addChild(v:HtmlElement)  {
         if (v is Tag) {
             doAddChild(v)
             v.addStyle("position", "absolute")
-            //TODO: why is 100.percent() not rendering properly?
             v.addStyle("width", "100%")
             v.addStyle("height", "100%")
-            if(children.size()>1)
+            if(children.size()>1) {
+                log.debug("hiding ${v.id()} for now")
                 v.addStyle("visibility", "hidden")
+            }
             else view(v.id())
         }
     }
@@ -35,12 +37,14 @@ open class ViewContainer(id:String?=null, protected var selected : String? = nul
 
     fun view() : String? = selected
     fun view(id:String) {
+        log.debug("view($id) selected: $selected")
         if(id==selected) return
 
         val sel = selected
         if (sel !=null) {
             val now = find(sel)
             if(now!=null && now is Tag) {
+                log.debug("hiding ${now.id()}")
                 now.addStyle("visibility", "hidden")
                 now.addStyle("position", "absolute")
                 now.removeClass("boz-view-selected")
@@ -49,8 +53,10 @@ open class ViewContainer(id:String?=null, protected var selected : String? = nul
         }
 
         val view = find(id)
+        log.debug("target view $id returned ",view)
         if(view!=null) {
             if(view is Tag) {
+                log.debug("showing ${view.name}:${view.id()}")
                 selected = id
                 view.addClass("boz-view-selected")
                 view.addStyle("visibility", "visible")
@@ -82,7 +88,7 @@ class TabbedView(g:Gesture, id:String?=null) : Tag("Div", id) {
                   val t : Tag = it
                   when(v) {
                       Gesture.click -> it.click { tabbed(t) }
-                      Gesture.enter -> it.mouseenter { tabbed(t) }
+                      Gesture.enter -> it.mouseover { tabbed(t) }
                       else -> null
                   }
                   t.dirty = true
@@ -91,6 +97,8 @@ class TabbedView(g:Gesture, id:String?=null) : Tag("Div", id) {
       }
 
     {
+        north.addClass("bos-tabs")
+        center.addChild(vc)
         addChild(layout)
     }
 
@@ -104,12 +112,18 @@ class TabbedView(g:Gesture, id:String?=null) : Tag("Div", id) {
         }
     }
 
+    fun tab(s:String,c:Tag) {
+        val h = Div()
+        h.text(s)
+        tab(h, c)
+    }
+
     fun tab(header:Tag, content:Tag) {
         north.addChild(header)
-        center.addChild(content)
+        vc.addChild(content)
         when(gesture) {
             Gesture.click -> header.click { tabbed(header) }
-            Gesture.enter -> header.mouseenter { tabbed(header) }
+            Gesture.enter -> header.mouseover { tabbed(header) }
             else -> null
         }
         tabs.put(header.id(), content.id())

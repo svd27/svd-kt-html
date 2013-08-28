@@ -14,77 +14,142 @@ import ch.passenger.kotlin.html.js.binding.Date
  * Created by Duric on 25.08.13.
  */
 
-class LogEntry(val tag:String, val level:String, val content:String)
+class LogEntry(val tag:String, val level:String, val content:String, val date:Date)
 
-abstract class Appender(val noop:Boolean=false) : Observable<LogEntry> {
-    var allLevels : Boolean = true
-    val levels : MutableSet<String> = HashSet()
-    fun addLevel(level:String) {
-        levels.add(level)
-        allLevels = false
+abstract class LogFormatter() {
+    abstract fun format(e:LogEntry) : String
+}
+
+class DefaultLogFormatter() : LogFormatter() {
+
+    override fun format(e: LogEntry) = "${e.level}::${e.tag}::${e.date.getHours()}:${e.date.getMinutes()}:${e.date.getSeconds()}:${e.date.getMilliseconds()}:: ${e.content}\n"
+}
+
+class AppenderConfig(val tag:String) {
+    val levels:MutableSet<String> = HashSet()
+
+    fun accept(level:String) : Boolean {
+        if(levels.contains("ALL")) return true
+
+        return levels.contains(level)
     }
-    fun removeLevel(l:String) = levels.remove(l)
 
-    abstract fun write(s:String)
+    fun addLevel(level:String) {
+        levels.remove("ALL")
+        levels.add(level)
+    }
+
+    fun removeLevel(level:String) {
+        levels.remove(level)
+    }
+}
+
+abstract class Appender(var format:LogFormatter=DefaultLogFormatter(), val noop:Boolean=false) : Observable<LogEntry> {
+    val cfgs : MutableMap<String,AppenderConfig> = HashMap();
+    val levels : MutableSet<String> = HashSet();
+
+    {
+        val cfg = AppenderConfig("ROOT")
+        cfg.levels.add("ALL")
+        cfgs.put("ROOT", cfg)
+        levels.add("ALL")
+    }
+
+    fun addLevel(level:String) {
+        levels.remove("ALL")
+        levels.add(level)
+    }
+
+    fun removeLevel(level:String) {
+        levels.remove(level)
+    }
+
+    fun cfg(tag:String, cfg:AppenderConfig) {
+        cfgs.put(tag, cfg)
+    }
+    fun cfg(tag:String) : AppenderConfig {
+        if(!cfgs.containsKey(tag)) {
+            var cfg : AppenderConfig = resolveConfig(tag)
+            cfgs.put(tag, cfg)
+        }
+        console.log("$tag -> cfg:${cfgs.get(tag)?.tag}")
+
+        return cfgs.get(tag)!!
+    }
+
+    private fun resolveConfig(tag:String): AppenderConfig {
+        if(!cfgs.containsKey(tag)) {
+            val idx = tag.lastIndexOf(".")
+            if(idx>0) {
+                val parent = tag.substring(0, idx)
+                return resolveConfig(parent)
+            } else {
+                return cfgs.get("ROOT")!!
+            }
+        }
+
+        return cfgs.get(tag)!!
+    }
+
+    abstract fun write(entry:LogEntry)
 
     fun write(level:String, tag:String, content:String) {
         //TODO: add formatters
         val date = Date(Date.now())
-        write("$level::$tag::${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}:${date.getMilliseconds()}:: $content\n")
+        write(LogEntry(tag, level, content, date))
         if(observers.size()>0) {
-            fireAdd(LogEntry(tag, level, content))
+            fireAdd(LogEntry(tag, level, content, date))
         }
     }
 
-    abstract fun currentContent() : String
+    private fun iWant(level:String) :Boolean {
+        return levels.contains("ALL") || levels.contains(level)
+    }
+
+    open fun want(tag:String, level:String) : Boolean {
+        console.log("i want: ${iWant(level)} cfg: ${cfg(tag).accept(level)}")
+        return iWant(level) && cfg(tag).accept(level)
+    }
+
+    open fun currentContent() : List<LogEntry> = ArrayList()
 
     protected override val observers: MutableSet<Observer<LogEntry>> = HashSet()
 }
-class ConsoleAppender() : Appender() {
-    override fun write(s: String) {
-        console.log(s)
+class ConsoleAppender(format:LogFormatter=DefaultLogFormatter()) : Appender(format) {
+    override fun write(entry: LogEntry) {
+        console.log(format.format(entry))
     }
-
-    override fun currentContent(): String = ""
 }
 
-class NullAppender() : Appender(true) {
+class NullAppender() : Appender(DefaultLogFormatter(), true) {
+    override fun write(entry: LogEntry) {}
 
-    override fun write(s: String) {
-
-    }
-    override fun currentContent(): String = ""
+    override fun want(tag: String, level: String): Boolean = false
 }
 
-class BufferedAppender(val maxSize:Int=999999) : Appender() {
-    val lines : MutableList<String> = ArrayList()
-    var size :Int = 0
+class BufferedAppender(val maxSize:Int=999999, format:LogFormatter=DefaultLogFormatter()) : Appender(format) {
+    val lines : MutableList<LogEntry> = ArrayList()
 
 
-    override fun write(s: String) {
-        if(s.length()>maxSize) throw IllegalArgumentException()
-        if(size+s.length()>maxSize) {
+    override fun write(e:LogEntry) {
+        if(lines.size()>maxSize) throw IllegalArgumentException()
+        if(lines.size()==maxSize) {
             lines.remove(0)
-            write(s)
-        } else {
-            size += s.length()
-            lines.add(s)
         }
+        lines.add(e)
+
+        write(e)
     }
-    override fun currentContent(): String {
-        val sb = StringBuilder()
-        lines.each {
-            sb.append(it)?.append("\n")
-        }
-        return sb.toString()
-    }
+
+
+    override fun currentContent(): List<LogEntry> = lines
 }
 
 class Logger private (val tag:String, private var appenders:MutableList<Appender>) {
     public fun log(level:String, vararg content:Any?) {
         var payload : String? = null
         appenders.each {
-            if(!it.noop && (it.allLevels || it.levels.contains(level))) {
+            if(!it.noop && it.want(tag, level)) {
                 if (payload==null) {
                     val sb = StringBuilder()
                     content.each {

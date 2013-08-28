@@ -424,6 +424,12 @@ abstract class Tag(val name: String, val aid: String?) : HtmlElement(aid), Event
 abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
     fun HtmlElement.plus() = this@FlowContainer.addChild(this)
 
+    fun br() : BR {
+        val br = BR()
+        addChild(br)
+        return br
+    }
+
     fun text(s: String) {
         addChild(Text(s))
     }
@@ -435,7 +441,7 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
     }
 
     fun a(text:String="", href: String="#", id: String? = null, init: Link.() -> Unit) : Link {
-        val a = Link(href)
+        val a = Link(text, href, id)
         a.init()
         addChild(a)
         return a
@@ -525,7 +531,7 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
 
 }
 
-class Link(val text:String="", val href: String="#") : FlowContainer("a") {
+class Link(val text:String="", val href: String="#", id:String?=null) : FlowContainer("a", id) {
     {
         attributes.att("href", href)
         if(text.trim().length()>0)
@@ -560,6 +566,22 @@ class Table(public var title: String, id: String? = null) : Tag("table", id) {
     }
 
 
+}
+
+class BR() : HtmlElement(null) {
+
+    public override fun createNode(): Node? {
+        if(hidden) return null
+        console.log("create <br/> in ${parent?.id()}: ${parent?.node?.nodeName}")
+        if(parent != null && (parent?.node != null || parent == ROOT_PARENT)) {
+            node = window.document.createElement("br")
+            if(parent != ROOT_PARENT) insertIntoParent()
+        }
+        return node
+    }
+    override fun doRefresh() {
+
+    }
 }
 
 class TBody(id: String? = null) : Tag("tbody", id) {
