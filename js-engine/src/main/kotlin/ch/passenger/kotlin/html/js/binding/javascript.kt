@@ -1,5 +1,12 @@
 package ch.passenger.kotlin.html.js.binding
 
+native trait Self {
+    native fun setInterval(cb:()->Unit, delay:Long, vararg params:Any?) : Any
+    native fun setTimeout(cb:()->Unit, delay:Long, vararg params:Any?) : Any
+    native fun clearTimeout(id:Any)
+    native fun clearInterval(id:Any)
+}
+
 /**
  * Created by sdju on 26.08.13.
  */

@@ -42,6 +42,10 @@ import ch.passenger.kotlin.html.js.html.svg.TrTranslate
 import ch.passenger.kotlin.html.js.logger.Logger
 import ch.passenger.kotlin.html.js.logger.LogManager
 import ch.passenger.kotlin.html.js.html.components.ViewContainer
+import ch.passenger.kotlin.html.js.html.components.TabbedView
+import ch.passenger.kotlin.html.js.html.components.Gesture
+
+val SELF = window as Self
 
 class A(val v: String, val d: Double) {
     fun toString(): String = "$v:$d"
@@ -71,7 +75,7 @@ fun dump(n: Node) {
     }
 }
 
-var noiseStarted : Long = -1 as Long
+var noiseStarted : Any? = null
 var noiseLink : Link? = null
 
 fun logNoise() {
@@ -193,6 +197,7 @@ fun initUI() {
                 vc.div("c") {
                     text("C")
                 }
+                vc.addStyle("border", 3.px())
                 +vc
                 log.debug("vc.sel ${vc.view()}")
                 div {
@@ -218,6 +223,53 @@ fun initUI() {
                         log.debug("c select view -> ", vc.view())
                     }
                 }
+
+                val tv = TabbedView(Gesture.click, "tabbed")
+                tv.cfg {
+                    val h = Div("T1")
+                    h.text("Tab 1")
+                    val c = Div("C1")
+                    c.div {
+                        BorderLayout() {
+                            north {
+                                text("north")
+                            }
+                            south {
+                                text("south")
+                            }
+                            west {
+                                text("west")
+                            }
+                        }
+                    }
+                    tab(h, c)
+                    val csvg = Div("CSVG")
+                    csvg.svg(100.px(), 100.px()) {
+                        line(0.px(), 0.px(), 100.px(), 100.px()) {
+                            stroke = black()
+                            animate(TrRotate(0, 50, 50),TrRotate(360, 50, 50)) {
+                                dur = 5.sec()
+                                repeatCount = -1
+                            }
+                            animate(TrTranslate(0, 0), TrTranslate(50, 0)) {
+                                dur = 5.sec()
+                                repeatCount = 3
+                                begin {
+                                    console.log("translate started")
+                                }
+                                end {
+                                    console.log("im done")
+                                    //parent?.detach()
+                                }
+                            }
+
+                        }
+                    }
+                    val h2 = Div("T2")
+                    h2.text("SVG")
+                    tab(h2, csvg)
+                }
+                +tv
 
             }
             north {
@@ -462,14 +514,14 @@ fun initUI() {
                 }
                 noiseLink = a("start logging") {
                     click {
-                        if(noiseStarted<0) {
-                            noiseStarted = window.setInterval({logNoise()}, 1000.0)?:-1 as Long
+                        if(noiseStarted==null) {
+                            noiseStarted = SELF.setInterval({logNoise()}, 1000)
                             noiseLink?.clear()
                             noiseLink?.text("Stop IT!")
                         } else {
                             log.debug("stopping noise ", noiseStarted)
-                            window.clearInterval(noiseStarted)
-                            noiseStarted = -1 as Long
+                            SELF.clearInterval(noiseStarted?:-1)
+                            noiseStarted = null
                             noiseLink?.clear()
                             noiseLink?.text("start logging")
                         }

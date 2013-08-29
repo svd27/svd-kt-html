@@ -41,5 +41,5 @@ class CSSStringProperty(name:String,value:Array<String>) : CSSProperty<String>(n
 }
 
 class CSSLengthProperty(name:String, value:Array<Length>) : CSSProperty<Length>(name, value) {
-    override fun writeValue(v:Length): String= "${v.value}${v.measure}"
+    override fun writeValue(v:Length): String= "${value.toString()}"
 }

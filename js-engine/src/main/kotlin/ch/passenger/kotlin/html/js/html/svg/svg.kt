@@ -131,6 +131,7 @@ inline fun percent(v:Double) : Length = Length(v,Measure.percent)
 inline fun percent(v:Int) : Length = percent(v.toDouble())
 
 fun Number.px() : Length = Length(this.toDouble(), Measure.px)
+fun Number.percent() : Length = Length(this.toDouble(), Measure.percent)
 
 abstract class SvgElement(name:String,id:String?) : Tag(name, id) {
     public override fun createNode(): Node? {
@@ -222,7 +223,13 @@ trait SvgLocatable {
 
     private fun findSvg()
 }
-class Length(val value:Double, val measure:Measure=Measure.px)
+class Length(val value:Double, val measure:Measure=Measure.px) {
+    public fun toString() : String {
+      var name = measure.name()
+      if(measure==Measure.percent) name = "%"
+      return "$value$name"
+    }
+}
 
 class Position(var x:Length,var y:Length)
 class Extension(var w:Length,var h:Length)

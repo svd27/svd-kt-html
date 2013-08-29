@@ -33,11 +33,11 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         return  middle!!
     }
 
-    fun center(init:Div.()->Unit) {
+    fun center(init:Div.()->Unit): Div {
         if(center!=null) center?.detach()
         if(middle==null) createMiddle()
 
-        val c = middle?.div() {
+        val c = middle!!.div() {
             addStyle("order","2")
             addStyle("flex-grow", "4")
             addStyle("-webkit-order", "2")
@@ -46,9 +46,10 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         }
         center = c
         middle?.addChild(c!!)
+        return c
     }
 
-    fun north(init:Div.()->Unit) {
+    fun north(init:Div.()->Unit): Div {
         if(north!=null) north?.detach()
 
         val c = div {
@@ -60,6 +61,7 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
         }
         north = c
         addChild(c)
+        return c
     }
 
     fun west(init:Div.()->Unit) {

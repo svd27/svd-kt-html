@@ -40,6 +40,8 @@ import ch.passenger.kotlin.html.js.logger.Logger
  * To change this template use File | Settings | File Templates.
  */
 
+val log = Logger.logger("html")
+
 fun session(): Session {
     val mw = window as MyWindow
     return mw.bosork!!
@@ -109,10 +111,12 @@ abstract class HtmlElement(aid: String?) : Dirty {
 
 
     fun find(id: String): HtmlElement? {
+        log.debug("find: $id in ${this.id()}")
         var result: HtmlElement? = null
         if(id == id()) return this
-        each {
-            result = it.find(id)
+        for(c in children) {
+            result = c.find(id)
+            if(result !=null) return result
         }
 
         return result
