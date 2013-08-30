@@ -230,7 +230,7 @@ fun initUI() {
                     h.text("Tab 1")
                     val c = Div("C1")
                     c.div {
-                        BorderLayout() {
+                        +BorderLayout() {
                             north {
                                 text("north")
                             }

@@ -1,3 +1,54 @@
 html * {
     font-family: 'Jura', sans-serif;
 }
+
+.bos-tabs > div {
+    display: inline;
+    float:left;
+    margin-right:0.13em;
+
+    webkit-border-top-right-radius:0.50em;
+        -webkit-border-top-left-radius:0.50em;
+        -moz-border-radius-topright:0.50em;
+        -moz-border-radius-topleft:0.50em;
+        border-top-right-radius:0.50em;
+        border-top-left-radius:0.50em;
+        border:0.06em solid #000;
+        border-bottom:0;
+        font:bold 0.88em/2em
+        color:#000;
+        background-color:#ccc
+}
+
+.bos-tabs > div:hover {
+background:#3cf;
+    color:#fff;
+    text-decoration:none;
+}
+
+.bos-popup {
+  background: Aqua;
+  border: 3px;
+  opacity: .75
+}
+
+.bos-logmanager {
+  width: 600px;
+  height: 600px;
+}
+
+.log.ERROR, .log.FATAL {
+  color: red;
+}
+
+.log.WARN {
+  color: orange;
+}
+
+.log.INFO {
+  color: blue;
+}
+
+.log.DEBUG {
+  color: grey;
+}
