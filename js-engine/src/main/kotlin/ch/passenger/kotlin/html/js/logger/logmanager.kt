@@ -230,6 +230,7 @@ class LogPane(id:String?=null) : Tag("div", id)  {
             pane.detach()
             pane = Div()
             pane.addStyle("overflow", "auto")
+            //TODO: weird creates [70vh] in chrome
             pane.addStyle("height", 70.vh())
             pane.addStyle("width", 70.vw())
             addChild(pane)

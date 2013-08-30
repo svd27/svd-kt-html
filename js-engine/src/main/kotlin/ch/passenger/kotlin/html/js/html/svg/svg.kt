@@ -231,7 +231,7 @@ class Length(val value:Double, val measure:Measure=Measure.px) {
     public fun toString() : String {
       var name = measure.name()
       if(measure==Measure.percent) name = "%"
-      return "$value$name"
+      return "$value $name"
     }
 }
 
