@@ -3,6 +3,7 @@ package ch.passenger.kotlin.html.js.webworker
 import js.dom.html.HTMLElement
 import js.debug.console
 
+
 public native trait DOMEvent {
     public val target : HTMLElement
     public var data : Any?
@@ -35,6 +36,7 @@ fun main(args:Array<String>) {
 fun init() {
     val cb : (e:DOMEvent) -> Unit = {
         (e:DOMEvent) ->
+        console.log("worker logs event: $e")
         self?.postMessage("WW: got ${e.data}")
     };
     self?.addEventListener("message", cb, false)

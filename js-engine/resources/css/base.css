@@ -4,51 +4,67 @@ html * {
 
 .bos-tabs > div {
     display: inline;
-    float:left;
-    margin-right:0.13em;
+    float: left;
+    margin-right: 0.13em;
 
-    webkit-border-top-right-radius:0.50em;
-        -webkit-border-top-left-radius:0.50em;
-        -moz-border-radius-topright:0.50em;
-        -moz-border-radius-topleft:0.50em;
-        border-top-right-radius:0.50em;
-        border-top-left-radius:0.50em;
-        border:0.06em solid #000;
-        border-bottom:0;
-        font:bold 0.88em/2em
-        color:#000;
-        background-color:#ccc
+    webkit-border-top-right-radius: 0.50em;
+    -webkit-border-top-left-radius: 0.50em;
+    -moz-border-radius-topright: 0.50em;
+    -moz-border-radius-topleft: 0.50em;
+    border-top-right-radius: 0.50em;
+    border-top-left-radius: 0.50em;
+    border: 0.06em solid #000;
+    border-bottom: 0;
+    font: bold 0.88em/2em;
+    color : black;
+    background-color: #ccc;
 }
 
 .bos-tabs > div:hover {
-background:#3cf;
-    color:#fff;
-    text-decoration:none;
+    background: #3cf;
+    color: #fff;
+    text-decoration: none;
 }
 
 .bos-popup {
-  background: Aqua;
-  border: 3px;
-  opacity: .75
+    background: Aqua;
+    opacity: .75;
+    position: fixed;
+    z-index:9002;
+    background-color:#FFFFFF;
+    border:solid 3px #000000;
+
+    height:80%;
+    width:40%;
+}
+
+.bos-popup .header {
+    max-height: 20%;
+    overflow: hidden;
+}
+
+.bos-popup .content {
+    max-height: 80%;
+    overflow: auto;
 }
 
 .bos-logmanager {
-  width: 600px;
-  height: 600px;
+    width: 65vw;
+    height: 65vh;
 }
 
 .log.ERROR, .log.FATAL {
-  color: red;
+    color: red;
 }
 
 .log.WARN {
-  color: orange;
+    color: orange;
 }
 
 .log.INFO {
-  color: blue;
+    color: blue;
 }
 
 .log.DEBUG {
-  color: grey;
+    color: grey;
 }

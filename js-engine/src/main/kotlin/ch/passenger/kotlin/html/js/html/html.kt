@@ -434,10 +434,11 @@ abstract class FlowContainer(s: String, id: String? = null) : Tag(s, id) {
         addChild(Text(s))
     }
 
-    fun table(id: String? = null, init: Table.() -> Unit) {
+    fun table(id: String? = null, init: Table.() -> Unit) : Table {
         val table = Table("", id)
         addChild(table)
         table.init()
+        return table
     }
 
     fun a(text:String="", href: String="#", id: String? = null, init: Link.() -> Unit) : Link {
@@ -564,6 +565,8 @@ class Table(public var title: String, id: String? = null) : Tag("table", id) {
         head = h
         addChild(h)
     }
+
+    fun body() : TBody? = body
 
 
 }

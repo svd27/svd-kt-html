@@ -555,8 +555,7 @@ fun initUI() {
 
         }
 
-        /*
-                div.div("worker") {
+                parent.div("worker") {
                     //TODO: cant call text inside each
                     val SESSION = (window as MyWindow)!!.bosork!!
                     val path = "${SESSION.base}/webworker"
@@ -574,7 +573,7 @@ fun initUI() {
                     console.log("starting worker", w)
                     w.postMessage("start")
                 }
-        */
+
         parent.addChild(div)
 
         val SESSION = (window as MyWindow)!!.bosork!!

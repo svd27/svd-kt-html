@@ -12,7 +12,7 @@ class BorderLayout(id:String?=null, init:BorderLayout.()->Unit) : FlowContainer(
     var middle : Div? = null;
 
     {
-        addStyle("display", "flex", "-webkit-flex")
+        addStyle("display", "flex", "-webkit-flex", "-moz-flex")
         addStyle("flex-flow", "column")
         addStyle("-webkit-flex-flow", "column")
         this.init()

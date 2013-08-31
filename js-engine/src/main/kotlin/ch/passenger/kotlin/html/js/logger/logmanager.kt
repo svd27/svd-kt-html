@@ -24,6 +24,8 @@ import ch.passenger.kotlin.html.js.html.Tag
 import ch.passenger.kotlin.html.js.html.svg.percent
 import ch.passenger.kotlin.html.js.html.svg.vw
 import ch.passenger.kotlin.html.js.html.svg.vh
+import ch.passenger.kotlin.html.js.html.Table
+import js.debug.console
 
 val log = Logger.logger("LogManager")
 
@@ -116,7 +118,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
     val inpAppender: InputText = InputText()
     val addAppender: Link = Link("+Appender")
     val inpShout : InputText = InputText()
-    val layout : BorderLayout = BorderLayout() {}
+    val root : Div = Div("logmanager")
     val track: Link = Link("Track")
     val logpane : LogPane = LogPane()
             ;
@@ -124,6 +126,8 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
     {
         addClass("bos-popup")
         addClass("bos-logmanager")
+        //addStyle("width", "65vw")
+        //addStyle("height", "65vh")
         val that = this
         addLevel.click {
             val an = inpLevel.value()
@@ -168,6 +172,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
             addChild(that.addAppender)
             that.track.click {
                 val app = that.appenders.selected()
+                console.log("tracking $app")
                 if(app!=null) {
                     that.logpane.appender = Logger.appender(app)
                 }
@@ -178,13 +183,11 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
             }
         }
         tabs.tab("Appenders", ca)
-        layout.north {
-            addChild(tabs)
-        }
-        layout.center {
-            +that.logpane
-        }
-        addChild(layout)
+        tabs.addClass("header")
+        +tabs
+        logpane.addClass("content")
+        +logpane
+
     }
 
     fun currentLevels(): Set<String> {
@@ -197,12 +200,17 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
     }
 }
 
-class LogPane(id:String?=null) : Tag("div", id)  {
+class LogPane(id:String?=null) : FlowContainer("div", id)  {
+    {
+        addStyle("max-height", "90%")
+    }
     val log = Logger.logger("logmanager.logpane")
-    var pane : Div = Div()
+    //var pane : Div = Div()
+    var table : Table = Table("Logging")
     val obs : AbstractObserver<LogEntry> = object : AbstractObserver<LogEntry>() {
         override fun added(t: LogEntry) {
-            //log.debug("received: ${t.tag}:${t.level}")
+            console.log("received: ${t.tag}:${t.level}")
+            /*
             val slevel = pane.span() {
                 text(t.level)
             }
@@ -221,25 +229,63 @@ class LogPane(id:String?=null) : Tag("div", id)  {
             }
             pane.br()
             pane.dirty = true
+            */
+            table.body()?.tr {
+                val e = t
+                td {
+                    span {
+                        addClass("${e.level}")
+                        text(e.level)
+                    }
+                }
+                td {
+                    span {
+                        text(e.tag)
+                    }
+                }
+                td {
+                    span {
+                        text("${e.date.getHours()}:${e.date.getMinutes()}:${e.date.getSeconds()}:${e.date.getMilliseconds()}")
+                    }
+                }
+                td {
+                    span {
+                        text(e.content)
+                    }
+                }
+
+            }
+            table?.body()?.dirty = true
+            table?.dirty = true
         }
     }
     var appender : Appender? = null
     set(a) {
+        console.log("NEW APPENDER: ", a)
         if($appender!=null) {
             appender?.removeObserver(obs)
-            pane.detach()
-            pane = Div()
-            pane.addStyle("overflow", "auto")
+            //pane.detach()
+            //pane = Div()
+            //pane.addStyle("overflow", "auto")
+            //pane.addStyle("max-height", "100%")
             //TODO: weird creates [70vh] in chrome
-            pane.addStyle("height", 70.vh())
-            pane.addStyle("width", 70.vw())
-            addChild(pane)
-            dirty = true
+            //pane.addStyle("height", "100%")
+            //pane.addStyle("width", "100%")
+
+            table.detach()
+
         }
         $appender = a
         if(a != null) {
             a.addObserver(obs)
-        }
+            table = table() {
+                addStyle("overflow", "auto")
+                addStyle("max-height", "100%")
+                body {}
+            }
 
+            addChild(table)
+            dirty = true
+        }
     }
 }
