@@ -21,6 +21,9 @@ import ch.passenger.kotlin.html.js.html.components.Gesture
 import ch.passenger.kotlin.html.js.html.Div
 import ch.passenger.kotlin.html.js.html.BorderLayout
 import ch.passenger.kotlin.html.js.html.Tag
+import ch.passenger.kotlin.html.js.html.svg.percent
+import ch.passenger.kotlin.html.js.html.svg.vw
+import ch.passenger.kotlin.html.js.html.svg.vh
 
 val log = Logger.logger("LogManager")
 
@@ -226,6 +229,9 @@ class LogPane(id:String?=null) : Tag("div", id)  {
             appender?.removeObserver(obs)
             pane.detach()
             pane = Div()
+            pane.addStyle("overflow", "auto")
+            pane.addStyle("height", 70.vh())
+            pane.addStyle("width", 70.vw())
             addChild(pane)
             dirty = true
         }

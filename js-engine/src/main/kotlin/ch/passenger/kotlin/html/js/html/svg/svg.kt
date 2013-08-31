@@ -132,6 +132,8 @@ inline fun percent(v:Int) : Length = percent(v.toDouble())
 
 fun Number.px() : Length = Length(this.toDouble(), Measure.px)
 fun Number.percent() : Length = Length(this.toDouble(), Measure.percent)
+fun Number.vh() : Length = Length(this.toDouble(), Measure.vh)
+fun Number.vw() : Length = Length(this.toDouble(), Measure.vw)
 
 abstract class SvgElement(name:String,id:String?=null) : Tag(name, id) {
     public override fun createNode(): Node? {
@@ -190,7 +192,7 @@ abstract class SvgElement(name:String,id:String?=null) : Tag(name, id) {
 }
 
 public enum class Measure {
-em ex px inch cm mm pt pc percent
+em ex px inch cm mm pt pc percent vh vw
 }
 
 
