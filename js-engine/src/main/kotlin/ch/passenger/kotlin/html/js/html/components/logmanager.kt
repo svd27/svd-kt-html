@@ -1,4 +1,4 @@
-package ch.passenger.kotlin.html.js.logger
+package ch.passenger.kotlin.html.js.html.components
 
 import ch.passenger.kotlin.html.js.html.Select
 import ch.passenger.kotlin.html.js.model.SelectionObservableAdapter
@@ -26,18 +26,14 @@ import ch.passenger.kotlin.html.js.html.svg.vw
 import ch.passenger.kotlin.html.js.html.svg.vh
 import ch.passenger.kotlin.html.js.html.Table
 import js.debug.console
+import ch.passenger.kotlin.html.js.logger.LogFactory
 
-val log = Logger.logger("LogManager")
+val log = LogFactory.logger("LogManager")
 
 /**
  * Created by Duric on 26.08.13.
  */
 
-fun<T> listOf(vararg t:T) : List<T> {
-    val l = ArrayList<T>(t.size)
-    t.each { l.add(it) }
-    return l
-}
 
 class LogManager(id: String? = null) : FlowContainer("div", id) {
     val log = Logger.logger("logmanager")

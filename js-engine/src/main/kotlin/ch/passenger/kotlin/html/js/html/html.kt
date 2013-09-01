@@ -950,9 +950,6 @@ trait EventListener {
     fun handleEvent(e: DOMEvent): Any?
 }
 
-enum class EventTypes {
-    mouseenter mouseleave click change mouseover mouseout mousemove keypress keydown keyup end begin
-}
 
 trait EventManager {
     protected val listeners: MutableMap<EventTypes, MutableSet<(e: DOMEvent)->Unit>>

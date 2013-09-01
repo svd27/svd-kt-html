@@ -27,7 +27,16 @@
             "src": "js-engine.js",
             "type": "text/javascript"
         }
-
+    ],
+    "worker": [
+        {
+            "src": "resources/kotlinEcma3.js",
+            "type": "text/javascript"
+        },
+        {
+            "src": "webworker.js",
+            "type": "text/javascript"
+        }
     ]
 
 }

@@ -55,16 +55,6 @@ native trait DOMAttribute {
 }
 
 
-public native trait DOMEvent {
-    public val target: HTMLElement
-    public var data: Any?
-
-    fun targetId() {
-        target.id
-    }
-
-    fun preventDefault() = js.noImpl
-}
 
 public native trait DOMMouseEvent : DOMEvent {
     public val screenX: Long
@@ -152,13 +142,4 @@ public fun<T> List<T>.eachIdx(cb: (Int, T)->Unit): Unit {
 
 public fun<T> Array<T>.each(cb: (T)->Unit): Unit {
     for(e in this) cb(e)
-}
-
-public fun<T> listOf(vararg  t: T): List<T> {
-    val l = ArrayList<T>()
-    t.each {
-        l.add(it)
-    }
-
-    return l
 }

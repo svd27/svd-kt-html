@@ -318,45 +318,18 @@ class WebWorkerServlet : BosorkServlet() {
     fun resource(req: HttpServletRequest, resp: HttpServletResponse) {
         resp.setContentType("text/javascript")
         val asm = req.getServletContext()?.getAttribute(AppServletModule.APP_ATTRIBUTE) as AppServletModule
-
-        val dir = File(asm.root, "resources/worker")
-        val fecma = File(dir, "kotlinEcma3.js")
-        val fww = File(dir, "webworker.js")
-
-        var f = fecma
-        log.info("adding $f to worker.js ${f.exists()} exists ${f.canRead()} can read abs: ${f.getAbsolutePath()}")
-        if(f.exists() && f.canRead()) {
-            log.info("reading $f to worker.js")
-            val name = f.getName()
-            if(name=="jquery-1.8.3.js") {
-                log.info("ignoring $name")
-            } else {
-                f.readLines().forEach {
-                    log.debug(it)
-                    resp.getWriter()?.append(it)
-                    resp.getWriter()?.append("\n")
+        asm.workerResources.forEach {
+            if(it is JSResource) {
+                val f = File(asm.root, it.path)
+                if(f.exists() && f.canRead()) {
+                    f.readLines().forEach {
+                        log.debug(it)
+                        resp.getWriter()?.append(it)
+                        resp.getWriter()?.append("\n")
+                    }
                 }
-                //resp.getWriter()?.append("\nconsole.log('>>>>> loaded: ${f.getName()} <<<<<<')\n")
             }
         }
-
-        f = fww
-        log.info("adding $f to worker.js ${f.exists()} exists ${f.canRead()} can read abs: ${f.getAbsolutePath()}")
-        if(f.exists() && f.canRead()) {
-            log.info("reading $f to worker.js")
-            val name = f.getName()
-            if(name=="jquery-1.8.3.js") {
-                log.info("ignoring $name")
-            } else {
-                f.readLines().forEach {
-                    log.debug(it)
-                    resp.getWriter()?.append(it)
-                    resp.getWriter()?.append("\n")
-                }
-                //resp.getWriter()?.append("\nconsole.log('>>>>> loaded: ${f.getName()} <<<<<<')\n")
-            }
-        }
-
 
         resp.getWriter()?.flush()
         resp.getWriter()?.close()
@@ -473,7 +446,8 @@ class EventsSocket(session:HttpSession) : BosorkWebsocketAdapter(session) {
 }
 
 
-class AppServletModule(val app:BosorkApp, val resources:Iterable<BosorkWebResource>, val root:File) {
+class AppServletModule(val app:BosorkApp, val resources:Iterable<BosorkWebResource>, val root:File,
+                       val workerResources:Iterable<BosorkWebResource>) {
     {
         app.listen(this)
     }
@@ -563,10 +537,20 @@ public fun readAppCfg(f:File) : AppCfg {
         resources.add(JSResource(src!!, "$appname/resource"))
     }
 
-    return AppCfg(f.getParentFile()!!, appname!!, port!!, resources)
+    val workers = root?.path("worker") as ArrayNode
+
+    val wresources = ArrayList<BosorkWebResource>()
+    workers.each {
+        val src = it.path("src")?.textValue()
+        val kind = it.path("type")?.textValue()
+
+        wresources.add(JSResource(src!!, "$appname/resource"))
+    }
+
+    return AppCfg(f.getParentFile()!!, appname!!, port!!, resources, wresources)
 }
 
-class AppCfg(val root: File, val appname:String, val port:Int, val resources:Iterable<BosorkWebResource>) {
+class AppCfg(val root: File, val appname:String, val port:Int, val resources:Iterable<BosorkWebResource>,val workerResources:Iterable<BosorkWebResource>) {
     var services : List<ServiceProvider> = ArrayList()
     var auth : AuthProvider = AnonymousAuthService.provider
 }
@@ -574,7 +558,7 @@ class AppCfg(val root: File, val appname:String, val port:Int, val resources:Ite
 public fun startApp(cfg:AppCfg) {
     val app = BosorkApp(URN.gen("bosork", "application", "test.bosork.org", cfg.appname),
             cfg.services, DefaultWebAppSessionFactoryProvider(), cfg.auth)
-    val asm = AppServletModule(app, cfg.resources, cfg.root)
+    val asm = AppServletModule(app, cfg.resources, cfg.root, cfg.workerResources)
     val af = AppFactory(asm, cfg.port)
     af.init()
     af.server?.start()

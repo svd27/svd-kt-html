@@ -7,13 +7,15 @@
         <element id="dir-copy" path="$PROJECT_DIR$/js-engine/resources" />
         <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma3.js" />
         <element id="directory" name="worker">
-          <element id="module-output" name="webworker" />
           <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma3.js" />
           <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma5.js" />
         </element>
         <element id="file-copy" path="$PROJECT_DIR$/js-engine/script/kotlinEcma5.js" />
       </element>
       <element id="file-copy" path="$PROJECT_DIR$/js-engine/apps/htmltests/bosork.json" />
+      <element id="module-output" name="js-base" />
+      <element id="module-output" name="js-logging" />
+      <element id="module-output" name="webworker" />
     </root>
   </artifact>
 </component>

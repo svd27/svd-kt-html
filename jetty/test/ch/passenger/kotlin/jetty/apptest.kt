@@ -41,7 +41,7 @@ class AppTests {
 
         val wapp = AppServletModule(app, listOf(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
                 LinkResource.css("resources/html/base.css", "test/resource")),
-                File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"))
+                File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"), ArrayList())
 
         val waf = AppFactory(wapp, 2709)
         waf.init()
@@ -120,7 +120,7 @@ class AppTests {
 
         val wapp = AppServletModule(app, listOf(JSResource("resources/js/jquery-1.7.2.js", "test/resource"),
                 LinkResource.css("resources/html/base.css", "test/resource")),
-                File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"))
+                File("D:/dev/svd/proj/kotlin/svd-kt-html/Container/web"), ArrayList())
 
         val waf = AppFactory(wapp, 2709)
         waf.init()

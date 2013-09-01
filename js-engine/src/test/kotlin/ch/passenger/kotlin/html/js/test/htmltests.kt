@@ -556,19 +556,20 @@ fun initUI() {
         }
 
                 parent.div("worker") {
+                    text("worker:")
                     //TODO: cant call text inside each
                     val SESSION = (window as MyWindow)!!.bosork!!
                     val path = "${SESSION.base}/webworker"
                     console.log("requesting worker on: $path")
                     val w = Worker(path)
+                    val that = this
                     w.onmessage = {
                         e ->
-                        val SESSION = (window as MyWindow)!!.bosork!!
-                        val wdiv = SESSION.root.find("worker") as FlowContainer
                         console.log("Worker said: ${e.data}")
-                        wdiv.span() {
+                        that.span() {
                             text("${e} ${e.data}")
                         }
+                        that.dirty = true
                     }
                     console.log("starting worker", w)
                     w.postMessage("start")

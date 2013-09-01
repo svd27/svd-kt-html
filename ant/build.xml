@@ -1,0 +1,21 @@
+<project name="bosork" default="copy-generated">
+    <target name="copy-generated">
+        <echo message="${module.worker}"/>
+        <copy verbose="true" force="true" todir="${module.engine}/src/generated/kotlin">
+            <fileset dir="${module.base}/src/main/kotlin" includes="**"/>
+            <fileset dir="${module.logging}/src/main/kotlin" includes="**"/>
+        </copy>
+        <copy verbose="true" force="true" todir="${module.worker}/src/generated/kotlin">
+            <fileset dir="${module.base}/src/main/kotlin" includes="**"/>
+            <fileset dir="${module.logging}/src/main/kotlin" includes="**"/>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete>
+            <fileset dir="${module.engine}/src/generated/kotlin" includes="**/*"/>
+        </delete>
+        <delete>
+            <fileset dir="${module.worker}/src/generated/kotlin" includes="**/*"/>
+        </delete>
+    </target>
+</project>

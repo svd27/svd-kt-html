@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AntConfiguration">
+    <buildFile url="file://$PROJECT_DIR$/ant/build.xml">
+      <properties>
+        <property name="project.home" value="$FileDir$/.." />
+        <property name="module.base" value="$FileDir$/../js-base" />
+        <property name="module.logging" value="$FileDir$/../js-logging" />
+        <property name="module.engine" value="$FileDir$/../js-engine" />
+        <property name="module.worker" value="$FileDir$/../webworker" />
+      </properties>
+    </buildFile>
+  </component>
+</project>
+
