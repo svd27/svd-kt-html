@@ -20,7 +20,7 @@ native("Worker") trait WebWorker {
     native var onmessage : (e:DOMEvent) -> Unit
     native var onerror : (e:DOMEvent) -> Unit
     native fun addEventListener(kind:String, cb: (e:DOMEvent)->Unit, fl:Boolean)
-    native var attributes : MutableMap<String,Any?>? = js.noImpl
+    native var attributes : MutableMap<String,Any?>?
 }
 
 

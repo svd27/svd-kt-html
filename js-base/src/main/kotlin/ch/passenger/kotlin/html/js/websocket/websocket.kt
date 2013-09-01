@@ -1,6 +1,7 @@
-package ch.passenger.kotlin.html.js.binding
+package ch.passenger.kotlin.html.js.websocket
 
-import ch.passenger.kotlin.html.js.html.DOMEvent
+import ch.passenger.kotlin.html.js.binding.DOMEvent
+
 
 /**
  * Created by sdju on 19.07.13.

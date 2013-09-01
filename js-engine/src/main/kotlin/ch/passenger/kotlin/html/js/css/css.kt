@@ -5,6 +5,7 @@ import ch.passenger.kotlin.html.js.html.each
 import java.util.StringBuilder
 import java.util.HashSet
 import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.logger.LogFactory
 
 /**
  * Created by Duric on 25.08.13.
@@ -15,7 +16,7 @@ enum class CSSAgents {
 }
 
 abstract class CSSProperty<T>(val name:String, val value:Array<T>) {
-    val log = Logger.logger("css.property")
+    val log = LogFactory.logger("css.property")
     val support : MutableSet<CSSAgents> = HashSet()
 
     abstract fun writeValue(t:T) : String

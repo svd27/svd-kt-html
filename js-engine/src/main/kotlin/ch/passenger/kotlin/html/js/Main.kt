@@ -14,8 +14,9 @@ import js.dom.html.Event
 import ch.passenger.kotlin.html.js.html.*
 import ch.passenger.kotlin.html.js.model.WordTableModel
 import js.dom.html.document
-import ch.passenger.kotlin.html.js.binding.WebSocket
 import ch.passenger.kotlin.html.js.html.*
+import ch.passenger.kotlin.html.js.logger.LogFactory
+import ch.passenger.kotlin.html.js.logger.LocalLoggerManager
 
 /**
  * Created with IntelliJ IDEA.
@@ -23,6 +24,8 @@ import ch.passenger.kotlin.html.js.html.*
  * Date: 24.06.13
  * Time: 19:30
  */
+
+public val logging : LogFactory = LogFactory(LocalLoggerManager())
 
 //public native fun JQuery.getJSON(url: String, data: Any?, success : (data: Any, status : String) -> Unit ) : Unit = js.noImpl
 

@@ -27,16 +27,19 @@ import ch.passenger.kotlin.html.js.html.svg.vh
 import ch.passenger.kotlin.html.js.html.Table
 import js.debug.console
 import ch.passenger.kotlin.html.js.logger.LogFactory
+import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.logger.LoggerManager
+import ch.passenger.kotlin.html.js.logging
 
-val log = LogFactory.logger("LogManager")
+val log = logging.logger("LogManager")
 
 /**
  * Created by Duric on 26.08.13.
  */
 
 
-class LogManager(id: String? = null) : FlowContainer("div", id) {
-    val log = Logger.logger("logmanager")
+class LogManager(id: String? = null, protected val mgr:LoggerManager) : FlowContainer("div", id) {
+    val log = logging.logger("logmanager")
     val shoutLevels : Select<String> = Select(object:AbstractSelectionModel<String>(listOf("DEBUG", "INFO", "WARN", "ERROR", "FATAL"), false){})
     val loggers: Select<Logger> = Select(SelectionObservableAdapter(Logger.observeLoggers, Logger.loggers()),
             object:Converter<Logger> {
@@ -45,7 +48,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
                     return t.tag
                 }
                 override fun convert2target(s: String): Logger {
-                    return Logger.logger(s)!!
+                    return mgr.logger(s)!!
                 }
             })
     val appenders: Select<String> = Select(SelectionObservableAdapter(Logger.observeAppenders, Logger.appenders()));
@@ -57,15 +60,15 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
                 var b: Boolean? = null
                 val sel = appenders.selected()
                 if(sel != null) {
-                    val app = Logger.appender(sel)
-                    if(app != null)  b = app.levels.contains("ALL")
+
+                    b = mgr.levels(sel).contains("ALL")
                 }
                 b
             }
             set(v) {
                 val sel = appenders.selected()
                 if(sel == null) return
-                val app = Logger.appender(sel)
+                val app = mgr.appender(sel)
                 if(app == null) return
                 last = app.levels.contains("ALL")
                 last?:false
@@ -130,7 +133,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
             if(an != null && an.trim().length() > 0) {
                 val target = appenders.selected()
                 if(target != null) {
-                    Logger.appender(target)?.addLevel(an)
+                    logging.appender(target)?.addLevel(an)
                     levelsModel.add(an)
                 }
             }
@@ -138,7 +141,7 @@ class LogManager(id: String? = null) : FlowContainer("div", id) {
         addAppender.click {
             val an = inpAppender.value()
             if(an != null && an.trim().length() > 0) {
-                Logger.buffer(an)
+                mgr.addAppender(an)
             }
         }
         val tabs = TabbedView(Gesture.click, "logManagerTabs")
