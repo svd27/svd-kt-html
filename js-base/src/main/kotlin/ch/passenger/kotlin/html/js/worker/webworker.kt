@@ -49,8 +49,13 @@ public abstract class WorkerResponse(val service:String, val action:String, val 
         js.set("service", service)
         js.set("action", action)
         js.set("client", client)
+        js.set("success", success)
         val detail = JSON.parse<Json>("{}")
+        if(success)
         jsonDetails(detail)
+        else {
+            js.set("error", error)
+        }
         js.set("detail", detail)
         return js
     }

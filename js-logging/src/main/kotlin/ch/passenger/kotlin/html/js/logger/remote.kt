@@ -21,6 +21,8 @@ import ch.passenger.kotlin.html.js.worker.WorkerReqRespFactory
 import ch.passenger.kotlin.html.js.worker.WorkerRequest
 import ch.passenger.kotlin.html.js.worker.WorkerResponse
 import ch.passenger.kotlin.html.js.logger.AppenderConfig
+import ch.passenger.kotlin.html.js.util.getString
+import ch.passenger.kotlin.html.js.util.getLong
 
 class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
     {
@@ -377,6 +379,54 @@ AppenderLoggingResponse(appender, "appender", client, success, error) {
     }
 }
 
+class LogRequest(tag:String, val level:String, val content:String, client:String) : LoggerLoggingRequest(tag, "log", client) {
+    override fun loggerDetails(detail: Json) {
+        detail.set("level", level)
+        detail.set("content", content)
+    }
+}
+
+class LogResponse(appender:String, val log:LogEntry, client:String) : AppenderLoggingResponse(appender, "log", client) {
+
+    override fun appenderDetails(detail: Json) {
+        val le = createJson()
+        le.set("tag", log.tag)
+        le.set("level", log.level)
+        le.set("content", log.content)
+        le.set("date", log.date.getTime())
+        detail.set("logentry", le)
+    }
+}
+
+class TrackAppenderRequest(appender:String, client:String) : AppenderLoggingRequest(appender, "track", client) {
+    override fun appenderDetails(detail: Json) {
+
+    }
+}
+
+class TrackAppenderResponse(appender:String, client:String, success:Boolean=true, error:Json?=null) :
+AppenderLoggingResponse(appender, "track", client, success, error) {
+    override fun appenderDetails(detail: Json) {
+
+    }
+}
+
+class AddAppenderRequest(tag:String, val appender:String, client:String) : LoggerLoggingRequest(tag, "add-appender", client) {
+
+    override fun loggerDetails(detail: Json) {
+        detail.set("appender", appender)
+    }
+}
+
+class AddAppenderResponse(tag:String, val appender:String, client:String, success:Boolean=true, error:Json?=null) :
+LoggerLoggingResponse(tag, "add-appender", client, success, error) {
+
+    override fun loggerDetails(detail: Json) {
+        detail.set("appender", appender)
+    }
+}
+
+
 class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
 
     override fun resolvereq(action: String, client: String, detail: Json): WorkerRequest? {
@@ -384,6 +434,15 @@ class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
             "logger" -> return RequestLogger(detail.get("tag") as String, client)
             "create-appender" -> return CreateAppenderRequest(detail.get("appender") as String,
                     detail.get("levels") as Array<String>, client)
+            "add-appender" -> {
+                return AddAppenderRequest(detail.getString("tag"), detail.getString("apeender"), client)
+            }
+            "log" -> {
+                val tag = detail.getString("tag")
+                val level = detail.getString("level")
+                val content = detail.getString("content")
+                return LogRequest(tag, level, content, client)
+            }
             else -> return null
         }
     }
@@ -408,6 +467,20 @@ class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
                 }
                 return AppenderResponse(app, levels, aca, client)
             }
+            "add-appender" -> {
+                return AddAppenderResponse(detail.getString("tag"), detail.getString("appender"), client)
+            }
+            "log" -> {
+                val app = detail.getString("appender")
+                val le = detail.get("logentry") as Json
+                val tag = le.getString("tag")
+                val content = le.getString("content")
+                val level = le.getString("level")
+                val ts = le.getLong("date")
+                val date = ch.passenger.kotlin.html.js.binding.Date(ts)
+                val log = LogEntry(tag, level, content, date)
+                return LogResponse(app, log, client)
+            }
             else -> return null
         }
     }
@@ -422,6 +495,11 @@ class LoggerService(val mgr:LocalLoggerManager=LocalLoggerManager()) : WorkerSer
             is RequestLogger -> {
                 val logger = logger(req.tag)
                 return LoggerResponse(req.tag, logger.appenders().toArray() as Array<String>, req.client)
+            }
+            is LogRequest -> {
+                val logger = logger(req.tag)
+                logger.log(req.level, req.content)
+                return null
             }
             else -> return null
         }
