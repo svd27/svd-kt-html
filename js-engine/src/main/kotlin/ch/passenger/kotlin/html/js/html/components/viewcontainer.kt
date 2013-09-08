@@ -8,13 +8,14 @@ import ch.passenger.kotlin.html.js.html.svg.percent
 import ch.passenger.kotlin.html.js.html.BorderLayout
 import java.util.HashMap
 import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.logger.LogFactory
 
 /**
  * Created by sdju on 27.08.13.
  */
 
 open class ViewContainer(id:String?=null, protected var selected : String? = null) : Tag("div", id) {
-    val log = Logger.logger("ViewContainer")
+    val log = LogFactory.logger("ViewContainer")
     override public fun addChild(v:HtmlElement)  {
         if (v is Tag) {
             doAddChild(v)
@@ -74,7 +75,7 @@ enum class Gesture {
 }
 
 class TabbedView(g:Gesture, id:String?=null) : Tag("Div", id) {
-    val log = Logger.logger("TabbedView")
+    val log = LogFactory.logger("TabbedView")
     val layout = BorderLayout(){}
     val north:Div = layout.north {  }
     val vc : ViewContainer = ViewContainer()

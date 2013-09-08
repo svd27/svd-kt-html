@@ -119,6 +119,8 @@ abstract class Appender(val name:String, var format:LogFormatter=DefaultLogForma
     open fun currentContent() : List<LogEntry> = ArrayList()
 
     protected override val observers: MutableSet<Observer<LogEntry>> = HashSet()
+
+    fun observers() : Set<Observer<LogEntry>> = observers
 }
 
 class ConsoleAppender(name:String, format:LogFormatter=DefaultLogFormatter()) : Appender(name, format) {
@@ -176,6 +178,8 @@ trait Logger {
     fun clearAppenders()
 }
 
+
+
 class LocalLogger (override val tag:String) : Logger {
     protected var appenders:MutableList<Appender> = ArrayList()
 
@@ -228,6 +232,7 @@ trait LoggerManager  {
     open fun removeAppender(name:String)
 
     protected fun createAppender(name:String, levels:Iterable<String>):Appender
+    protected fun appender(name:String) : Appender?
 
     fun loggers() : Iterable<String> = TAGS.keySet()
     fun appenders() : Iterable<String>
@@ -236,8 +241,15 @@ trait LoggerManager  {
     fun levels(an:String, levels : Iterable<String>)
     fun cfg(an:String, tag:String, levels:Iterable<String>)
 
-    fun track(appender:String, cb:(LogEntry)->Unit)
-    fun untrack(appender:String, cb:(LogEntry)->Unit)
+    fun track(appender:String, obs:Observer<LogEntry>)
+    fun untrack(appender:String, obs:Observer<LogEntry>)
+    fun content(appender:String) : List<LogEntry> {
+        val app = appender(appender)
+        if(app!=null) {
+            return app.currentContent()
+        }
+        return ArrayList()
+    }
 
     protected fun create(tag:String) : Logger
 }
@@ -284,6 +296,9 @@ open class LocalLoggerManager() : LoggerManager {
         return appender
     }
 
+
+    protected override fun appender(name: String): Appender? = appenders.get(name)
+
     override fun appenders(): Iterable<String> {
         return appenders.keySet()
     }
@@ -326,44 +341,26 @@ open class LocalLoggerManager() : LoggerManager {
     }
     fun buffer(name:String) : Appender = BufferedAppender(name)
 
-    val trackers : MutableMap<String,Set<(LogEntry)->Unit>> = HashMap()
-
-
-
-    override fun track(appender: String, cb: (LogEntry) -> Unit) {
-        if(!trackers.containsKey(appender)) {
-            trackers.put(appender, HashSet())
-        }
-        val ts = trackers.get(appender)
-        if(ts!=null) {
-            if(!ts.contains(cb)) {
-                val app = appenders.get(appender)
-                if(app!=null) {
-                    app.addObserver()
-                }
-            }
+    override fun track(appender: String, obs:Observer<LogEntry>) {
+        val app = appenders.get(appender)
+        if(app!=null) {
+            app.addObserver(obs)
         }
     }
-    override fun untrack(appender: String, cb: (LogEntry) -> Unit) {
-        throw UnsupportedOperationException()
+    override fun untrack(appender: String, obs:Observer<LogEntry>) {
+        val app = appenders.get(appender)
+        if(app!=null) {
+            app.removeObserver(obs)
+        }
     }
 }
 
-class LoggerFacade(var impl:Logger) : Logger by impl
+class LogFactory(val mgr:LoggerManager) {
+    fun logger(tag:String) : Logger = mgr.logger(tag)
 
-class LogFactory(m:LoggerManager) {
-    private val loggers : Map<String,LoggerFacade> = HashMap()
-    var mgr: LoggerManager = m
-    set(m) {
-        loggers.values().each {
-            it.impl = m.logger(it.tag)
-        }
-        $mgr = m
-    }
-
-    fun logger(tag:String) : Logger {
-        val l = LoggerFacade(mgr.logger(tag))
-        return l
+    class object {
+        private val LOGGING = LogFactory(LocalLoggerManager())
+        fun logger(tag:String) : Logger = LOGGING.logger(tag)
     }
 }
 
@@ -383,12 +380,22 @@ class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
                     if(detail != null) {
                         val d = detail as Json
                         val a = d.get("action") as String?
+                        if(a!=null)
+                        dispatch(a, detail)
+                        else error("unknown action $a")
                     }
                 }
             }
         }
         worker.addEventListener(EventTypes.message.name(), cb, false)
     }
+
+    fun error(msg:String) {
+        val res = Json()
+        res.set("error", msg)
+        worker.postMessage(res)
+    }
+
     fun dispatch(action: String, detail: Json) {
         val resp = Json()
         when(action) {
@@ -402,9 +409,22 @@ class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
             }
             "create-appender" -> {
                 val name = resp.get("name") as String
+                val levels = resp.get("levels") as List<String>
                 var appender = appenders.get(name)
                 if(appender==null)
-                  addAppender(name, listOf("ALL"))
+                  addAppender(name, levels)
+                appender = appenders.get(name)!!
+                val res = Json()
+                res.set("result", "ok")
+                res.set("appender", appender2json(appender!!))
+                worker.postMessage(res)
+            }
+            "appender-remove-level" -> {
+                val name = resp.get("name") as String
+                val levels = resp.get("levels") as List<String>
+                var appender = appenders.get(name)
+                if(appender==null)
+                    addAppender(name, levels)
                 appender = appenders.get(name)!!
                 val res = Json()
                 res.set("result", "ok")
@@ -443,19 +463,35 @@ class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
             }
             "track" -> {
                 val na  = detail.get("appender") as String
+                val client = detail.get("client") as String
 
-                if(!trackers.containsKey(na)) {
-                    val app = appenders.get(na)
-                    if(app!=null) app.removeObserver(LogObserver(na, worker))
-                }
+                track(na, LogObserver(client, na, worker))
             }
             "untrack" -> {
                 val na  = detail.get("appender") as String
+                val client = detail.get("client") as String
 
-                if(trackers.containsKey(na)) {
-                    val cb = trackers.remove(na)
-                    val app = appenders.get(na)
-                    if(app!=null && cb!=null) app.removeObserver(cb)
+                val app = appenders.get(na)
+                if(app!=null) {
+                    //TODO: dont trust equals
+                    app.observers().each {
+                        if(it is LogObserver && it.client==client) {
+                            val js = Json()
+                            js.set("log", "untrack $client on $na")
+                            worker.postMessage(js)
+                            untrack(na, it)
+                        }
+                    }
+                }
+
+            }
+            "log" -> {
+                val tag = detail.get("tag") as String
+                val log = logger(tag)
+                if(log!=null) {
+                    val level = detail.get("content") as String
+                    val content = detail.get("content")
+                    log.log(level, content)
                 }
             }
             else -> {
@@ -466,11 +502,10 @@ class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
         }
     }
 
-    private val trackers : MutableMap<String,LogObserver> = HashMap()
-
-    class LogObserver(val app:String, val worker:WebWorker) :  AbstractObserver<LogEntry>() {
+    class LogObserver(val client:String, val app:String, val worker:WebWorker) :  AbstractObserver<LogEntry>() {
         override fun added(t: LogEntry) {
             val msg = Json()
+            msg.set("client", client)
             msg.set("logentry", t)
             worker.postMessage(msg)
         }
@@ -499,10 +534,90 @@ class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
     }
 }
 
-class RemoteLogger(val worker:WebWorker, tag:String) : Logger {
-    override val tag: String = tag
-    public override fun log(level: String, vararg content: Any?) {
+class LoggerManagerProxy(val worker:WebWorker) : LoggerManager {
+    override val TAGS: MutableMap<String, Logger> = HashMap()
+    override public val observeLoggers : Observable<Logger> = object : Observable<Logger> {
+        protected override val observers: MutableSet<Observer<Logger>> = HashSet()
+    }
+
+    override public val observeAppenders : Observable<String> = object : Observable<String> {
+        protected override val observers: MutableSet<Observer<String>> = HashSet()
+    }
+
+    override fun addAppender(name: String, levels: Iterable<String>) {
+        val detail = jsDetail("create-appender")
+        detail.set("name", name)
+        val req = jsReq("logging", detail)
+
+        worker.postMessage(req)
+    }
+
+    override fun removeAppender(name: String) {
         throw UnsupportedOperationException()
+    }
+    override fun createAppender(name: String, levels: Iterable<String>): Appender {
+        throw UnsupportedOperationException()
+    }
+    override fun appender(name: String): Appender? {
+        throw UnsupportedOperationException()
+    }
+    override fun appenders(): Iterable<String> {
+        throw UnsupportedOperationException()
+    }
+    override fun appenders(tag: String): Iterable<String> {
+        throw UnsupportedOperationException()
+    }
+    override fun levels(an: String): Iterable<String> {
+        throw UnsupportedOperationException()
+    }
+    override fun levels(an: String, levels: Iterable<String>) {
+        throw UnsupportedOperationException()
+    }
+    override fun cfg(an: String, tag: String, levels: Iterable<String>) {
+        throw UnsupportedOperationException()
+    }
+    override fun track(appender: String, obs: Observer<LogEntry>) {
+        throw UnsupportedOperationException()
+    }
+    override fun untrack(appender: String, obs: Observer<LogEntry>) {
+        throw UnsupportedOperationException()
+    }
+    override fun create(tag: String): Logger {
+        throw UnsupportedOperationException()
+    }
+}
+
+fun jsReq(service:String, detail:Json) : Json {
+    val js = Json()
+    js.set("service", service)
+    js.set("detail", detail)
+    return js
+}
+
+fun jsDetail(action:String) : Json {
+    val js = Json()
+    js.set("action", action)
+    return js
+}
+
+class LoggerProxy(val worker:WebWorker, override val tag: String) : Logger {
+    public override fun log(level: String, vararg content: Any?) {
+        val js = Json()
+        js.set("service", "logging")
+        val detail = Json()
+        detail.set("action", "log")
+        val jl = Json()
+        jl.set("tag", tag)
+        jl.set("level", level)
+        val sb = StringBuilder()
+        content.each {
+            if(it!=null) sb.append(it)
+            else sb.append("null")
+        }
+        jl.set("content", sb.toString())
+        detail.set("log", jl)
+        js.set("detail", detail)
+        worker.postMessage(jl)
     }
     override fun addAppender(a: Appender) {
         throw UnsupportedOperationException()
@@ -521,4 +636,10 @@ class RemoteLogger(val worker:WebWorker, tag:String) : Logger {
 class RemoteAppender(val worker:WebWorker, name:String, maxSize:Int=999999, format:LogFormatter=DefaultLogFormatter()) :
 BufferedAppender(name:String, maxSize:Int, format:LogFormatter) {
 
+}
+
+fun wlog(msg:String, w:WebWorker) {
+    val js = Json()
+    js.set("log", msg)
+    w.postMessage(js)
 }

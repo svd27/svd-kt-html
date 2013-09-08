@@ -5,7 +5,6 @@ import ch.passenger.kotlin.html.js.html.ROOT_PARENT
 import js.debug.console
 import js.dom.html.window
 import js.dom.core.Node
-import ch.passenger.kotlin.html.js.html.DOMEvent
 import java.util.StringBuilder
 import ch.passenger.kotlin.html.js.html.Text
 import java.util.HashMap
@@ -13,7 +12,8 @@ import ch.passenger.kotlin.html.js.html.each
 import java.util.ArrayList
 import ch.passenger.kotlin.html.js.html.EventTarget
 import ch.passenger.kotlin.html.js.html.EventManager
-import ch.passenger.kotlin.html.js.html.EventTypes
+import ch.passenger.kotlin.html.js.binding.DOMEvent
+import ch.passenger.kotlin.html.js.binding.EventTypes
 
 /**
  * Created by Duric on 18.08.13.

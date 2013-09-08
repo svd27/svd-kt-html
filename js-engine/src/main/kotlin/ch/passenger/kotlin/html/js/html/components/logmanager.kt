@@ -30,27 +30,20 @@ import ch.passenger.kotlin.html.js.logger.LogFactory
 import ch.passenger.kotlin.html.js.logger.Logger
 import ch.passenger.kotlin.html.js.logger.LoggerManager
 import ch.passenger.kotlin.html.js.logging
+import ch.passenger.kotlin.html.js.listOf
 
-val log = logging.logger("LogManager")
+val log = LogFactory.logger("LogManager")
 
 /**
  * Created by Duric on 26.08.13.
  */
 
 
+/*
 class LogManager(id: String? = null, protected val mgr:LoggerManager) : FlowContainer("div", id) {
     val log = logging.logger("logmanager")
     val shoutLevels : Select<String> = Select(object:AbstractSelectionModel<String>(listOf("DEBUG", "INFO", "WARN", "ERROR", "FATAL"), false){})
-    val loggers: Select<Logger> = Select(SelectionObservableAdapter(Logger.observeLoggers, Logger.loggers()),
-            object:Converter<Logger> {
-
-                override fun convert2string(t: Logger): String {
-                    return t.tag
-                }
-                override fun convert2target(s: String): Logger {
-                    return mgr.logger(s)!!
-                }
-            })
+    val loggers: Select<String> = Select(SelectionObservableAdapter<String>(mgr.observeLoggers, mgr.loggers()))
     val appenders: Select<String> = Select(SelectionObservableAdapter(Logger.observeAppenders, Logger.appenders()));
     val allLevelsModel: Model<Boolean> = object : Model<Boolean> {
 
@@ -198,7 +191,9 @@ class LogManager(id: String? = null, protected val mgr:LoggerManager) : FlowCont
         return HashSet()
     }
 }
+*/
 
+/*
 class LogPane(id:String?=null) : FlowContainer("div", id)  {
     {
         addStyle("max-height", "90%")
@@ -209,7 +204,8 @@ class LogPane(id:String?=null) : FlowContainer("div", id)  {
     val obs : AbstractObserver<LogEntry> = object : AbstractObserver<LogEntry>() {
         override fun added(t: LogEntry) {
             console.log("received: ${t.tag}:${t.level}")
-            /*
+            */
+/*
             val slevel = pane.span() {
                 text(t.level)
             }
@@ -228,7 +224,8 @@ class LogPane(id:String?=null) : FlowContainer("div", id)  {
             }
             pane.br()
             pane.dirty = true
-            */
+            *//*
+
             table.body()?.tr {
                 val e = t
                 td {
@@ -287,4 +284,4 @@ class LogPane(id:String?=null) : FlowContainer("div", id)  {
             dirty = true
         }
     }
-}
+}*/

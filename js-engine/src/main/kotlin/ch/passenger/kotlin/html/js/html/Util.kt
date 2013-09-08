@@ -11,6 +11,7 @@ import js.debug.console
 import js.dom.core.Element
 import js.dom.core.TypeInfo
 import ch.passenger.kotlin.html.js.worker.Worker
+import ch.passenger.kotlin.html.js.binding.DOMEvent
 
 /**
  * Created with IntelliJ IDEA.

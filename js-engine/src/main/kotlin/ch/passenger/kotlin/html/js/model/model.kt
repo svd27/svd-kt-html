@@ -5,12 +5,13 @@ import java.util.HashSet
 import java.util.ArrayList
 import ch.passenger.kotlin.html.js.html.each
 import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.logger.LogFactory
 
 /**
  * Created by sdju on 16.08.13.
  */
 
-val log : Logger = Logger.logger("model")
+val log : Logger = LogFactory.logger("model")
 
 
 
@@ -172,7 +173,7 @@ abstract class AbstractSelectionModel<T>(val values : Iterable<T>, override val 
 }
 
 open class SelectionObservableAdapter<T>(val observable:Observable<T>, initial:Iterable<T>, multi:Boolean=false) : AbstractSelectionModel<T>(initial, multi) {
-    val log :Logger = Logger.logger("SelectionObservableAdapter");
+    val log :Logger = LogFactory.logger("SelectionObservableAdapter");
     {
         observable.addObserver(object:Observer<T> {
 

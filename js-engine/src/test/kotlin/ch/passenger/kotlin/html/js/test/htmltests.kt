@@ -5,7 +5,6 @@ import js.dom.html.window
 import ch.passenger.kotlin.html.js.html.Div
 import ch.passenger.kotlin.html.js.html.on
 import ch.passenger.kotlin.html.js.html.MyWindow
-import ch.passenger.kotlin.html.js.html.DOMEvent
 import ch.passenger.kotlin.html.js.html.Callback
 import ch.passenger.kotlin.html.js.Session
 import js.debug.console
@@ -40,10 +39,11 @@ import ch.passenger.kotlin.html.js.html.svg.TrRotate
 import ch.passenger.kotlin.html.js.html.svg.sec
 import ch.passenger.kotlin.html.js.html.svg.TrTranslate
 import ch.passenger.kotlin.html.js.logger.Logger
-import ch.passenger.kotlin.html.js.logger.LogManager
 import ch.passenger.kotlin.html.js.html.components.ViewContainer
 import ch.passenger.kotlin.html.js.html.components.TabbedView
 import ch.passenger.kotlin.html.js.html.components.Gesture
+import ch.passenger.kotlin.html.js.logger.LogFactory
+import ch.passenger.kotlin.html.js.listOf
 
 val SELF = window as Self
 
@@ -64,9 +64,9 @@ class AConverter : Converter<A> {
  * Created by sdju on 16.08.13.
  */
 
-public native fun document.addEventListener(kind: String, cb: (e: DOMEvent)->Any?, f: Boolean): Unit = js.noImpl
+public native fun document.addEventListener(kind: String, cb: (e: DOMEvent) -> Any?, f: Boolean): Unit = js.noImpl
 
-public val log : Logger = Logger.logger("bosork-tests")
+public val log: Logger = LogFactory.logger("bosork-tests")
 
 fun dump(n: Node) {
     console.log("Dump ${n.localName}:${n?.attributes?.getNamedItem("id")?.nodeValue}")
@@ -75,8 +75,8 @@ fun dump(n: Node) {
     }
 }
 
-var noiseStarted : Any? = null
-var noiseLink : Link? = null
+var noiseStarted: Any? = null
+var noiseLink: Link? = null
 
 fun logNoise() {
     val d = Date(Date.now())
@@ -152,7 +152,7 @@ var selEV: Select<Int>? = null
 
 var theGrid: Grid? = null
 
-var popUp : Div? = null
+var popUp: Div? = null
 
 fun initUI() {
     jq {
@@ -168,7 +168,7 @@ fun initUI() {
                 svg(100.px(), 100.px()) {
                     line(0.px(), 0.px(), 100.px(), 100.px()) {
                         stroke = black()
-                        animate(TrRotate(0, 50, 50),TrRotate(360, 50, 50)) {
+                        animate(TrRotate(0, 50, 50), TrRotate(360, 50, 50)) {
                             dur = 5.sec()
                             repeatCount = 3
                         }
@@ -179,8 +179,8 @@ fun initUI() {
                                 console.log("translate started")
                             }
                             end {
-                               console.log("im done")
-                               //parent?.detach()
+                                console.log("im done")
+                                //parent?.detach()
                             }
                         }
 
@@ -247,7 +247,7 @@ fun initUI() {
                     csvg.svg(100.px(), 100.px()) {
                         line(0.px(), 0.px(), 100.px(), 100.px()) {
                             stroke = black()
-                            animate(TrRotate(0, 50, 50),TrRotate(360, 50, 50)) {
+                            animate(TrRotate(0, 50, 50), TrRotate(360, 50, 50)) {
                                 dur = 5.sec()
                                 repeatCount = -1
                             }
@@ -374,7 +374,7 @@ fun initUI() {
                             console.log("selecting $num")
                             numbers.select(num)
                             if(currentCell.value != null) {
-                                var can:Boolean = modelEntry.firstSelected()!=EntryMode.SET?:true
+                                var can: Boolean = modelEntry.firstSelected() != EntryMode.SET?:true
                                 if(!can) can = theGrid?.validate(num, currentCell.value!!)?:true
                                 else theGrid?.validate(num, currentCell.value!!)?:true
                                 console.log("key manip ", num, " in ", currentCell?.value?.row, ",", currentCell?.value?.col,
@@ -432,13 +432,12 @@ fun initUI() {
                                 val num = numbers.firstSelected()
 
 
-
-                                var valid =  true
+                                var valid = true
                                 val em = modelEntry.firstSelected()!!
-                                if(theGrid!=null && num != null && em==EntryMode.SET) {
+                                if(theGrid != null && num != null && em == EntryMode.SET) {
                                     val ag = theGrid!!
                                     valid = ag.validate(num!!, c)
-                                } else if(theGrid!=null && num != null && em==EntryMode.CANDIDATE) {
+                                } else if(theGrid != null && num != null && em == EntryMode.CANDIDATE) {
                                     val ag = theGrid!!
                                     ag.validate(num!!, c)
                                 }
@@ -509,13 +508,13 @@ fun initUI() {
                     click {
                         it.preventDefault()
                         popUp?.addStyle("display", "visible")
-                        popUp?.dirty=true
+                        popUp?.dirty = true
                     }
                 }
                 noiseLink = a("start logging") {
                     click {
-                        if(noiseStarted==null) {
-                            noiseStarted = SELF.setInterval({logNoise()}, 1000)
+                        if(noiseStarted == null) {
+                            noiseStarted = SELF.setInterval({ logNoise() }, 1000)
                             noiseLink?.clear()
                             noiseLink?.text("Stop IT!")
                         } else {
@@ -536,6 +535,7 @@ fun initUI() {
                 }
             }
         }
+        /*
         popUp = parent.div {
             addStyle("position","fixed")
             addStyle("display", "none")
@@ -554,26 +554,26 @@ fun initUI() {
 
 
         }
+        */
 
-                parent.div("worker") {
-                    text("worker:")
-                    //TODO: cant call text inside each
-                    val SESSION = (window as MyWindow)!!.bosork!!
-                    val path = "${SESSION.base}/webworker"
-                    console.log("requesting worker on: $path")
-                    val w = Worker(path)
-                    val that = this
-                    w.onmessage = {
-                        e ->
-                        console.log("Worker said: ${e.data}")
-                        that.span() {
-                            text("${e} ${e.data}")
-                        }
-                        that.dirty = true
-                    }
-                    console.log("starting worker", w)
-                    w.postMessage("start")
+        parent.div("worker") {
+            text("worker:")
+            val SESSION = (window as MyWindow)!!.bosork!!
+            val path = "${SESSION.base}/webworker"
+            console.log("requesting worker on: $path")
+            val w = Worker(path)
+            val that = this
+            w.onmessage = {
+                e ->
+                console.log("Worker said: ${e.data}")
+                that.span() {
+                    text("${e} ${e.data}")
                 }
+                that.dirty = true
+            }
+            console.log("starting worker", w)
+            w.postMessage("start")
+        }
 
         parent.addChild(div)
 
@@ -589,13 +589,13 @@ class CellDisplay(val parent: FlowContainer, val model: Model<Cell>) : AbstractO
     }
 
     fun render() {
-        if(model.value == null && div.node!=null) {
+        if(model.value == null && div.node != null) {
             val n = div.node
-            if(n!=null) n.textContent = "-,-"
+            if(n != null) n.textContent = "-,-"
             //div.text("-,-")
-        } else if(div.node!=null) {
+        } else if(div.node != null) {
             val n = div.node
-            if(n!=null) n.textContent = "${model.value?.row},${model.value?.col}"
+            if(n != null) n.textContent = "${model.value?.row},${model.value?.col}"
             //div.text("${model.value?.row},${model.value?.col}")
         }
         //div.dirty = true

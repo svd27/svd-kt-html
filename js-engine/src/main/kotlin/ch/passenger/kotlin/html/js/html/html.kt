@@ -31,6 +31,9 @@ import ch.passenger.kotlin.html.js.css.*
 import ch.passenger.kotlin.html.js.model.Observable
 import ch.passenger.kotlin.html.js.model.AbstractSelectionModel
 import ch.passenger.kotlin.html.js.logger.Logger
+import ch.passenger.kotlin.html.js.binding.EventTypes
+import ch.passenger.kotlin.html.js.binding.DOMEvent
+import ch.passenger.kotlin.html.js.logger.LogFactory
 
 /**
  * Created with IntelliJ IDEA.
@@ -40,7 +43,7 @@ import ch.passenger.kotlin.html.js.logger.Logger
  * To change this template use File | Settings | File Templates.
  */
 
-val log = Logger.logger("html")
+val log = LogFactory.logger("html")
 
 fun session(): Session {
     val mw = window as MyWindow
@@ -632,7 +635,7 @@ class TableCell(id: String? = null) : FlowContainer("td", id)
 
 class Select<T>(val model: SelectionModel<T>, val converter: Converter<T>? = null, id: String? = null) : Tag("select", id) {
     var listener: Callback? = null
-    private val log = Logger.logger("select");
+    private val log = LogFactory.logger("select");
 
     {
         if(model.multi) attributes.att("multiple", "true")
@@ -829,7 +832,7 @@ enum class InputTypes {
 
 
 abstract class Input<T>(kind: InputTypes, val model: Model<T>, val conv: Converter<T>, id: String? = null) : Tag("input", id), EventManager {
-    protected val log: Logger = Logger.logger("html.input");
+    protected val log: Logger = LogFactory.logger("html.input");
     {
         attributes.att("type", kind.name())
         model.addObserver(object : AbstractObserver<T>() {
