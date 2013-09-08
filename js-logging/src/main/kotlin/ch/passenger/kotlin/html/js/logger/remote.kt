@@ -20,6 +20,7 @@ import ch.passenger.kotlin.html.js.logger.DefaultLogFormatter
 import ch.passenger.kotlin.html.js.worker.WorkerReqRespFactory
 import ch.passenger.kotlin.html.js.worker.WorkerRequest
 import ch.passenger.kotlin.html.js.worker.WorkerResponse
+import ch.passenger.kotlin.html.js.logger.AppenderConfig
 
 class RemoteLoggerManager(val worker: WebWorker) : LocalLoggerManager() {
     {
@@ -301,18 +302,6 @@ fun jsDetail(action:String) : Json {
 }
 
 
-class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
-
-    override fun resolvereq(action: String, client: String, detail: Json): WorkerRequest? {
-       when(action) {
-           "logger" -> return RequestLogger(detail.get("tag") as String, client)
-           else -> return null
-       }
-    }
-    override fun resolveresp(action: String, client: String, detail: Json): WorkerResponse? {
-        return null
-    }
-}
 
 abstract class LoggingRequest(action:String, client:String) : WorkerRequest("logging", action, client)
 abstract class LoggingResponse(action:String, client:String, success:Boolean=true, error:Json?=null) : WorkerResponse("logging", action, client, success, error)
@@ -334,9 +323,25 @@ abstract class LoggerLoggingResponse(val tag:String, action:String, client:Strin
     abstract fun loggerDetails(detail:Json)
 }
 
+abstract class AppenderLoggingRequest(val appender:String,action:String, client:String) : LoggingRequest(action, client) {
+
+    override fun jsonDetails(detail: Json) {
+        detail.set("appender", appender)
+        appenderDetails(detail)
+    }
+
+    abstract fun appenderDetails(detail:Json)
+}
+abstract class AppenderLoggingResponse(val appender:String, action:String, client:String, success:Boolean=true, error:Json?=null) : LoggingResponse(action, client, success, error) {
+    override fun jsonDetails(detail: Json) {
+        detail.set("appender", appender)
+        appenderDetails(detail)
+    }
+
+    abstract fun appenderDetails(detail:Json)
+}
+
 class RequestLogger(tag:String, client:String) : LoggerLoggingRequest(tag, "logger", client) {
-
-
     override fun loggerDetails(detail: Json) {
 
     }
@@ -350,6 +355,65 @@ class LoggerResponse(tag:String, val appenders:Array<String>, client:String, suc
     }
 }
 
+class CreateAppenderRequest(appender:String, val levels:Array<String>, client:String) : AppenderLoggingRequest(appender, "create-appender", client) {
+
+    override fun appenderDetails(detail: Json) {
+        detail.set("levels", levels)
+    }
+}
+
+class AppenderResponse(appender:String, val levels:Array<String>, val cfgs:Array<AppenderConfig>, client:String, success:Boolean=true, error:Json?=null) :
+AppenderLoggingResponse(appender, "appender", client, success, error) {
+
+    override fun appenderDetails(detail: Json) {
+        detail.set("levels", levels)
+        val ja = Array<Json>(cfgs.size) {
+            val js = createJson()
+            js.set("tag", cfgs.get(it).tag)
+            js.set("levels", cfgs.get(it).levels)
+            js
+        }
+        detail.set("cfgs", ja)
+    }
+}
+
+class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
+
+    override fun resolvereq(action: String, client: String, detail: Json): WorkerRequest? {
+        when(action) {
+            "logger" -> return RequestLogger(detail.get("tag") as String, client)
+            "create-appender" -> return CreateAppenderRequest(detail.get("appender") as String,
+                    detail.get("levels") as Array<String>, client)
+            else -> return null
+        }
+    }
+    override fun resolveresp(action: String, client: String, detail: Json): WorkerResponse? {
+        when(action) {
+            "logger" -> return LoggerResponse(detail.get("tag") as String,
+                    detail.get("appenders") as Array<String>, client)
+            "appender" -> {
+                val app = detail.get("appender") as String
+                val levels = detail.get("levels") as Array<String>
+                val cfgs = detail.get("cfgs") as Array<Json>
+
+                val aca = Array<AppenderConfig>(cfgs.size) {
+                    val js = cfgs.get(it)
+                    val ac = AppenderConfig(js.get("tag") as String)
+                    val la = detail.get("levels") as Array<String>
+                    la.each {
+                        ac.addLevel(it)
+                    }
+
+                    ac
+                }
+                return AppenderResponse(app, levels, aca, client)
+            }
+            else -> return null
+        }
+    }
+}
+
+
 class LoggerService(val mgr:LocalLoggerManager=LocalLoggerManager()) : WorkerService("logging"), LoggerManager by mgr {
 
     override val factory: WorkerReqRespFactory = LoggingReqRespFactory()
@@ -357,7 +421,7 @@ class LoggerService(val mgr:LocalLoggerManager=LocalLoggerManager()) : WorkerSer
         when(req) {
             is RequestLogger -> {
                 val logger = logger(req.tag)
-                return LoggerResponse(req.tag, logger.appenders().toArray() as Array<String>)
+                return LoggerResponse(req.tag, logger.appenders().toArray() as Array<String>, req.client)
             }
             else -> return null
         }

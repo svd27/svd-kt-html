@@ -38,6 +38,8 @@ public abstract class WorkerRequest(val service:String, val action:String, val c
     }
 
     protected abstract fun jsonDetails(detail:Json)
+
+    protected fun createJson() : Json = JSON.parse<Json>("{}")
 }
 
 public abstract class WorkerResponse(val service:String, val action:String, val client:String, val success:Boolean=true, val error:Json?=null) {
@@ -54,6 +56,8 @@ public abstract class WorkerResponse(val service:String, val action:String, val 
     }
 
     protected abstract fun jsonDetails(detail:Json)
+
+    protected fun createJson() : Json = JSON.parse<Json>("{}")
 }
 
 public abstract class WorkerReqRespFactory(val service:String) {
