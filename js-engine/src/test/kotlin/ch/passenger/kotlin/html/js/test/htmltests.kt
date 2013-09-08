@@ -26,6 +26,7 @@ import ch.passenger.kotlin.html.js.binding.MutationRecord
 import ch.passenger.kotlin.html.js.binding.*
 import js.dom.core.Node
 import ch.passenger.kotlin.html.js.worker.Worker
+import ch.passenger.kotlin.html.js.worker.WorkerEchoRequest
 import ch.passenger.kotlin.html.js.html.svg.Grid
 import ch.passenger.kotlin.html.js.html.svg.Cell
 import ch.passenger.kotlin.html.js.model.Model
@@ -44,6 +45,7 @@ import ch.passenger.kotlin.html.js.html.components.TabbedView
 import ch.passenger.kotlin.html.js.html.components.Gesture
 import ch.passenger.kotlin.html.js.logger.LogFactory
 import ch.passenger.kotlin.html.js.listOf
+import ch.passenger.kotlin.html.js.worker.WorkerDoubleEchoRequest
 
 val SELF = window as Self
 
@@ -565,14 +567,16 @@ fun initUI() {
             val that = this
             w.onmessage = {
                 e ->
-                console.log("Worker said: ${e.data}")
+                console.log("Worker said: ${JSON.stringify(e.data?:"")}")
                 that.span() {
-                    text("${e} ${e.data}")
+                    text("js: ${JSON.stringify(e)} ${JSON.stringify(e.data?:"")}")
                 }
                 that.dirty = true
             }
             console.log("starting worker", w)
             w.postMessage("start")
+            w.postMessage(WorkerEchoRequest("heya", "1").toJson())
+            w.postMessage(WorkerDoubleEchoRequest("heya", "1").toJson())
         }
 
         parent.addChild(div)

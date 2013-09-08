@@ -21,16 +21,17 @@ native("Worker") trait WebWorker {
     native var onerror : (e:DOMEvent) -> Unit
     native fun addEventListener(kind:String, cb: (e:DOMEvent)->Unit, fl:Boolean)
     native var attributes : MutableMap<String,Any?>?
+    native var debugging : Boolean?
 }
 
 public abstract class WorkerRequest(val service:String, val action:String, val client:String) {
     fun toJson() : Json {
-        val js = Json()
+        val js = JSON.parse<Json>("{}")
         js.set("type", "request")
         js.set("service", service)
         js.set("action", action)
         js.set("client", client)
-        val detail = Json()
+        val detail = JSON.parse<Json>("{}")
         jsonDetails(detail)
         js.set("detail", detail)
         return js
@@ -41,12 +42,12 @@ public abstract class WorkerRequest(val service:String, val action:String, val c
 
 public abstract class WorkerResponse(val service:String, val action:String, val client:String, val success:Boolean=true, val error:Json?=null) {
     fun toJson() : Json {
-        val js = Json()
+        val js = JSON.parse<Json>("{}")
         js.set("type", "response")
         js.set("service", service)
         js.set("action", action)
         js.set("client", client)
-        val detail = Json()
+        val detail = JSON.parse<Json>("{}")
         jsonDetails(detail)
         js.set("detail", detail)
         return js
