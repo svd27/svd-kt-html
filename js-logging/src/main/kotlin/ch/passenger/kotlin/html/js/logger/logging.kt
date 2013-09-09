@@ -14,7 +14,7 @@ import ch.passenger.kotlin.html.js.binding.DOMEvent
 import ch.passenger.kotlin.html.js.listOf
 import ch.passenger.kotlin.html.js.worker.WebWorker
 import ch.passenger.kotlin.html.js.model.AbstractObserver
-import ch.passenger.kotlin.html.js.logger.RemoteLoggerManager.LogObserver
+
 
 /**
  * Created by Duric on 25.08.13.
@@ -227,11 +227,11 @@ trait LoggerManager  {
         return logger(tag)
     }
 
-    fun addAppender(name:String, levels:Iterable<String>)
+    fun addAppender(name:String, levels:Array<String>)
 
     open fun removeAppender(name:String)
 
-    protected fun createAppender(name:String, levels:Iterable<String>):Appender
+    protected fun createAppender(name:String, levels:Array<String>):Appender
     protected fun appender(name:String) : Appender?
 
     fun loggers() : Iterable<String> = TAGS.keySet()
@@ -279,7 +279,7 @@ open class LocalLoggerManager() : LoggerManager {
         protected override val observers: MutableSet<Observer<String>> = HashSet()
     }
 
-    override fun addAppender(name: String, levels: Iterable<String>) {
+    override fun addAppender(name: String, levels: Array<String>) {
         appenders.put(name, createAppender(name, levels))
         observeAppenders.fireAdd(name)
     }
@@ -290,7 +290,7 @@ open class LocalLoggerManager() : LoggerManager {
         observeAppenders.fireDelete(name)
     }
 
-    protected override open fun createAppender(name: String, levels: Iterable<String>): Appender {
+    protected override open fun createAppender(name: String, levels: Array<String>): Appender {
         val appender = buffer(name)
         levels.each { appender.addLevel(it) }
         return appender
