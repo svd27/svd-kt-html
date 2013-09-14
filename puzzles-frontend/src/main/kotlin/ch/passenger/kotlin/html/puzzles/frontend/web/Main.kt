@@ -5,7 +5,6 @@ import js.dom.html.window
 import ch.passenger.kotlin.html.js.html.Div
 import ch.passenger.kotlin.html.js.html.on
 import ch.passenger.kotlin.html.js.html.MyWindow
-import ch.passenger.kotlin.html.js.html.DOMEvent
 import ch.passenger.kotlin.html.js.html.Callback
 import ch.passenger.kotlin.html.js.Session
 

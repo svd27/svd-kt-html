@@ -130,7 +130,7 @@ fun artifact(it: ObjectNode): Artifact {
     if(artifactCache.containsKey(id)) return artifactCache[id]!!
     val ri = Artifact(id, it.path("g")?.asText()!!,
             it.path("a")?.asText()!!, vn?.asText()!!,
-            it.path("p")?.asText()!!, it.path("timestamp")?.asLong())
+            it.path("p")?.asText()!!, it.path("timestamp")?.asLong()?:0.toLong())
 
     val pec = it.path("ec")
     if (!(pec is MissingNode)) {

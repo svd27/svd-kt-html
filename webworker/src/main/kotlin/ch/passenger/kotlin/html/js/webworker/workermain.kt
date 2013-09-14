@@ -9,7 +9,8 @@ import ch.passenger.kotlin.html.js.worker.WorkerEchoService
 import java.util.HashMap
 import ch.passenger.kotlin.html.js.worker.WorkerService
 import ch.passenger.kotlin.html.js.each
-
+import ch.passenger.kotlin.html.js.logger.LocalLoggerManager
+import ch.passenger.kotlin.html.js.logger.LoggerService
 
 native val self: WebWorker? = js.noImpl
 
@@ -18,7 +19,8 @@ native val self: WebWorker? = js.noImpl
  * Created by sdju on 20.08.13.
  */
 fun main(args: Array<String>) {
-    services.put("echo", WorkerEchoService())
+    services.put("echo", WorkerEchoService(self!!))
+    services.put("logging", LoggerService(LocalLoggerManager() ,self!!))
     init()
 }
 

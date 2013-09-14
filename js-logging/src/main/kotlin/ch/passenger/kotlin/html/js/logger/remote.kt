@@ -1,3 +1,5 @@
+package ch.passenger.kotlin.html.js.logger
+
 import ch.passenger.kotlin.html.js.worker.WorkerService
 import ch.passenger.kotlin.html.js.worker.WebWorker
 import ch.passenger.kotlin.html.js.binding.EventTypes
@@ -62,6 +64,7 @@ class LoggerManagerProxy(val client: String, val worker: WebWorker) : LoggerMana
     }
     override fun createAppender(name: String, levels: Array<String>): Appender {
         worker.postMessage(CreateAppenderRequest(name, levels, client))
+        return AppenderFacade(name)
     }
 
     override fun appender(name: String): Appender? {
@@ -88,9 +91,7 @@ class LoggerManagerProxy(val client: String, val worker: WebWorker) : LoggerMana
     override fun untrack(appender: String, obs: Observer<LogEntry>) {
         throw UnsupportedOperationException()
     }
-    override fun create(tag: String): Logger {
-        throw UnsupportedOperationException()
-    }
+    override fun create(tag: String): Logger = LoggerProxy(worker, tag)
 }
 
 
@@ -231,11 +232,11 @@ class AppenderResponse(appender: String, val levels: Array<String>, val cfgs: Ar
 AppenderLoggingResponse(appender, "appender", client, success, error) {
 
     override fun appenderDetails(detail: Json) {
-        detail.set("levels", levels)
+        detail.set("levels", JSON.stringify(levels))
         val ja = Array<Json>(cfgs.size) {
             val js = createJson()
             js.set("tag", cfgs.get(it).tag)
-            js.set("levels", cfgs.get(it).levels)
+            js.set("levels", JSON.stringify(cfgs.get(it).levels))
             js
         }
         detail.set("cfgs", ja)
@@ -295,13 +296,16 @@ class LoggerRemoveAppenderRequest(tag: String, val appender: String, client: Str
     }
 }
 
-class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
+class LoggingReqRespFactory(worker:WebWorker) : WorkerReqRespFactory("logging", worker) {
 
     override fun resolvereq(action: String, client: String, detail: Json): WorkerRequest? {
         when(action) {
             "logger" -> return RequestLogger(detail.get("tag") as String, client)
-            "create-appender" -> return CreateAppenderRequest(detail.get("appender") as String,
-                    detail.get("levels") as Array<String>, client)
+            "create-appender" -> {
+
+                return CreateAppenderRequest(detail.get("appender") as String,
+                        detail.get("levels") as Array<String>, client)
+            }
             "remove-appender" -> return RemoveAppenderRequest(detail.get("appender") as String, client)
             "appender-levels" -> return AppenderLevelsRequest(detail.getString("appender"), detail.get("levels") as Array<String>, client)
             "logger-add-appender" -> {
@@ -360,37 +364,71 @@ class LoggingReqRespFactory : WorkerReqRespFactory("logging") {
 }
 
 
-class LoggerService(val mgr: LocalLoggerManager = LocalLoggerManager()) : WorkerService("logging"), LoggerManager by mgr {
-
-    override val factory: WorkerReqRespFactory = LoggingReqRespFactory()
+class LoggerService(val mgr: LocalLoggerManager = LocalLoggerManager(), worker:WebWorker) : WorkerService("logging", worker), LoggerManager by mgr {
+    val trackers : MutableMap<String,RemoteTracker> = HashMap()
+    override val factory: WorkerReqRespFactory = LoggingReqRespFactory(worker)
     override fun invoke(req: WorkerRequest): WorkerResponse? {
         when(req) {
             is RequestLogger -> {
-                val logger = logger(req.tag)
-                return LoggerResponse(req.tag, logger.appenders().toArray() as Array<String>, req.client)
+                val logger = mgr.logger(req.tag)
+                val apparr = Array<String>(logger.appenders().size()) {
+                    logger.appenders().get(it)
+                }
+                return LoggerResponse(req.tag, apparr, req.client)
             }
             is LogRequest -> {
-                val logger = logger(req.tag)
+                val logger = mgr.logger(req.tag)
                 logger.log(req.level, req.content)
                 return null
             }
             is CreateAppenderRequest -> {
-                addAppender(req.appender, req.levels)
-                val appender = appender(req.appender)
-                if(appender != null) {
-                    return AppenderResponse(appender.name,
-                            appender.levels.toArray() as Array<String>,
-                            appender.cfgs.values().toArray() as Array<AppenderConfig>, req.client)
+                mgr.addAppender(req.appender, req.levels)
+                val appender = mgr.appender(req.appender)
+                worker.postMessage("created ${appender?.name} js: " + JSON.stringify(appender?:"my bad"))
+                val lvls = ArrayList<String>(appender?.levels?.size()?:0)
+                lvls.addAll(appender?.levels?:ArrayList())
+                val lvlarr = Array<String>(lvls.size()) {
+                    lvls.get(it)
                 }
+                worker.postMessage("cfgs: ${appender?.cfgs?.size()} ${appender?.cfgs}")
+                worker.postMessage("lvlarr: ${lvlarr} ${lvlarr.size}")
+                val cl = ArrayList<AppenderConfig>(appender?.cfgs?.size()?:0)
+                appender?.cfgs?.values()?.each {
+                    cl.add(it)
+                }
+
+                val cfgarr = Array<AppenderConfig>(appender?.cfgs?.size()?:0) {
+                    worker.postMessage("cfg $it: ${appender!!.cfgs}")
+                    val cfg = cl.get(it)
+                    cfg!!
+                }
+                worker.postMessage("sending resp")
+                return AppenderResponse(appender?.name?:"",
+                        lvlarr,
+                        cfgarr, req.client)
             }
             is AppenderLevelsRequest -> {
-                val appender = appender(req.appender)
+                val appender = mgr.appender(req.appender)
                 if(appender != null) {
                     req.levels.each { appender.addLevel(it) }
                 }
             }
+            is TrackAppenderRequest -> {
+                val appender = mgr.appender(req.appender)
+                if(appender != null) {
+                    if(!trackers.containsKey(req.client))
+                        trackers.put(req.client, RemoteTracker(req.client, worker, req.appender))
+                    appender.addObserver(trackers.get(req.client)!!)
+                }
+            }
             else -> return null
         }
+        return null
+    }
+}
 
+class RemoteTracker(val client:String, val worker : WebWorker, val appender:String) : AbstractObserver<LogEntry>() {
+    override fun added(t: LogEntry) {
+        worker.postMessage(LogResponse(appender, t, client).toJson())
     }
 }

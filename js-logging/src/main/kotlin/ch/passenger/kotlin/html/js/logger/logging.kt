@@ -231,8 +231,8 @@ trait LoggerManager  {
 
     open fun removeAppender(name:String)
 
-    protected fun createAppender(name:String, levels:Array<String>):Appender
-    protected fun appender(name:String) : Appender?
+    fun createAppender(name:String, levels:Array<String>):Appender
+    fun appender(name:String) : Appender?
 
     fun loggers() : Iterable<String> = TAGS.keySet()
     fun appenders() : Iterable<String>
@@ -290,14 +290,14 @@ open class LocalLoggerManager() : LoggerManager {
         observeAppenders.fireDelete(name)
     }
 
-    protected override open fun createAppender(name: String, levels: Array<String>): Appender {
+    override open fun createAppender(name: String, levels: Array<String>): Appender {
         val appender = buffer(name)
         levels.each { appender.addLevel(it) }
         return appender
     }
 
 
-    protected override fun appender(name: String): Appender? = appenders.get(name)
+    override fun appender(name: String): Appender? = appenders.get(name)
 
     override fun appenders(): Iterable<String> {
         return appenders.keySet()

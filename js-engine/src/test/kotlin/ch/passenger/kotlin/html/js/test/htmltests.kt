@@ -46,6 +46,8 @@ import ch.passenger.kotlin.html.js.html.components.Gesture
 import ch.passenger.kotlin.html.js.logger.LogFactory
 import ch.passenger.kotlin.html.js.listOf
 import ch.passenger.kotlin.html.js.worker.WorkerDoubleEchoRequest
+import ch.passenger.kotlin.html.js.worker.WebWorker
+import ch.passenger.kotlin.html.js.logger.LoggerManagerProxy
 
 val SELF = window as Self
 
@@ -68,7 +70,7 @@ class AConverter : Converter<A> {
 
 public native fun document.addEventListener(kind: String, cb: (e: DOMEvent) -> Any?, f: Boolean): Unit = js.noImpl
 
-public val log: Logger = LogFactory.logger("bosork-tests")
+//public val log: Logger = LogFactory.logger("bosork-tests")
 
 fun dump(n: Node) {
     console.log("Dump ${n.localName}:${n?.attributes?.getNamedItem("id")?.nodeValue}")
@@ -569,7 +571,7 @@ fun initUI() {
                 e ->
                 console.log("Worker said: ${JSON.stringify(e.data?:"")}")
                 that.span() {
-                    text("js: ${JSON.stringify(e)} ${JSON.stringify(e.data?:"")}")
+                    text("js: ${JSON.stringify(e.data?:"")}")
                 }
                 that.dirty = true
             }
@@ -577,6 +579,11 @@ fun initUI() {
             w.postMessage("start")
             w.postMessage(WorkerEchoRequest("heya", "1").toJson())
             w.postMessage(WorkerDoubleEchoRequest("heya", "1").toJson())
+            val rlog = LogFactory(LoggerManagerProxy("htmltests", w as WebWorker))
+            rlog.mgr.addAppender("REMOTE", array("ALL"))
+
+            val logger = rlog.logger("htmltests")
+            logger.debug("remote logging?")
         }
 
         parent.addChild(div)

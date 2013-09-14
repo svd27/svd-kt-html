@@ -65,7 +65,7 @@ public abstract class WorkerResponse(val service:String, val action:String, val 
     protected fun createJson() : Json = JSON.parse<Json>("{}")
 }
 
-public abstract class WorkerReqRespFactory(val service:String) {
+public abstract class WorkerReqRespFactory(val service:String, val worker:WebWorker) {
     public fun req(json:Json) : WorkerRequest? {
         val t = json.get("type") as String?
         if(t==null || t!="request") return null
@@ -104,7 +104,7 @@ class WorkerEchoResponse(val echo:String, client:String) : WorkerResponse("echo"
     }
 }
 
-class WorkerEchoReqRespFactory : WorkerReqRespFactory("echo") {
+class WorkerEchoReqRespFactory(worker:WebWorker) : WorkerReqRespFactory("echo", worker) {
     override fun resolvereq(action: String, client: String, detail: Json): WorkerRequest? {
         val echo = detail.get("echo") as String
         when(action) {
@@ -122,13 +122,13 @@ class WorkerEchoReqRespFactory : WorkerReqRespFactory("echo") {
     }
 }
 
-abstract class WorkerService(val name:String) {
+abstract class WorkerService(val name:String, val worker:WebWorker) {
     abstract val factory : WorkerReqRespFactory
     abstract fun invoke(req:WorkerRequest) : WorkerResponse?
 }
 
-class WorkerEchoService : WorkerService("echo") {
-    override val factory: WorkerReqRespFactory = WorkerEchoReqRespFactory()
+class WorkerEchoService(worker:WebWorker) : WorkerService("echo", worker) {
+    override val factory: WorkerReqRespFactory = WorkerEchoReqRespFactory(worker)
     override fun invoke(req: WorkerRequest): WorkerResponse? {
         when(req) {
             is WorkerEchoRequest -> return echo(req)
